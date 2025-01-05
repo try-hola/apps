@@ -1,2 +1,2 @@
-# hola-pkgs
+# ¡Hola! Packages
 Application packages for hola
