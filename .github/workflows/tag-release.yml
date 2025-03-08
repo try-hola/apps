@@ -1,0 +1,82 @@
+name: Tag and Release Package
+
+# This workflow is manually triggered from the GitHub Actions UI
+# It creates a Git tag and GitHub Release for a specific package
+on:
+  workflow_dispatch:  # Manual trigger only
+    inputs:
+      package:        # Input: which package to release
+        description: 'Package to release'
+        required: true
+        type: string
+
+jobs:
+  # Main job to create a release tag and GitHub Release
+  create-release-tag:
+    runs-on: ubuntu-latest  # This job runs on the latest Ubuntu runner
+    steps:
+      # Step 1: Check out the repository code
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Full git history needed for tagging
+      
+      # Step 2: Verify the package exists and get its version
+      - name: Verify package exists
+        id: verify  # ID used to reference outputs from this step
+        run: |
+          # Path to the package.json file
+          PACKAGE_PATH="packages/${{ github.event.inputs.package }}/package.json"
+          
+          # Check if the package.json file exists
+          if [ ! -f "$PACKAGE_PATH" ]; then
+            echo "Error: Package ${{ github.event.inputs.package }} not found"
+            exit 1  # Fail the workflow if package doesn't exist
+          fi
+          
+          # Get the version from package.json
+          VERSION=$(jq -r .version "$PACKAGE_PATH")
+          
+          # Set the version as an output variable for later steps
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+      
+      # Step 3: Create and push a git tag
+      - name: Create and push tag
+        run: |
+          # Construct the tag name: package-name@v1.2.3
+          TAG_NAME="${{ github.event.inputs.package }}@v${{ steps.verify.outputs.version }}"
+          
+          # Configure git user for the commit
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          
+          # Create an annotated tag
+          git tag -a "$TAG_NAME" -m "Release ${{ github.event.inputs.package }} v${{ steps.verify.outputs.version }}"
+          
+          # Push the tag to the remote repository
+          git push origin "$TAG_NAME"
+      
+      # Step 4: Create a GitHub Release linked to the tag
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          # Release name
+          name: "${{ github.event.inputs.package }} v${{ steps.verify.outputs.version }}"
+          
+          # Tag to create the release from
+          tag_name: "${{ github.event.inputs.package }}@v${{ steps.verify.outputs.version }}"
+          
+          # Release settings
+          draft: false  # Published immediately, not as a draft
+          prerelease: false  # Mark as a full release, not a pre-release
+          
+          # Auto-generate release notes from commits
+          generate_release_notes: true
+          
+          # Additional release description
+          body: |
+            Release of ${{ github.event.inputs.package }} version ${{ steps.verify.outputs.version }}
+            
+            This release is available from the GitHub Container Registry:
+            ```
+            ghcr.io/${{ github.repository_owner }}/${{ github.event.inputs.package }}:${{ steps.verify.outputs.version }}
+            ```
