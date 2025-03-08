@@ -20,6 +20,25 @@ Each package directory contains:
 - A `package.json` file with version and metadata
 - A `src` directory with the Docker Compose configuration
 
+## Package Change Lifecycle
+
+```mermaid
+flowchart TB
+    Start[Developer initiates change] --> Feature[Create feature branch]
+    Feature --> Develop[Develop and test changes]
+    Develop --> PR[Create Pull Request]
+    PR --> Review[Code review process]
+    Review -- Changes requested --> Develop
+    Review -- Approved --> Merge[Merge to main branch]
+    Merge --> CI[GitHub Actions triggered]
+    CI --> DetectChanges[Detect changed packages]
+    DetectChanges -- No changes detected --> End[No deployment]
+    DetectChanges -- Changes detected --> BuildPackage[Package as tgz]
+    BuildPackage --> PublishOCI[Publish to GHCR.io]
+    PublishOCI --> TagVersion[Tagged with version]
+    TagVersion --> Available[Package available for use]
+```
+
 ## Branching Strategy
 
 Our branching strategy follows these guidelines:
@@ -150,25 +169,6 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/${{ matrix.package }}:${{ steps.package-version.outputs.version }}
             ghcr.io/${{ github.repository_owner }}/${{ matrix.package }}:latest
-```
-
-## Package Change Lifecycle
-
-```mermaid
-flowchart TB
-    Start[Developer initiates change] --> Feature[Create feature branch]
-    Feature --> Develop[Develop and test changes]
-    Develop --> PR[Create Pull Request]
-    PR --> Review[Code review process]
-    Review -- Changes requested --> Develop
-    Review -- Approved --> Merge[Merge to main branch]
-    Merge --> CI[GitHub Actions triggered]
-    CI --> DetectChanges[Detect changed packages]
-    DetectChanges -- No changes detected --> End[No deployment]
-    DetectChanges -- Changes detected --> BuildPackage[Package as tgz]
-    BuildPackage --> PublishOCI[Publish to GHCR.io]
-    PublishOCI --> TagVersion[Tagged with version]
-    TagVersion --> Available[Package available for use]
 ```
 
 ## CI/CD Workflow Visualization
