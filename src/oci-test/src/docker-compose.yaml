@@ -1,0 +1,11 @@
+services:
+  php:
+    build:
+      context: ./app
+    ports:
+      - "80:80"
+    environment:
+      - APP_ENV=development
+      - DEBUG=true
+      - EXAMPLE_API_KEY=secret_key_123
+    command: php -S 0.0.0.0:80 -t /var/www/html

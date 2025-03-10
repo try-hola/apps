@@ -1,0 +1,23 @@
+{
+  "name": "oci-test",
+  "version": "1.0.0",
+  "description": "PHP environment variables display application",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/owner/repository.git"
+  },
+  "keywords": [
+    "php",
+    "docker",
+    "environment-variables"
+  ],
+  "author": "",
+  "license": "MIT",
+  "oci": {
+    "annotations": {
+      "org.opencontainers.image.title": "oci-test",
+      "org.opencontainers.image.description": "PHP application that displays environment variables",
+      "org.opencontainers.image.version": "${npm_package_version}"
+    }
+  }
+}
