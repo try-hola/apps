@@ -126,8 +126,12 @@ jobs:
         run: |
           cd packages
           
-          # Extract OCI annotations from package.json if they exist
-          ANNOTATIONS=""
+          # Create base annotations including source repository link
+          ANNOTATIONS="--annotation org.opencontainers.image.source=https://github.com/${{ github.repository }}"
+          ANNOTATIONS="$ANNOTATIONS --annotation org.opencontainers.image.revision=${{ github.sha }}"
+          ANNOTATIONS="$ANNOTATIONS --annotation org.opencontainers.image.version=${{ steps.package-version.outputs.version }}"
+          
+          # Extract additional OCI annotations from package.json if they exist
           if jq -e '.oci.annotations' ${{ matrix.package }}/package.json > /dev/null 2>&1; then
             # Process each annotation key-value pair
             while IFS="=" read -r key value; do
@@ -140,12 +144,14 @@ jobs:
           # Push artifact with specific version tag
           echo "Pushing to ghcr.io/${{ github.repository_owner }}/${{ matrix.package }}:${{ steps.package-version.outputs.version }}"
           oras push ghcr.io/${{ github.repository_owner }}/${{ matrix.package }}:${{ steps.package-version.outputs.version }} \
-            ${{ matrix.package }}-v${{ steps.package-version.outputs.version }}.tgz $ANNOTATIONS
+            ${{ matrix.package }}-v${{ steps.package-version.outputs.version }}.tgz $ANNOTATIONS \
+            --disable-path-validation
             
           # Also push the same artifact with 'latest' tag for convenience
           echo "Pushing to ghcr.io/${{ github.repository_owner }}/${{ matrix.package }}:latest"
           oras push ghcr.io/${{ github.repository_owner }}/${{ matrix.package }}:latest \
-            ${{ matrix.package }}-v${{ steps.package-version.outputs.version }}.tgz $ANNOTATIONS
+            ${{ matrix.package }}-v${{ steps.package-version.outputs.version }}.tgz $ANNOTATIONS \
+            --disable-path-validation
 
   # Third job: Verify package structure and content (runs on PRs only)
   verify-packages:
