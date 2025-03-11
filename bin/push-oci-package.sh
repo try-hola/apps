@@ -3,19 +3,27 @@ set -euo pipefail
 
 # Check if required arguments are provided
 if [ $# -lt 2 ]; then
-  echo "Usage: $0 <package-name> <registry-path> [tag] [repository]"
-  echo "Example: $0 oci-test ghcr.io/try-hola packages"
+  echo "Usage: $0 <package-name> <registry-path> [repository] [tag]"
+  echo "Example: $0 oci-test ghcr.io/try-hola apps latest"
   exit 1
 fi
 
 PACKAGE_NAME=$1
 REGISTRY_PATH=$2
-TAG=${3:-latest}
-REPOSITORY=${4:-}
+REPOSITORY=${3:-}
+TAG=${4:-latest}
 
-# If repository is specified, include it in the path
+# Debug initial settings
+echo "Debug: Initial registry path: $REGISTRY_PATH"
+echo "Debug: Repository parameter: $REPOSITORY" 
+echo "Debug: Package name: $PACKAGE_NAME"
+
+# Store original registry path for ORAS commands
+ORAS_REGISTRY_PATH="$REGISTRY_PATH"
+
+# If repository is specified, store it for API calls but don't modify the ORAS path
 if [ -n "$REPOSITORY" ]; then
-  REGISTRY_PATH="$REGISTRY_PATH/$REPOSITORY"
+  echo "Debug: Repository specified: $REPOSITORY (will be used for API linkage only)"
 fi
 
 # Navigate to repository root
@@ -62,6 +70,10 @@ TARBALL_PATH="$TEMP_DIR/$PACKAGE_NAME-v$VERSION.tgz"
 STRUCTURE_DIR="$TEMP_DIR/structure"
 mkdir -p "$STRUCTURE_DIR"
 
+# Extract GitHub organization from registry path
+# Registry path is typically in format like ghcr.io/organization-name
+GITHUB_ORG=$(echo "$ORAS_REGISTRY_PATH" | awk -F'/' '{print $2}')
+
 # Copy package.json to the structure directory for inclusion
 cp "src/$PACKAGE_NAME/package.json" "$STRUCTURE_DIR/package.json"
 
@@ -80,16 +92,23 @@ if jq -e '.oci.annotations' "src/$PACKAGE_NAME/package.json" > /dev/null 2>&1; t
   ANNOTATIONS=$(cat "$TEMP_DIR/annotations.txt" | tr '\n' ' ')
 fi
 
+# Add source annotation if repository is specified
+if [ -n "$REPOSITORY" ]; then
+  SOURCE_URL="https://github.com/$GITHUB_ORG/$REPOSITORY"
+  ANNOTATIONS="$ANNOTATIONS --annotation \"org.opencontainers.image.source=$SOURCE_URL\""
+  echo "Debug: Adding source annotation: $SOURCE_URL"
+fi
+
 # Confirm before pushing
 echo -e "\nReady to push package to OCI registry:"
 echo "  Package:  $PACKAGE_NAME"
 echo "  Version:  $VERSION"
-echo "  Registry: $REGISTRY_PATH"
+echo "  Registry: $ORAS_REGISTRY_PATH"
 echo "  Tags:     $VERSION" $([ "$TAG" == "latest" ] && echo "and latest")
 
 # Debug output to verify paths
-echo "Debug: Publishing $PACKAGE_NAME to registry path $REGISTRY_PATH"
-echo "Debug: Full package path will be $REGISTRY_PATH/$PACKAGE_NAME"
+echo "Debug: Publishing $PACKAGE_NAME to registry path $ORAS_REGISTRY_PATH"
+echo "Debug: Full package path will be $ORAS_REGISTRY_PATH/$PACKAGE_NAME"
 
 read -p "Do you want to continue? (y/n): " confirm_push
 if [[ ! "$confirm_push" =~ ^[Yy]$ ]]; then
@@ -98,16 +117,10 @@ if [[ ! "$confirm_push" =~ ^[Yy]$ ]]; then
 fi
 
 # Push to OCI registry using ORAS
-echo "Pushing to $REGISTRY_PATH/$PACKAGE_NAME:$VERSION..."
+echo "Pushing to $ORAS_REGISTRY_PATH/$PACKAGE_NAME:$VERSION..."
 
-# Instead of pushing to:
-# ghcr.io/organization/package-name
-
-# Push to a specific repository:
-# ghcr.io/organization/repository-name/package-name
-
-# Build the ORAS command with repository path
-ORAS_CMD="oras push $REGISTRY_PATH/$PACKAGE_NAME:$VERSION $TARBALL_PATH"
+# Build the ORAS command with registry path
+ORAS_CMD="oras push $ORAS_REGISTRY_PATH/$PACKAGE_NAME:$VERSION $TARBALL_PATH"
 if [ -n "$ANNOTATIONS" ]; then
   ORAS_CMD="$ORAS_CMD $ANNOTATIONS"
 fi
@@ -123,8 +136,8 @@ eval "$ORAS_CMD"
 
 # Also push as latest if requested
 if [ "$TAG" == "latest" ]; then
-  echo "Pushing to $REGISTRY_PATH/$PACKAGE_NAME:latest..."
-  LATEST_CMD="oras push $REGISTRY_PATH/$PACKAGE_NAME:latest $TARBALL_PATH"
+  echo "Pushing to $ORAS_REGISTRY_PATH/$PACKAGE_NAME:latest..."
+  LATEST_CMD="oras push $ORAS_REGISTRY_PATH/$PACKAGE_NAME:latest $TARBALL_PATH"
   if [ -n "$ANNOTATIONS" ]; then
     LATEST_CMD="$LATEST_CMD $ANNOTATIONS"
   fi
@@ -133,17 +146,3 @@ if [ "$TAG" == "latest" ]; then
   LATEST_CMD="$LATEST_CMD --disable-path-validation"
   eval "$LATEST_CMD"
 fi
-
-# Extract GitHub organization from registry path
-# Registry path is typically in format like ghcr.io/organization-name
-GITHUB_ORG=$(echo "$REGISTRY_PATH" | awk -F'/' '{print $2}')
-
-# Set package visibility to public
-echo "Setting package visibility to public..."
-gh api \
-  --method PATCH \
-  -H "Accept: application/vnd.github.v3+json" \
-  /orgs/$GITHUB_ORG/packages/container/$PACKAGE_NAME/visibility \
-  -f visibility=public
-
-echo "Successfully pushed $PACKAGE_NAME version $VERSION to $REGISTRY_PATH/$PACKAGE_NAME"
