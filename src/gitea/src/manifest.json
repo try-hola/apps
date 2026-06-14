@@ -29,5 +29,26 @@
     "volumes": [
       { "containerPath": "/data" }
     ]
+  },
+  "auth": {
+    "mode": "native-oidc",
+    "oidc": {
+      "redirectPath": "/user/oauth2/authentik/callback",
+      "scopes": ["openid", "profile", "email"],
+      "setup": {
+        "user": "git",
+        "check": ["gitea", "admin", "auth", "list"],
+        "checkMatch": "authentik",
+        "command": [
+          "gitea", "admin", "auth", "add-oauth",
+          "--name", "authentik",
+          "--provider", "openidConnect",
+          "--key", "{{clientId}}",
+          "--secret", "{{clientSecret}}",
+          "--auto-discover-url", "{{issuer}}.well-known/openid-configuration",
+          "--scopes", "openid email profile"
+        ]
+      }
+    }
   }
 }
