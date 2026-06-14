@@ -1,18 +1,23 @@
 name: Build and Publish Changed Packages
 
-# Define when this workflow will run
+# Apps live under src/<name>/ and are published to GHCR as LOOSE OCI FILE LAYERS
+# (bin/push-oci-package.sh): each top-level file under src/<name>/src/
+# (compose.yaml, manifest.json, …) becomes its own layer, so the Hola server's
+# `oras pull -o <dir>` gets the files directly. On merge to main we also
+# regenerate the root catalog.json index the server consumes via HOLA_CATALOG_URL.
 on:
-  # Run when code is pushed to the main branch and changes packages directory
   push:
     branches: [main]
     paths:
-      - 'packages/**'
-  # Also run on pull requests targeting main branch that change packages
+      - 'src/**'
+      - 'bin/**'
+      - '.github/workflows/build-and-publish.yml'
   pull_request:
     branches: [main]
     paths:
-      - 'packages/**'
-  # Allow manual triggering through GitHub UI
+      - 'src/**'
+      - 'bin/**'
+      - '.github/workflows/build-and-publish.yml'
   workflow_dispatch:
     inputs:
       package:
@@ -21,191 +26,129 @@ on:
         type: string
 
 jobs:
-  # First job: Detect which packages have changed
+  # Detect which src/<name> packages changed in this push/PR.
   detect-changes:
     runs-on: ubuntu-latest
-    # Define outputs that can be used by other jobs
     outputs:
       changed_packages: ${{ steps.filter.outputs.changes }}
     steps:
-      # Check out the repository with full history for diff comparison
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
-      # Identify which packages have been modified in this change
+
       - name: Detect changed packages
         id: filter
         run: |
-          # Handle manual trigger with explicit package name
+          # Manual trigger with an explicit package name.
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.package }}" != "" ]]; then
-            # Format the manually specified package as a JSON array
             CHANGED="[\"${{ github.event.inputs.package }}\"]"
             echo "changes=${CHANGED}" >> $GITHUB_OUTPUT
             echo "Manually selected package: ${CHANGED}"
             exit 0
           fi
 
-          # Determine base and head commits for comparison
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            # For PR events, compare PR base to head
             BASE_SHA=${{ github.event.pull_request.base.sha }}
             HEAD_SHA=${{ github.event.pull_request.head.sha }}
           else
-            # For push events, compare previous commit to current
             BASE_SHA=${{ github.event.before }}
             HEAD_SHA=${{ github.sha }}
           fi
 
-          # Find all unique package directories that have changes
-          # Creates a JSON array of package names using jq
-          CHANGED=$(git diff --name-only $BASE_SHA $HEAD_SHA | grep "^packages/" | cut -d/ -f2 | sort | uniq | jq -R . | jq -s .)
+          # Unique src/<name> dirs with changes, as a JSON array.
+          CHANGED=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" | grep "^src/" | cut -d/ -f2 | sort -u | jq -R . | jq -s -c .)
           echo "changes=${CHANGED}" >> $GITHUB_OUTPUT
           echo "Changed packages: ${CHANGED}"
-  
-  # Second job: Build and publish packages to OCI registry (skipped for PRs)
+
+  # Publish changed packages as loose OCI layers (push to main only).
   build-and-publish:
-    # This job depends on detect-changes job completing first
     needs: detect-changes
-    # Only run if there are changed packages AND this is not a pull request
     if: ${{ needs.detect-changes.outputs.changed_packages != '[]' && github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
-    # Create a matrix to process each changed package in parallel
+    permissions:
+      contents: read
+      packages: write
     strategy:
       matrix:
         package: ${{ fromJson(needs.detect-changes.outputs.changed_packages) }}
-    
     steps:
-      # Check out the repository code
-      - uses: actions/checkout@v3
-      
-      # Authenticate with GitHub Container Registry using the workflow's token
+      - uses: actions/checkout@v4
+
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
-      # Install ORAS CLI tool for pushing OCI artifacts
+
       - name: Install ORAS
         uses: oras-project/setup-oras@v1
-        with:
-          version: 1.0.0
-      
-      # Extract the version number from package.json
-      - name: Get package version
-        id: package-version
-        run: |
-          VERSION=$(jq -r .version packages/${{ matrix.package }}/package.json)
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "Building ${{ matrix.package }} version ${VERSION}"
-      
-      # Create a tarball of the package contents including package.json
-      - name: Package as tgz
-        run: |
-          cd packages
-          
-          # Create temporary directory structure
-          mkdir -p temp/${{ matrix.package }}/structure/src
-          
-          # Copy package.json for metadata preservation
-          cp ${{ matrix.package }}/package.json temp/${{ matrix.package }}/structure/
-          
-          # Copy all source files
-          cp -r ${{ matrix.package }}/src/* temp/${{ matrix.package }}/structure/src/
-          
-          # Create the tarball with both package.json and src contents
-          tar -czf ${{ matrix.package }}-v${{ steps.package-version.outputs.version }}.tgz -C temp/${{ matrix.package }}/structure .
-          
-          # Clean up temporary directory
-          rm -rf temp
-      
-      # Push the package to GitHub Container Registry as an OCI artifact
-      - name: Push to GitHub Container Registry using ORAS
-        run: |
-          cd packages
-          
-          # Create base annotations including source repository link
-          ANNOTATIONS="--annotation org.opencontainers.image.source=https://github.com/${{ github.repository }}"
-          ANNOTATIONS="$ANNOTATIONS --annotation org.opencontainers.image.revision=${{ github.sha }}"
-          ANNOTATIONS="$ANNOTATIONS --annotation org.opencontainers.image.version=${{ steps.package-version.outputs.version }}"
-          
-          # Extract additional OCI annotations from package.json if they exist
-          if jq -e '.oci.annotations' ${{ matrix.package }}/package.json > /dev/null 2>&1; then
-            # Process each annotation key-value pair
-            while IFS="=" read -r key value; do
-              # Replace template variables like ${npm_package_version} with actual version
-              value=$(echo "$value" | sed "s/\${npm_package_version}/${{ steps.package-version.outputs.version }}/g")
-              ANNOTATIONS="$ANNOTATIONS --annotation $key=$value"
-            done < <(jq -r '.oci.annotations | to_entries[] | "\(.key)=\(.value)"' ${{ matrix.package }}/package.json)
-          fi
-          
-          # Push artifact with specific version tag
-          echo "Pushing to ghcr.io/${{ github.repository_owner }}/${{ matrix.package }}:${{ steps.package-version.outputs.version }}"
-          oras push ghcr.io/${{ github.repository_owner }}/${{ matrix.package }}:${{ steps.package-version.outputs.version }} \
-            ${{ matrix.package }}-v${{ steps.package-version.outputs.version }}.tgz $ANNOTATIONS \
-            --disable-path-validation
-            
-          # Also push the same artifact with 'latest' tag for convenience
-          echo "Pushing to ghcr.io/${{ github.repository_owner }}/${{ matrix.package }}:latest"
-          oras push ghcr.io/${{ github.repository_owner }}/${{ matrix.package }}:latest \
-            ${{ matrix.package }}-v${{ steps.package-version.outputs.version }}.tgz $ANNOTATIONS \
-            --disable-path-validation
 
-  # Third job: Verify package structure and content (runs on PRs only)
+      # The matrix is built from the diff, which includes deletions — skip a
+      # package that was removed in this push.
+      - name: Publish loose-layer package
+        run: |
+          if [ ! -d "src/${{ matrix.package }}/src" ]; then
+            echo "src/${{ matrix.package }} no longer present (deleted) — skipping publish"
+            exit 0
+          fi
+          ./bin/push-oci-package.sh "${{ matrix.package }}" ghcr.io/${{ github.repository_owner }} "${{ github.event.repository.name }}"
+
+  # Regenerate + commit catalog.json on merge to main so the hosted index
+  # (raw.githubusercontent.com/<owner>/<repo>/main/catalog.json) stays in sync.
+  build-catalog:
+    needs: build-and-publish
+    # Run on any push to main, even when no package qualified for publish.
+    if: ${{ always() && github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate catalog.json
+        run: ./bin/build-catalog.sh "${{ github.repository_owner }}"
+
+      - name: Commit catalog.json if changed
+        run: |
+          if git diff --quiet -- catalog.json; then
+            echo "catalog.json unchanged"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add catalog.json
+          git commit -m "chore(catalog): regenerate catalog.json [skip ci]"
+          git push
+
+  # Verify package structure on PRs (loose-layer contract).
   verify-packages:
-    # This job depends on detect-changes job completing first
     needs: detect-changes
-    # Only run if there are changed packages AND this is a pull request
     if: ${{ needs.detect-changes.outputs.changed_packages != '[]' && github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
-    # Create a matrix to process each changed package in parallel
     strategy:
       matrix:
         package: ${{ fromJson(needs.detect-changes.outputs.changed_packages) }}
-    
     steps:
-      # Check out the repository code
-      - uses: actions/checkout@v3
-      
-      # Ensure package.json exists and has required fields
-      - name: Validate package.json
+      - uses: actions/checkout@v4
+
+      - name: Validate package layout
         run: |
-          if [ ! -f "packages/${{ matrix.package }}/package.json" ]; then
-            echo "Error: package.json not found for ${{ matrix.package }}"
-            exit 1
+          PKG="src/${{ matrix.package }}"
+          # A package may be deleted in a PR (e.g. retiring one) — that's valid.
+          if [ ! -d "$PKG" ]; then
+            echo "$PKG not present (deleted) — nothing to validate"
+            exit 0
           fi
-          
-          # Extract key fields and verify they exist
-          VERSION=$(jq -r .version packages/${{ matrix.package }}/package.json)
-          NAME=$(jq -r .name packages/${{ matrix.package }}/package.json)
-          
-          if [ "$VERSION" == "null" ] || [ -z "$VERSION" ]; then
-            echo "Error: Missing version in package.json"
-            exit 1
-          fi
-          
-          if [ "$NAME" == "null" ] || [ -z "$NAME" ]; then
-            echo "Error: Missing name in package.json"
-            exit 1
-          fi
-          
-          echo "Package ${{ matrix.package }} validation passed (version: $VERSION)"
-      
-      # Verify that docker-compose files exist in the expected location
-      - name: Validate docker-compose files
-        run: |
-          if [ ! -d "packages/${{ matrix.package }}/src" ]; then
-            echo "Error: src directory not found for ${{ matrix.package }}"
-            exit 1
-          fi
-          
-          # Check for docker-compose.yaml or docker-compose.yml
-          COMPOSE_FILE="packages/${{ matrix.package }}/src/docker-compose.yaml"
-          if [ ! -f "$COMPOSE_FILE" ] && [ ! -f "${COMPOSE_FILE%.*}.yml" ]; then
-            echo "Error: docker-compose.yaml not found in src directory"
-            exit 1
-          fi
-          
-          echo "Docker Compose files validation passed"
+
+          [ -f "$PKG/package.json" ] || { echo "Error: $PKG/package.json not found"; exit 1; }
+          VERSION=$(jq -r .version "$PKG/package.json")
+          NAME=$(jq -r .name "$PKG/package.json")
+          [ "$VERSION" != "null" ] && [ -n "$VERSION" ] || { echo "Error: missing version in package.json"; exit 1; }
+          [ "$NAME" != "null" ] && [ -n "$NAME" ] || { echo "Error: missing name in package.json"; exit 1; }
+
+          # Loose-layer format: the Hola server requires compose.yaml + manifest.json.
+          [ -f "$PKG/src/compose.yaml" ] || { echo "Error: $PKG/src/compose.yaml not found (Hola requires compose.yaml)"; exit 1; }
+          [ -f "$PKG/src/manifest.json" ] || { echo "Error: $PKG/src/manifest.json not found (Hola requires manifest.json)"; exit 1; }
+
+          echo "Package ${{ matrix.package }} validated (version: $VERSION)"
