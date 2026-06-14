@@ -1,0 +1,20 @@
+{
+  "apps": [
+    {
+      "id": "gitea",
+      "name": "Gitea",
+      "description": "Self-hosted Git service",
+      "icon": "🍵",
+      "category": "apps",
+      "tags": [],
+      "versions": [
+        {
+          "version": "1.0.0",
+          "refs": {
+            "oci": "ghcr.io/try-hola/gitea:1.0.0"
+          }
+        }
+      ]
+    }
+  ]
+}
