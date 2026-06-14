@@ -46,7 +46,10 @@ VERSION=$(jq -r .version "$PKG_DIR/package.json")
 
 GITHUB_ORG=$(echo "$REGISTRY_PATH" | awk -F'/' '{print $2}')
 
-# Base + package.json annotations (substituting ${npm_package_version}).
+# Base + package.json annotations (substituting ${npm_package_version}). The base
+# keys (version, source) are set here; we exclude them from the package.json pass
+# so oras never sees a duplicate annotation key (it errors on duplicates, and
+# package.json templates commonly repeat org.opencontainers.image.version).
 ANNOTATIONS=(--annotation "org.opencontainers.image.version=$VERSION")
 if [ -n "$REPOSITORY" ] && [ -n "$GITHUB_ORG" ]; then
   ANNOTATIONS+=(--annotation "org.opencontainers.image.source=https://github.com/$GITHUB_ORG/$REPOSITORY")
@@ -55,7 +58,12 @@ if jq -e '.oci.annotations' "$PKG_DIR/package.json" >/dev/null 2>&1; then
   while IFS="=" read -r key value; do
     value=${value//\$\{npm_package_version\}/$VERSION}
     ANNOTATIONS+=(--annotation "$key=$value")
-  done < <(jq -r '.oci.annotations | to_entries[] | "\(.key)=\(.value)"' "$PKG_DIR/package.json")
+  done < <(jq -r '
+    .oci.annotations
+    | to_entries[]
+    | select(.key != "org.opencontainers.image.version"
+             and .key != "org.opencontainers.image.source")
+    | "\(.key)=\(.value)"' "$PKG_DIR/package.json")
 fi
 
 # Sensible media type per extension (consumers key off the layer title, but a
