@@ -1,0 +1,16 @@
+services:
+  actual-budget:
+    image: actualbudget/actual-server:26.6.0
+    restart: unless-stopped
+    environment:
+      # Actual derives its OIDC redirect (/openid/callback) from this base URL, so
+      # it must be set to the app's public URL. Hola provisions the OpenID client
+      # and injects ACTUAL_OPENID_DISCOVERY_URL / _CLIENT_ID / _CLIENT_SECRET at
+      # deploy time (see manifest auth.oidc). Password login stays available as a
+      # fallback (ACTUAL_OPENID_ENFORCE is left unset/false), so the app still
+      # works on a Hola install without Authentik enabled.
+      ACTUAL_OPENID_SERVER_HOSTNAME: https://actual.example.com
+    volumes:
+      - actual-budget-data:/data
+volumes:
+  actual-budget-data:
