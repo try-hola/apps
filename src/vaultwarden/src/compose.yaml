@@ -1,0 +1,14 @@
+services:
+  vaultwarden:
+    image: vaultwarden/server:1.32.7
+    restart: unless-stopped
+    environment:
+      # Public URL Vaultwarden is served at — required for WebAuthn/U2F, attachments,
+      # and email links. Set to https://vaultwarden.<your HOLA_BASE_DOMAIN>.
+      - DOMAIN=https://vaultwarden.example.com
+      # Disable open registration once you've created your account.
+      - SIGNUPS_ALLOWED=true
+    volumes:
+      - vaultwarden-data:/data
+volumes:
+  vaultwarden-data:

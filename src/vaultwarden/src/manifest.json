@@ -1,0 +1,33 @@
+{
+  "name": "vaultwarden",
+  "version": "1.0.0",
+  "title": "Vaultwarden",
+  "description": "Self-hosted, Bitwarden-compatible password manager",
+  "icon": "🔐",
+  "ingress": {
+    "service": "vaultwarden",
+    "port": 80
+  },
+  "defaultEnv": [
+    {
+      "key": "DOMAIN",
+      "value": "https://vaultwarden.example.com",
+      "isSecret": false,
+      "description": "Public URL — set to https://vaultwarden.<your HOLA_BASE_DOMAIN>/ (required for WebAuthn, attachments, email links)"
+    },
+    {
+      "key": "SIGNUPS_ALLOWED",
+      "value": "true",
+      "isSecret": false,
+      "description": "Allow new account registration. Set to false once your account exists."
+    }
+  ],
+  "defaults": {
+    "ports": [
+      { "container": 80, "protocol": "tcp" }
+    ],
+    "volumes": [
+      { "containerPath": "/data" }
+    ]
+  }
+}
