@@ -1,0 +1,13 @@
+{
+  "name": "homepage",
+  "version": "1.0.0",
+  "description": "Homepage — application dashboard / start page (Hola app package)",
+  "license": "MIT",
+  "oci": {
+    "annotations": {
+      "org.opencontainers.image.title": "homepage",
+      "org.opencontainers.image.description": "A highly customizable application dashboard / start page",
+      "org.opencontainers.image.version": "${npm_package_version}"
+    }
+  }
+}

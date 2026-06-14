@@ -1,0 +1,12 @@
+services:
+  homepage:
+    image: ghcr.io/gethomepage/homepage:v1.13.2
+    restart: unless-stopped
+    environment:
+      # Required since Homepage v1.0 — the dashboard refuses requests whose Host
+      # header isn't allow-listed. Set to homepage.<your HOLA_BASE_DOMAIN>.
+      HOMEPAGE_ALLOWED_HOSTS: homepage.example.com
+    volumes:
+      - homepage-config:/app/config
+volumes:
+  homepage-config:

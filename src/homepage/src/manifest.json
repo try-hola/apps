@@ -1,0 +1,30 @@
+{
+  "name": "homepage",
+  "version": "1.0.0",
+  "title": "Homepage",
+  "description": "A highly customizable application dashboard / start page",
+  "icon": "🏠",
+  "ingress": {
+    "service": "homepage",
+    "port": 3000
+  },
+  "defaultEnv": [
+    {
+      "key": "HOMEPAGE_ALLOWED_HOSTS",
+      "value": "homepage.example.com",
+      "isSecret": false,
+      "description": "Required — set to homepage.<your HOLA_BASE_DOMAIN> (Homepage rejects requests for any other Host)"
+    }
+  ],
+  "defaults": {
+    "ports": [
+      { "container": 3000, "protocol": "tcp" }
+    ],
+    "volumes": [
+      { "containerPath": "/app/config" }
+    ]
+  },
+  "auth": {
+    "mode": "forward-auth"
+  }
+}

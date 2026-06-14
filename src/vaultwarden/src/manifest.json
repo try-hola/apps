@@ -1,6 +1,6 @@
 {
   "name": "vaultwarden",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "title": "Vaultwarden",
   "description": "Self-hosted, Bitwarden-compatible password manager",
   "icon": "🔐",
@@ -29,5 +29,8 @@
     "volumes": [
       { "containerPath": "/data" }
     ]
+  },
+  "auth": {
+    "mode": "none"
   }
 }

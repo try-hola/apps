@@ -1,6 +1,22 @@
 {
   "apps": [
     {
+      "id": "actual-budget",
+      "name": "Actual Budget",
+      "description": "Local-first personal finance and budgeting",
+      "icon": "💰",
+      "category": "apps",
+      "tags": [],
+      "versions": [
+        {
+          "version": "1.0.0",
+          "refs": {
+            "oci": "ghcr.io/try-hola/actual-budget:1.0.0"
+          }
+        }
+      ]
+    },
+    {
       "id": "gitea",
       "name": "Gitea",
       "description": "Self-hosted Git service",
@@ -17,6 +33,22 @@
       ]
     },
     {
+      "id": "homepage",
+      "name": "Homepage",
+      "description": "A highly customizable application dashboard / start page",
+      "icon": "🏠",
+      "category": "apps",
+      "tags": [],
+      "versions": [
+        {
+          "version": "1.0.0",
+          "refs": {
+            "oci": "ghcr.io/try-hola/homepage:1.0.0"
+          }
+        }
+      ]
+    },
+    {
       "id": "uptime-kuma",
       "name": "Uptime Kuma",
       "description": "Self-hosted uptime monitoring and status pages",
@@ -25,9 +57,9 @@
       "tags": [],
       "versions": [
         {
-          "version": "1.0.0",
+          "version": "1.1.0",
           "refs": {
-            "oci": "ghcr.io/try-hola/uptime-kuma:1.0.0"
+            "oci": "ghcr.io/try-hola/uptime-kuma:1.1.0"
           }
         }
       ]
@@ -41,9 +73,9 @@
       "tags": [],
       "versions": [
         {
-          "version": "1.0.0",
+          "version": "1.1.0",
           "refs": {
-            "oci": "ghcr.io/try-hola/vaultwarden:1.0.0"
+            "oci": "ghcr.io/try-hola/vaultwarden:1.1.0"
           }
         }
       ]
