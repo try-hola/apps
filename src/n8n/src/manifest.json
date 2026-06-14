@@ -1,0 +1,36 @@
+{
+  "name": "n8n",
+  "version": "1.0.0",
+  "title": "n8n",
+  "description": "Workflow automation tool",
+  "icon": "🔗",
+  "ingress": {
+    "service": "n8n",
+    "port": 5678
+  },
+  "defaultEnv": [
+    {
+      "key": "N8N_HOST",
+      "value": "n8n.example.com",
+      "isSecret": false,
+      "description": "Public hostname — set to n8n.<your HOLA_BASE_DOMAIN> (no scheme)"
+    },
+    {
+      "key": "WEBHOOK_URL",
+      "value": "https://n8n.example.com/",
+      "isSecret": false,
+      "description": "Public base URL for inbound webhooks — set to https://n8n.<your HOLA_BASE_DOMAIN>/ (must match N8N_HOST)"
+    }
+  ],
+  "defaults": {
+    "ports": [
+      { "container": 5678, "protocol": "tcp" }
+    ],
+    "volumes": [
+      { "containerPath": "/home/node/.n8n" }
+    ]
+  },
+  "auth": {
+    "mode": "none"
+  }
+}

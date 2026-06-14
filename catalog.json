@@ -49,6 +49,22 @@
       ]
     },
     {
+      "id": "n8n",
+      "name": "n8n",
+      "description": "Workflow automation tool",
+      "icon": "🔗",
+      "category": "apps",
+      "tags": [],
+      "versions": [
+        {
+          "version": "1.0.0",
+          "refs": {
+            "oci": "ghcr.io/try-hola/n8n:1.0.0"
+          }
+        }
+      ]
+    },
+    {
       "id": "uptime-kuma",
       "name": "Uptime Kuma",
       "description": "Self-hosted uptime monitoring and status pages",
