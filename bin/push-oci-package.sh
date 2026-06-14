@@ -1,10 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Check if required arguments are provided
+# Publish a Hola app package to an OCI registry as LOOSE FILE LAYERS.
+#
+# Each top-level file under src/<package>/src/ (compose.yaml, manifest.json,
+# icon, …) is pushed as its own OCI layer, titled by its bare filename. A
+# consumer therefore gets the files directly with `oras pull -o <dir>` — no
+# tarball to unpack. This matches what the Hola server's bundle reader expects
+# (compose.yaml + manifest.json at the bundle root).
+#
+# Usage:
+#   ./bin/push-oci-package.sh <package-name> <registry-path> [repository] [tag]
+# Example:
+#   ./bin/push-oci-package.sh gitea ghcr.io/try-hola apps latest
+
 if [ $# -lt 2 ]; then
-  echo "Usage: $0 <package-name> <registry-path> [repository] [tag]"
-  echo "Example: $0 oci-test ghcr.io/try-hola apps latest"
+  echo "Usage: $0 <package-name> <registry-path> [repository] [tag]" >&2
+  echo "Example: $0 gitea ghcr.io/try-hola apps latest" >&2
   exit 1
 fi
 
@@ -13,136 +25,71 @@ REGISTRY_PATH=$2
 REPOSITORY=${3:-}
 TAG=${4:-latest}
 
-# Debug initial settings
-echo "Debug: Initial registry path: $REGISTRY_PATH"
-echo "Debug: Repository parameter: $REPOSITORY" 
-echo "Debug: Package name: $PACKAGE_NAME"
+die() { echo "Error: $1" >&2; exit 1; }
 
-# Store original registry path for ORAS commands
-ORAS_REGISTRY_PATH="$REGISTRY_PATH"
+command -v oras >/dev/null 2>&1 || die "ORAS CLI not installed — https://oras.land/docs/installation"
+command -v jq >/dev/null 2>&1 || die "jq is required"
 
-# If repository is specified, store it for API calls but don't modify the ORAS path
-if [ -n "$REPOSITORY" ]; then
-  echo "Debug: Repository specified: $REPOSITORY (will be used for API linkage only)"
-fi
-
-# Navigate to repository root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$REPO_ROOT"
 
-# Check if ORAS is installed
-if ! command -v oras &> /dev/null; then
-  echo "Error: ORAS CLI is not installed. Please install it first."
-  echo "Visit: https://oras.land/docs/installation"
-  exit 1
+PKG_DIR="src/$PACKAGE_NAME"
+SRC_DIR="$PKG_DIR/src"
+[ -d "$SRC_DIR" ] || die "package '$PACKAGE_NAME' not found ($SRC_DIR missing)"
+[ -f "$PKG_DIR/package.json" ] || die "missing $PKG_DIR/package.json"
+[ -f "$SRC_DIR/compose.yaml" ] || die "missing $SRC_DIR/compose.yaml (Hola requires compose.yaml)"
+[ -f "$SRC_DIR/manifest.json" ] || die "missing $SRC_DIR/manifest.json (Hola requires manifest.json)"
+
+VERSION=$(jq -r .version "$PKG_DIR/package.json")
+[ "$VERSION" != "null" ] && [ -n "$VERSION" ] || die "unable to read version from $PKG_DIR/package.json"
+
+GITHUB_ORG=$(echo "$REGISTRY_PATH" | awk -F'/' '{print $2}')
+
+# Base + package.json annotations (substituting ${npm_package_version}).
+ANNOTATIONS=(--annotation "org.opencontainers.image.version=$VERSION")
+if [ -n "$REPOSITORY" ] && [ -n "$GITHUB_ORG" ]; then
+  ANNOTATIONS+=(--annotation "org.opencontainers.image.source=https://github.com/$GITHUB_ORG/$REPOSITORY")
+fi
+if jq -e '.oci.annotations' "$PKG_DIR/package.json" >/dev/null 2>&1; then
+  while IFS="=" read -r key value; do
+    value=${value//\$\{npm_package_version\}/$VERSION}
+    ANNOTATIONS+=(--annotation "$key=$value")
+  done < <(jq -r '.oci.annotations | to_entries[] | "\(.key)=\(.value)"' "$PKG_DIR/package.json")
 fi
 
-# Install GitHub CLI if not already present
-if ! command -v gh &> /dev/null; then
-  echo "GitHub CLI not found. Visit https://cli.github.com/ for installation"
+# Sensible media type per extension (consumers key off the layer title, but a
+# correct media type keeps the artifact self-describing).
+media_type() {
+  case "$1" in
+    *.yaml | *.yml) echo "application/yaml" ;;
+    *.json) echo "application/json" ;;
+    *.png) echo "image/png" ;;
+    *.svg) echo "image/svg+xml" ;;
+    *.md) echo "text/markdown" ;;
+    *) echo "application/octet-stream" ;;
+  esac
+}
+
+# Collect top-level files as loose layers, titled by bare filename (cwd = SRC_DIR).
+cd "$SRC_DIR"
+LAYERS=()
+for f in *; do
+  [ -f "$f" ] || continue   # top-level files only (no build contexts — use prebuilt images)
+  LAYERS+=("$f:$(media_type "$f")")
+done
+[ "${#LAYERS[@]}" -gt 0 ] || die "no files to publish in $SRC_DIR"
+
+echo "Publishing $PACKAGE_NAME v$VERSION to $REGISTRY_PATH/$PACKAGE_NAME"
+echo "  layers: ${LAYERS[*]}"
+
+push() { # push <tag>
+  oras push "$REGISTRY_PATH/$PACKAGE_NAME:$1" "${LAYERS[@]}" "${ANNOTATIONS[@]}" --disable-path-validation
+}
+
+push "$VERSION"
+if [ "$TAG" = "latest" ]; then
+  push latest
 fi
 
-# Check if package exists
-if [ ! -d "src/$PACKAGE_NAME" ]; then
-  echo "Error: Package '$PACKAGE_NAME' not found in src directory"
-  exit 1
-fi
-
-# Get version from package.json
-VERSION=$(jq -r .version "src/$PACKAGE_NAME/package.json")
-if [ "$VERSION" == "null" ]; then
-  echo "Error: Unable to extract version from package.json"
-  exit 1
-fi
-
-echo "Packaging $PACKAGE_NAME version $VERSION..."
-
-# Create a temporary directory for building and cleanup afterward
-TEMP_DIR=$(mktemp -d)
-trap 'rm -rf "$TEMP_DIR"' EXIT
-
-# Create tarball in the temporary directory that includes both src contents and package.json
-echo "Creating package tarball in temporary directory..."
-TARBALL_PATH="$TEMP_DIR/$PACKAGE_NAME-v$VERSION.tgz"
-
-# Create a temporary structure directory to organize files for tarball
-STRUCTURE_DIR="$TEMP_DIR/structure"
-mkdir -p "$STRUCTURE_DIR"
-
-# Extract GitHub organization from registry path
-# Registry path is typically in format like ghcr.io/organization-name
-GITHUB_ORG=$(echo "$ORAS_REGISTRY_PATH" | awk -F'/' '{print $2}')
-
-# Copy package.json to the structure directory for inclusion
-cp "src/$PACKAGE_NAME/package.json" "$STRUCTURE_DIR/package.json"
-
-# Copy all files from the src directory
-mkdir -p "$STRUCTURE_DIR/src"
-cp -r "src/$PACKAGE_NAME/src/"* "$STRUCTURE_DIR/src/"
-
-# Create the tarball from the structure directory
-tar -czf "$TARBALL_PATH" -C "$STRUCTURE_DIR" .
-
-# Extract OCI annotations from package.json if they exist
-ANNOTATIONS=""
-if jq -e '.oci.annotations' "src/$PACKAGE_NAME/package.json" > /dev/null 2>&1; then
-  # Process each annotation as an ORAS annotation
-  jq -r '.oci.annotations | to_entries[] | "--annotation \"\(.key)=\(.value)\""' "src/$PACKAGE_NAME/package.json" > "$TEMP_DIR/annotations.txt"
-  ANNOTATIONS=$(cat "$TEMP_DIR/annotations.txt" | tr '\n' ' ')
-fi
-
-# Add source annotation if repository is specified
-if [ -n "$REPOSITORY" ]; then
-  SOURCE_URL="https://github.com/$GITHUB_ORG/$REPOSITORY"
-  ANNOTATIONS="$ANNOTATIONS --annotation \"org.opencontainers.image.source=$SOURCE_URL\""
-  echo "Debug: Adding source annotation: $SOURCE_URL"
-fi
-
-# Confirm before pushing
-echo -e "\nReady to push package to OCI registry:"
-echo "  Package:  $PACKAGE_NAME"
-echo "  Version:  $VERSION"
-echo "  Registry: $ORAS_REGISTRY_PATH"
-echo "  Tags:     $VERSION" $([ "$TAG" == "latest" ] && echo "and latest")
-
-# Debug output to verify paths
-echo "Debug: Publishing $PACKAGE_NAME to registry path $ORAS_REGISTRY_PATH"
-echo "Debug: Full package path will be $ORAS_REGISTRY_PATH/$PACKAGE_NAME"
-
-read -p "Do you want to continue? (y/n): " confirm_push
-if [[ ! "$confirm_push" =~ ^[Yy]$ ]]; then
-  echo "Push cancelled."
-  exit 0
-fi
-
-# Push to OCI registry using ORAS
-echo "Pushing to $ORAS_REGISTRY_PATH/$PACKAGE_NAME:$VERSION..."
-
-# Build the ORAS command with registry path
-ORAS_CMD="oras push $ORAS_REGISTRY_PATH/$PACKAGE_NAME:$VERSION $TARBALL_PATH"
-if [ -n "$ANNOTATIONS" ]; then
-  ORAS_CMD="$ORAS_CMD $ANNOTATIONS"
-fi
-
-# Replace template variables in annotations
-ORAS_CMD=$(echo "$ORAS_CMD" | sed "s/\${npm_package_version}/$VERSION/g")
-
-# Add the path validation disable flag
-ORAS_CMD="$ORAS_CMD --disable-path-validation"
-
-echo "Executing: $ORAS_CMD"
-eval "$ORAS_CMD"
-
-# Also push as latest if requested
-if [ "$TAG" == "latest" ]; then
-  echo "Pushing to $ORAS_REGISTRY_PATH/$PACKAGE_NAME:latest..."
-  LATEST_CMD="oras push $ORAS_REGISTRY_PATH/$PACKAGE_NAME:latest $TARBALL_PATH"
-  if [ -n "$ANNOTATIONS" ]; then
-    LATEST_CMD="$LATEST_CMD $ANNOTATIONS"
-  fi
-  LATEST_CMD=$(echo "$LATEST_CMD" | sed "s/\${npm_package_version}/$VERSION/g")
-  # Add the path validation disable flag for the latest tag push as well
-  LATEST_CMD="$LATEST_CMD --disable-path-validation"
-  eval "$LATEST_CMD"
-fi
+echo "Done: $REGISTRY_PATH/$PACKAGE_NAME:$VERSION (+ latest)"
