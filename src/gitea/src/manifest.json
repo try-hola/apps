@@ -1,6 +1,6 @@
 {
   "name": "gitea",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "title": "Gitea",
   "description": "Self-hosted Git service",
   "icon": "🍵",

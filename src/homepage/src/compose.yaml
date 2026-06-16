@@ -1,7 +1,6 @@
 services:
   homepage:
     image: ghcr.io/gethomepage/homepage:v1.13.2
-    restart: unless-stopped
     environment:
       # Required since Homepage v1.0 — the dashboard refuses requests whose Host
       # header isn't allow-listed. Hola fills in the app's public host.

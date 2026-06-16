@@ -1,6 +1,6 @@
 {
   "name": "uptime-kuma",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "title": "Uptime Kuma",
   "description": "Self-hosted uptime monitoring and status pages",
   "icon": "📈",
