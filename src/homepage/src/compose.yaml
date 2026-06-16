@@ -4,7 +4,7 @@ services:
     restart: unless-stopped
     environment:
       # Required since Homepage v1.0 — the dashboard refuses requests whose Host
-      # header isn't allow-listed. Set to homepage.<your HOLA_BASE_DOMAIN>.
-      HOMEPAGE_ALLOWED_HOSTS: homepage.example.com
+      # header isn't allow-listed. Hola fills in the app's public host.
+      HOMEPAGE_ALLOWED_HOSTS: ${HOLA_APP_HOST}
     volumes:
       - ${HOLA_APP_DATA}/config:/app/config

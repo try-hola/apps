@@ -1,6 +1,6 @@
 {
   "name": "gitea",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "title": "Gitea",
   "description": "Self-hosted Git service",
   "icon": "🍵",
@@ -8,20 +8,7 @@
     "service": "gitea",
     "port": 3000
   },
-  "defaultEnv": [
-    {
-      "key": "GITEA__server__DOMAIN",
-      "value": "gitea.example.com",
-      "isSecret": false,
-      "description": "Public hostname — set to gitea.<your HOLA_BASE_DOMAIN>"
-    },
-    {
-      "key": "GITEA__server__ROOT_URL",
-      "value": "https://gitea.example.com/",
-      "isSecret": false,
-      "description": "External base URL — https://gitea.<your HOLA_BASE_DOMAIN>/"
-    }
-  ],
+  "defaultEnv": [],
   "defaults": {
     "ports": [
       { "container": 3000, "protocol": "tcp" }
