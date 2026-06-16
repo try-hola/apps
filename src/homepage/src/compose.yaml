@@ -7,6 +7,4 @@ services:
       # header isn't allow-listed. Set to homepage.<your HOLA_BASE_DOMAIN>.
       HOMEPAGE_ALLOWED_HOSTS: homepage.example.com
     volumes:
-      - homepage-config:/app/config
-volumes:
-  homepage-config:
+      - ${HOLA_APP_DATA}/config:/app/config

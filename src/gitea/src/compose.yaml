@@ -14,6 +14,4 @@ services:
       GITEA__oauth2_client__USERNAME: preferred_username
       GITEA__oauth2_client__ACCOUNT_LINKING: auto
     volumes:
-      - gitea-data:/data
-volumes:
-  gitea-data:
+      - ${HOLA_APP_DATA}/data:/data
