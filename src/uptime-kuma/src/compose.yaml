@@ -3,6 +3,4 @@ services:
     image: louislam/uptime-kuma:1.23.16
     restart: unless-stopped
     volumes:
-      - uptimekuma-data:/app/data
-volumes:
-  uptimekuma-data:
+      - ${HOLA_APP_DATA}/data:/app/data

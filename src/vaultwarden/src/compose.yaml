@@ -9,6 +9,4 @@ services:
       # Disable open registration once you've created your account.
       - SIGNUPS_ALLOWED=true
     volumes:
-      - vaultwarden-data:/data
-volumes:
-  vaultwarden-data:
+      - ${HOLA_APP_DATA}/data:/data

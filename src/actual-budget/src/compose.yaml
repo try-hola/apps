@@ -11,6 +11,4 @@ services:
       # works on a Hola install without Authentik enabled.
       ACTUAL_OPENID_SERVER_HOSTNAME: https://actual.example.com
     volumes:
-      - actual-budget-data:/data
-volumes:
-  actual-budget-data:
+      - ${HOLA_APP_DATA}/data:/data
