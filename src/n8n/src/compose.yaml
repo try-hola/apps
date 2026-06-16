@@ -1,7 +1,6 @@
 services:
   n8n:
     image: n8nio/n8n:2.26.3
-    restart: unless-stopped
     environment:
       # n8n sits behind Traefik (TLS terminated at the edge). Hola fills in the
       # app's public host for N8N_HOST + WEBHOOK_URL. The rest are fixed: trust one
