@@ -7,6 +7,9 @@ services:
       USER_GID: "1000"
       GITEA__database__DB_TYPE: sqlite3
       GITEA__server__HTTP_PORT: "3000"
+      # Public host + external URL. Hola fills in the app's public host.
+      GITEA__server__DOMAIN: ${HOLA_APP_HOST}
+      GITEA__server__ROOT_URL: https://${HOLA_APP_HOST}/
       # OIDC login behavior (Hola provisions the provider via `auth.oidc.setup`).
       # These tune how the provisioned source behaves: auto-create accounts on first
       # SSO login and link to existing local accounts by matching email.

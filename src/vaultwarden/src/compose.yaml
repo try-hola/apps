@@ -4,8 +4,8 @@ services:
     restart: unless-stopped
     environment:
       # Public URL Vaultwarden is served at — required for WebAuthn/U2F, attachments,
-      # and email links. Set to https://vaultwarden.<your HOLA_BASE_DOMAIN>.
-      - DOMAIN=https://vaultwarden.example.com
+      # and email links. Hola fills in the app's public host.
+      - DOMAIN=https://${HOLA_APP_HOST}
       # Disable open registration once you've created your account.
       - SIGNUPS_ALLOWED=true
     volumes:

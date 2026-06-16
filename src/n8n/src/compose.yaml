@@ -3,10 +3,12 @@ services:
     image: n8nio/n8n:2.26.3
     restart: unless-stopped
     environment:
-      # n8n sits behind Traefik (TLS terminated at the edge). N8N_HOST + WEBHOOK_URL
-      # are host-specific and set per install (see manifest defaultEnv). The rest are
-      # fixed: trust one proxy hop so n8n reads X-Forwarded-Proto/For from Traefik
-      # (makes https detection + secure cookies work), and advertise https.
+      # n8n sits behind Traefik (TLS terminated at the edge). Hola fills in the
+      # app's public host for N8N_HOST + WEBHOOK_URL. The rest are fixed: trust one
+      # proxy hop so n8n reads X-Forwarded-Proto/For from Traefik (makes https
+      # detection + secure cookies work), and advertise https.
+      N8N_HOST: ${HOLA_APP_HOST}
+      WEBHOOK_URL: https://${HOLA_APP_HOST}/
       N8N_PORT: "5678"
       N8N_PROTOCOL: https
       N8N_PROXY_HOPS: "1"

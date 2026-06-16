@@ -9,6 +9,6 @@ services:
       # deploy time (see manifest auth.oidc). Password login stays available as a
       # fallback (ACTUAL_OPENID_ENFORCE is left unset/false), so the app still
       # works on a Hola install without Authentik enabled.
-      ACTUAL_OPENID_SERVER_HOSTNAME: https://actual.example.com
+      ACTUAL_OPENID_SERVER_HOSTNAME: https://${HOLA_APP_HOST}
     volumes:
       - ${HOLA_APP_DATA}/data:/data
