@@ -1,0 +1,25 @@
+{
+  "name": "backrest",
+  "version": "1.0.0",
+  "title": "Backrest",
+  "description": "Backup orchestrator (restic) with a web UI",
+  "icon": "💾",
+  "ingress": {
+    "service": "backrest",
+    "port": 9898
+  },
+  "consumes": "apps-data",
+  "defaultEnv": [],
+  "defaults": {
+    "ports": [
+      { "container": 9898, "protocol": "tcp" }
+    ],
+    "volumes": [
+      { "containerPath": "/config" },
+      { "containerPath": "/data" }
+    ]
+  },
+  "auth": {
+    "mode": "forward-auth"
+  }
+}

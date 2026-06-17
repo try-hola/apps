@@ -1,0 +1,13 @@
+{
+  "name": "backrest",
+  "version": "1.0.0",
+  "description": "Backrest — backup orchestrator (restic) with a web UI (Hola app package)",
+  "license": "MIT",
+  "oci": {
+    "annotations": {
+      "org.opencontainers.image.title": "backrest",
+      "org.opencontainers.image.description": "Backup orchestrator (restic) with a web UI",
+      "org.opencontainers.image.version": "${npm_package_version}"
+    }
+  }
+}
