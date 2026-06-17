@@ -1,0 +1,20 @@
+services:
+  backrest:
+    image: garethgeorge/backrest:v1.13.0
+    environment:
+      BACKREST_DATA: /data
+      BACKREST_CONFIG: /config/config.json
+      XDG_CACHE_HOME: /cache
+      # Listen on all interfaces so Traefik (on the hola network) can reach the
+      # UI — Backrest defaults to 127.0.0.1 only.
+      BACKREST_PORT: 0.0.0.0:9898
+    expose:
+      - "9898"
+    volumes:
+      - ${HOLA_APP_DATA}/config:/config
+      - ${HOLA_APP_DATA}/data:/data
+      - ${HOLA_APP_DATA}/cache:/cache
+    # Read-only access to every app's data (/srv/hola/apps/<id>/...) is INJECTED
+    # by Hola because the manifest declares `consumes: apps-data` — it is not (and
+    # cannot be) declared here. In the Backrest UI, add a repo (off-site
+    # destination + encryption password) and one backup plan over that path.

@@ -17,6 +17,22 @@
       ]
     },
     {
+      "id": "backrest",
+      "name": "Backrest",
+      "description": "Backup orchestrator (restic) with a web UI",
+      "icon": "💾",
+      "category": "apps",
+      "tags": [],
+      "versions": [
+        {
+          "version": "1.0.0",
+          "refs": {
+            "oci": "ghcr.io/try-hola/backrest:1.0.0"
+          }
+        }
+      ]
+    },
+    {
       "id": "gitea",
       "name": "Gitea",
       "description": "Self-hosted Git service",
