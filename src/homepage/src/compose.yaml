@@ -7,3 +7,29 @@ services:
       HOMEPAGE_ALLOWED_HOSTS: ${HOLA_APP_HOST}
     volumes:
       - ${HOLA_APP_DATA}/config:/app/config
+
+  # Hola registry bolt-on (ADR 0002): Hola writes an app-registry feed
+  # (registry.json) into this app's data root because the manifest declares
+  # `consumes: app-registry`. This sidecar renders that feed into Homepage's
+  # services.yaml, so a tile appears for every installed app and updates as apps
+  # come and go. Stock image + inline command — no custom build; rendering is a
+  # bundle concern, not the server's.
+  homepage-registry:
+    image: mikefarah/yq:4.44.6
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        mkdir -p /data/config
+        echo "[hola] homepage registry renderer started"
+        while true; do
+          if [ -f /data/registry.json ]; then
+            yq -o=yaml -p=json '[{"Apps": [.apps[] | {(.name): {"href": .url, "icon": (.app + ".png")}}]}]' /data/registry.json > /tmp/services.yaml 2>/dev/null
+            if [ -s /tmp/services.yaml ] && ! cmp -s /tmp/services.yaml /data/config/services.yaml; then
+              cp /tmp/services.yaml /data/config/services.yaml
+              echo "[hola] services.yaml updated"
+            fi
+          fi
+          sleep 20
+        done
+    volumes:
+      - ${HOLA_APP_DATA}:/data
