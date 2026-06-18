@@ -5,6 +5,11 @@ services:
       USER_UID: "1000"
       USER_GID: "1000"
       GITEA__database__DB_TYPE: sqlite3
+      # Unattended install: mark the env-configured instance as installed so it skips
+      # the web installer AND so `gitea admin …` CLI works. Hola's auth.oidc.setup runs
+      # `gitea admin auth add-oauth` post-deploy; without INSTALL_LOCK that CLI aborts
+      # with MustInstalled() and OIDC provisioning fails.
+      GITEA__security__INSTALL_LOCK: "true"
       GITEA__server__HTTP_PORT: "3000"
       # Public host + external URL. Hola fills in the app's public host.
       GITEA__server__DOMAIN: ${HOLA_APP_HOST}
