@@ -1,6 +1,6 @@
 services:
   gitea:
-    image: gitea/gitea:1.22
+    image: gitea/gitea:1.26
     environment:
       USER_UID: "1000"
       USER_GID: "1000"
@@ -14,6 +14,12 @@ services:
       # Public host + external URL. Hola fills in the app's public host.
       GITEA__server__DOMAIN: ${HOLA_APP_HOST}
       GITEA__server__ROOT_URL: https://${HOLA_APP_HOST}/
+      # Lock the instance to SSO: disable self-service registration, and hide the
+      # local username/password sign-in form so the only login is the provisioned
+      # OIDC (Authentik) button. ENABLE_PASSWORD_SIGNIN_FORM needs Gitea >= 1.23.1
+      # (go-gitea/gitea#32687) — hence the image bump above.
+      GITEA__service__DISABLE_REGISTRATION: "true"
+      GITEA__service__ENABLE_PASSWORD_SIGNIN_FORM: "false"
       # OIDC login behavior (Hola provisions the provider via `auth.oidc.setup`).
       # These tune how the provisioned source behaves: auto-create accounts on first
       # SSO login and link to existing local accounts by matching email.

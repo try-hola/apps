@@ -20,6 +20,32 @@ src/gitea/
 - `GITEA__server__DOMAIN` / `ROOT_URL` default to `gitea.example.com`; set them to
   `gitea.<your HOLA_BASE_DOMAIN>` at deploy time.
 
+## Authentication (SSO-only)
+
+This package provisions OIDC (Authentik) via `manifest.auth` and locks the
+instance down to SSO:
+
+- `GITEA__service__DISABLE_REGISTRATION=true` — no self-service sign-ups.
+- `GITEA__service__ENABLE_PASSWORD_SIGNIN_FORM=false` — the local
+  username/password login form is hidden, so the only sign-in is the **OIDC
+  (Authentik)** button ([go-gitea/gitea#32687](https://github.com/go-gitea/gitea/pull/32687),
+  needs Gitea ≥ 1.23.1 — hence the `1.26` image pin).
+- `GITEA__oauth2_client__ENABLE_AUTO_REGISTRATION=true` — the first OIDC login
+  creates the user automatically.
+
+**Caveat — promoting an admin / emergency access.** With the password form
+hidden, you can't log into the web UI as a local admin. The first OIDC user is a
+normal user; grant admin out-of-band via the CLI (the instance keeps
+`INSTALL_LOCK=true`, so `gitea admin …` works):
+
+```bash
+# on the Hola host
+docker exec -u git <gitea-container> gitea admin user change-password ...   # or
+docker exec -u git <gitea-container> gitea admin user create --admin ...
+```
+
+So you're never fully locked out even if OIDC is misconfigured.
+
 ## Publish
 
 ```bash
