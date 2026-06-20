@@ -41,9 +41,9 @@
       "tags": [],
       "versions": [
         {
-          "version": "1.2.2",
+          "version": "1.3.0",
           "refs": {
-            "oci": "ghcr.io/try-hola/gitea:1.2.2"
+            "oci": "ghcr.io/try-hola/gitea:1.3.0"
           }
         }
       ]
@@ -76,6 +76,22 @@
           "version": "1.2.1",
           "refs": {
             "oci": "ghcr.io/try-hola/n8n:1.2.1"
+          }
+        }
+      ]
+    },
+    {
+      "id": "postiz",
+      "name": "Postiz",
+      "description": "Open-source social media scheduling tool with AI features",
+      "icon": "📅",
+      "category": "apps",
+      "tags": [],
+      "versions": [
+        {
+          "version": "1.0.0",
+          "refs": {
+            "oci": "ghcr.io/try-hola/postiz:1.0.0"
           }
         }
       ]
