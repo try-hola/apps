@@ -33,6 +33,26 @@ instance down to SSO:
 - `GITEA__oauth2_client__ENABLE_AUTO_REGISTRATION=true` — the first OIDC login
   creates the user automatically.
 
+### Git over HTTPS (use a token, not a password)
+
+Gitea is `native-oidc`, **not** forward-auth — its Traefik route has no Authentik
+gate, so Gitea applies its own auth per request. Git clone/push and the API are
+**not** redirected into the SSO browser flow; they keep using Gitea's HTTP Basic
+auth (which stays enabled — only the *web* login form is hidden).
+
+But SSO users have no Gitea password, so authenticate git with a **personal
+access token** as the password:
+
+```bash
+# Gitea UI → Settings → Applications → Generate New Token (repo scopes)
+git clone https://<your-username>:<token>@gitea.<HOLA_BASE_DOMAIN>/owner/repo.git
+# or omit the token and paste it when git prompts for a password
+```
+
+The `tea` CLI authenticates the same way (token over HTTPS). Note that SSH isn't
+exposed (Traefik is HTTP-only; the validator forbids host ports), so **HTTPS +
+token is the only remote git transport**.
+
 ### Admin via OIDC group claim
 
 The provisioned OAuth source maps an Authentik **group** to Gitea **site admin**,
