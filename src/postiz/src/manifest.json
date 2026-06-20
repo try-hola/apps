@@ -1,0 +1,37 @@
+{
+  "name": "postiz",
+  "version": "1.0.0",
+  "title": "Postiz",
+  "description": "Open-source social media scheduling tool with AI features",
+  "icon": "📅",
+  "ingress": {
+    "service": "postiz",
+    "port": 5000
+  },
+  "defaultEnv": [
+    {
+      "key": "JWT_SECRET",
+      "value": "",
+      "isSecret": true,
+      "description": "Unique random string used to sign sessions. Generate one, e.g. `openssl rand -hex 32`."
+    },
+    {
+      "key": "DISABLE_REGISTRATION",
+      "value": "false",
+      "isSecret": false,
+      "description": "Set to 'true' after creating your account to prevent further sign-ups."
+    }
+  ],
+  "defaults": {
+    "ports": [
+      { "container": 5000, "protocol": "tcp" }
+    ],
+    "volumes": [
+      { "containerPath": "/config" },
+      { "containerPath": "/uploads" }
+    ]
+  },
+  "auth": {
+    "mode": "none"
+  }
+}

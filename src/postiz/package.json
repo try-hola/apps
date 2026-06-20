@@ -1,0 +1,13 @@
+{
+  "name": "postiz",
+  "version": "1.0.0",
+  "description": "Postiz — open-source social media scheduling (Hola app package)",
+  "license": "UNLICENSED",
+  "oci": {
+    "annotations": {
+      "org.opencontainers.image.title": "postiz",
+      "org.opencontainers.image.description": "Open-source social media scheduling tool with AI features",
+      "org.opencontainers.image.version": "${npm_package_version}"
+    }
+  }
+}
