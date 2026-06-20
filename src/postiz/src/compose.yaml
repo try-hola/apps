@@ -1,0 +1,108 @@
+# Postiz — social media scheduling. Packaged for Hola: Traefik-only ingress
+# (no host ports), all persistence bind-mounted under ${HOLA_APP_DATA}.
+#
+# Postiz's scheduling runs on Temporal. Temporal's *visibility* store can be
+# Postgres or Elasticsearch; we use Postgres (temporal-postgres) and omit the
+# Elasticsearch container entirely (ENABLE_ES unset → SQL visibility) to keep
+# the footprint reasonable for a homelab. See try-hola/hola#162 for making ES
+# an opt-in profile once Hola supports per-app compose profiles.
+services:
+  postiz:
+    image: ghcr.io/gitroomhq/postiz-app:v2.21.9
+    environment:
+      # Public URLs — Hola injects the app's Traefik host.
+      MAIN_URL: "https://${HOLA_APP_HOST}"
+      FRONTEND_URL: "https://${HOLA_APP_HOST}"
+      NEXT_PUBLIC_BACKEND_URL: "https://${HOLA_APP_HOST}/api"
+      BACKEND_INTERNAL_URL: "http://localhost:3000"
+      # Unique per-install signing secret (collected by the install wizard).
+      JWT_SECRET: "${JWT_SECRET}"
+      # Internal datastores (not exposed to the host).
+      DATABASE_URL: "postgresql://postiz-user:postiz-password@postiz-postgres:5432/postiz-db-local"
+      REDIS_URL: "redis://postiz-redis:6379"
+      TEMPORAL_ADDRESS: "temporal:7233"
+      IS_GENERAL: "true"
+      RUN_CRON: "true"
+      # Set to true after creating your account to lock down sign-ups.
+      DISABLE_REGISTRATION: "${DISABLE_REGISTRATION:-false}"
+      # Local on-disk storage for uploads.
+      STORAGE_PROVIDER: "local"
+      UPLOAD_DIRECTORY: "/uploads"
+      NEXT_PUBLIC_UPLOAD_DIRECTORY: "/uploads"
+      NX_ADD_PLUGINS: "false"
+      API_LIMIT: "30"
+    volumes:
+      - ${HOLA_APP_DATA}/config:/config
+      - ${HOLA_APP_DATA}/uploads:/uploads
+    healthcheck:
+      test: ["CMD", "node", "-e", "const r=require('http').get('http://localhost:5000/',res=>process.exit(res.statusCode<500?0:1));r.on('error',()=>process.exit(1));r.setTimeout(4000,()=>{r.destroy();process.exit(1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    depends_on:
+      postiz-postgres:
+        condition: service_healthy
+      postiz-redis:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+
+  postiz-postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: postiz-user
+      POSTGRES_PASSWORD: postiz-password
+      POSTGRES_DB: postiz-db-local
+    volumes:
+      - ${HOLA_APP_DATA}/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postiz-user -d postiz-db-local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  postiz-redis:
+    image: redis:7.2-alpine
+    volumes:
+      - ${HOLA_APP_DATA}/redis:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # Temporal server, configured for Postgres-backed visibility (no Elasticsearch).
+  temporal:
+    image: temporalio/auto-setup:1.28.1
+    environment:
+      DB: postgres12
+      DB_PORT: "5432"
+      POSTGRES_USER: temporal
+      POSTGRES_PWD: temporal
+      POSTGRES_SEEDS: temporal-postgres
+    depends_on:
+      temporal-postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "temporal", "operator", "cluster", "health", "--address", "temporal:7233"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  temporal-postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+    volumes:
+      - ${HOLA_APP_DATA}/temporal-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
