@@ -1,6 +1,6 @@
 {
   "name": "gitea",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "title": "Gitea",
   "description": "Self-hosted Git service",
   "icon": "🍵",
@@ -33,7 +33,9 @@
           "--key", "{{clientId}}",
           "--secret", "{{clientSecret}}",
           "--auto-discover-url", "{{issuer}}.well-known/openid-configuration",
-          "--scopes", "openid email profile"
+          "--scopes", "openid email profile",
+          "--group-claim-name", "groups",
+          "--admin-group", "hola-admins"
         ]
       }
     }
