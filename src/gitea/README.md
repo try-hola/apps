@@ -33,18 +33,34 @@ instance down to SSO:
 - `GITEA__oauth2_client__ENABLE_AUTO_REGISTRATION=true` — the first OIDC login
   creates the user automatically.
 
-**Caveat — promoting an admin / emergency access.** With the password form
-hidden, you can't log into the web UI as a local admin. The first OIDC user is a
-normal user; grant admin out-of-band via the CLI (the instance keeps
-`INSTALL_LOCK=true`, so `gitea admin …` works):
+### Admin via OIDC group claim
+
+The provisioned OAuth source maps an Authentik **group** to Gitea **site admin**,
+so you don't need the CLI to bootstrap an admin:
+
+- `--group-claim-name groups` — read group names from the token's `groups` claim.
+  Authentik's default `profile` scope mapping (which Hola attaches) emits the
+  user's group names there.
+- `--admin-group "authentik Admins"` — members of Authentik's built-in admin
+  group become Gitea site admins. Gitea re-evaluates this on every SSO login.
+
+Since the Authentik operator account is in `authentik Admins` by default, your
+first SSO login lands you as a Gitea admin with no extra steps. To use a
+dedicated group instead, change `--admin-group` to that group's name and add your
+user to it in Authentik.
+
+**Emergency access.** Even if OIDC/groups are misconfigured, the instance keeps
+`INSTALL_LOCK=true`, so the CLI still works:
 
 ```bash
 # on the Hola host
-docker exec -u git <gitea-container> gitea admin user change-password ...   # or
 docker exec -u git <gitea-container> gitea admin user create --admin ...
 ```
 
-So you're never fully locked out even if OIDC is misconfigured.
+> Note: the group→admin flags are applied when the OAuth source is *created*.
+> Deployments from before this version (or that already have an `authentik`
+> source) need a re-provision, or a one-off
+> `gitea admin auth update-oauth --id <n> --group-claim-name groups --admin-group "authentik Admins"`.
 
 ## Publish
 
