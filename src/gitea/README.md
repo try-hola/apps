@@ -41,13 +41,14 @@ so you don't need the CLI to bootstrap an admin:
 - `--group-claim-name groups` — read group names from the token's `groups` claim.
   Authentik's default `profile` scope mapping (which Hola attaches) emits the
   user's group names there.
-- `--admin-group "authentik Admins"` — members of Authentik's built-in admin
+- `--admin-group "hola-admins"` — members of the Hola-owned **`hola-admins`**
   group become Gitea site admins. Gitea re-evaluates this on every SSO login.
 
-Since the Authentik operator account is in `authentik Admins` by default, your
-first SSO login lands you as a Gitea admin with no extra steps. To use a
-dedicated group instead, change `--admin-group` to that group's name and add your
-user to it in Authentik.
+Hola provisions the `hola-admins` group and seeds your superuser(s) into it, so
+your first SSO login lands you as a Gitea admin with no extra steps. The same
+group governs dashboard admin (`HOLA_OIDC_ADMIN_GROUP`), so admin is consistent
+across the platform. To use a different group, change `--admin-group` and add
+your user to that group in your IdP.
 
 **Emergency access.** Even if OIDC/groups are misconfigured, the instance keeps
 `INSTALL_LOCK=true`, so the CLI still works:
@@ -60,7 +61,10 @@ docker exec -u git <gitea-container> gitea admin user create --admin ...
 > Note: the group→admin flags are applied when the OAuth source is *created*.
 > Deployments from before this version (or that already have an `authentik`
 > source) need a re-provision, or a one-off
-> `gitea admin auth update-oauth --id <n> --group-claim-name groups --admin-group "authentik Admins"`.
+> `gitea admin auth update-oauth --id <n> --group-claim-name groups --admin-group "hola-admins"`.
+> The `hola-admins` group is provisioned by the Hola server (≥ the release with
+> try-hola/hola#168); on older servers, create the group and add your user in
+> Authentik, or point `--admin-group` at an existing group.
 
 ## Publish
 

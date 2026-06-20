@@ -35,7 +35,7 @@
           "--auto-discover-url", "{{issuer}}.well-known/openid-configuration",
           "--scopes", "openid email profile",
           "--group-claim-name", "groups",
-          "--admin-group", "authentik Admins"
+          "--admin-group", "hola-admins"
         ]
       }
     }
