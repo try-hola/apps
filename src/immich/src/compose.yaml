@@ -77,7 +77,8 @@ services:
             "scope": "openid email profile",
             "buttonText": "Login with Authentik",
             "autoRegister": true,
-            "autoLaunch": false,
+            "autoLaunch": true,
+            "roleClaim": "immich_role",
             "storageLabelClaim": "preferred_username"
           }
         }' /data/oidc.json > /data/config/immich.json
