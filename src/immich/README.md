@@ -67,21 +67,30 @@ client automatically and wires it in** — no clicking through the admin UI:
   `${HOLA_APP_DATA}/config/immich.json` **before `immich-server` starts**
   (`depends_on: service_completed_successfully`). Hola also injects
   `IMMICH_CONFIG_FILE` (via `auth.oidc.staticEnv`) only when SSO is provisioned.
-  A **"Login with Authentik"** button then appears on the Immich sign-in page, and
-  first-time SSO users are auto-registered. Keeping the Immich-specific config
-  format in a bundle sidecar (not in Hola) follows the same pattern as Homepage's
-  registry renderer (ADR 0002).
+  The config sets `autoLaunch: true`, so opening Immich **redirects straight to
+  Authentik** (no "Login with Authentik" click): since you already have an
+  Authentik session from the Hola dashboard, clicking the Immich tile lands you
+  in the app, already signed in — the same first-use feel as the rest of the
+  catalog. First-time SSO users are auto-registered (`autoRegister: true`).
+  Keeping the Immich-specific config format in a bundle sidecar (not in Hola)
+  follows the same pattern as Homepage's registry renderer (ADR 0002).
+- **Admin by group.** Hola provisions an Authentik claim mapping (manifest
+  `auth.oidc.roleClaim`) that emits `immich_role=admin` for members of the
+  platform admin group (`hola-admins`), else `user`. Immich reads `roleClaim`
+  at user creation, so a `hola-admins` member's **first** SSO login lands them as
+  an Immich **admin with no manual promotion** — which also means the very first
+  login on a fresh instance bootstraps the admin. (Immich applies the role claim
+  only at creation, not on every login — a known upstream limitation, so plan
+  admin membership before first sign-in.)
 - This is **native OIDC, not a reverse-proxy forward-auth gate** — deliberately. A
   proxy auth gate would block Immich's mobile apps, public API, and external
   sharing. Native OIDC keeps all of those working (Immich issues its own
   session/API tokens after the OIDC login) and is the upstream-recommended SSO
   approach.
 
-> **First admin.** The Immich admin is the *first* account on the instance, created
-> via the normal email/password signup (OAuth auto-registers regular users). After
-> deploy, open Immich once and create the admin account, then everyone else signs
-> in with the **Login with Authentik** button. Promoting an SSO user to admin by
-> group claim (`roleClaim`) is a planned enhancement.
+> **Emergency / local login.** Password login stays enabled. Because
+> `autoLaunch` is on, reach the email/password form at
+> `https://immich.<HOLA_BASE_DOMAIN>/auth/login?autoLaunch=0`.
 
 ### Without an SSO backend
 

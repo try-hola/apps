@@ -39,6 +39,12 @@
       },
       "credentialsFile": {
         "path": "oidc.json"
+      },
+      "roleClaim": {
+        "claim": "immich_role",
+        "adminGroup": "hola-admins",
+        "adminValue": "admin",
+        "memberValue": "user"
       }
     }
   }
