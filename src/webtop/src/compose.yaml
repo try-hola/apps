@@ -1,0 +1,24 @@
+services:
+  webtop:
+    image: lscr.io/linuxserver/webtop:ubuntu-kde-f0194e9c-ls167
+    environment:
+      PUID: ${PUID}
+      PGID: ${PGID}
+      TZ: ${TZ}
+      # Optional built-in HTTP Basic auth (defense-in-depth behind Traefik/SSO).
+      # Leave blank to rely solely on Hola's forward-auth gate.
+      CUSTOM_USER: ${CUSTOM_USER}
+      PASSWORD: ${PASSWORD}
+    volumes:
+      - ${HOLA_APP_DATA}/config:/config
+    # The web UI is served on 3000 (HTTP) / 3001 (HTTPS). Hola routes ingress
+    # through Traefik to container port 3000 (manifest.ingress.port) — no host ports.
+    expose:
+      - "3000"
+    # KasmVNC/desktop images recommend a larger /dev/shm so browsers (e.g.
+    # Chromium) inside the desktop don't crash.
+    shm_size: "1gb"
+    # Modern GUI desktop apps can hit Docker's default syscall (seccomp)
+    # restrictions. Uncomment if apps inside the desktop misbehave:
+    # security_opt:
+    #   - seccomp:unconfined

@@ -1,0 +1,45 @@
+{
+  "name": "immich",
+  "version": "1.0.0",
+  "title": "Immich",
+  "description": "Self-hosted photo and video management solution",
+  "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/immich.svg",
+  "ingress": {
+    "service": "immich-server",
+    "port": 2283
+  },
+  "defaultEnv": [
+    {
+      "key": "DB_PASSWORD",
+      "value": "",
+      "isSecret": true,
+      "description": "Password for Immich's internal Postgres database. Generate one, e.g. `openssl rand -hex 32` (use alphanumeric characters only)."
+    }
+  ],
+  "defaults": {
+    "ports": [
+      { "container": 2283, "protocol": "tcp" }
+    ],
+    "volumes": [
+      { "containerPath": "/data" },
+      { "containerPath": "/config" }
+    ]
+  },
+  "auth": {
+    "mode": "native-oidc",
+    "oidc": {
+      "redirectPath": "/auth/login",
+      "scopes": ["openid", "profile", "email"],
+      "extraRedirectUris": [
+        "https://${HOLA_APP_HOST}/user-settings",
+        "app.immich:///oauth-callback"
+      ],
+      "staticEnv": {
+        "IMMICH_CONFIG_FILE": "/config/immich.json"
+      },
+      "credentialsFile": {
+        "path": "oidc.json"
+      }
+    }
+  }
+}

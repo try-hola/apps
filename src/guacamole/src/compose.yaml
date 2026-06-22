@@ -1,0 +1,111 @@
+# Apache Guacamole — clientless remote desktop gateway (RDP/VNC/SSH in the
+# browser). Packaged for Hola: Traefik-only ingress (no host ports), all
+# persistence bind-mounted under ${HOLA_APP_DATA}.
+#
+# Three (+1 one-shot) containers:
+#   guacd            — the proxy daemon that speaks RDP/VNC/SSH. No web port.
+#   guacamole        — the Tomcat web app (port 8080). WEBAPP_CONTEXT=ROOT so it
+#                      serves at "/" (Traefik routes the app host root to it).
+#   postgres         — Guacamole's auth/connection database.
+#   guacamole-init   — one-shot: generates the Postgres schema once (see below).
+#
+# ── Database schema init (unattended, idempotent) ───────────────────────────
+# Guacamole's Postgres DB needs its schema loaded once. The clean, hands-off
+# pattern:
+#   1. guacamole-init runs the guacamole image's `initdb.sh --postgresql` to
+#      WRITE the schema SQL to ${HOLA_APP_DATA}/initdb/initdb.sql — but ONLY if
+#      that file doesn't already exist (so re-deploys never regenerate it).
+#   2. postgres mounts ${HOLA_APP_DATA}/initdb at /docker-entrypoint-initdb.d
+#      (read-only). The official postgres image runs *.sql there ONLY when it
+#      first initializes an EMPTY data dir — so on every subsequent boot (data
+#      dir already populated) the schema is left untouched. Doubly idempotent.
+#   3. depends_on ordering guarantees: init completes → postgres starts →
+#      postgres healthy → guacamole starts.
+services:
+  # One-shot: write the Postgres schema SQL (only if not already present), exit.
+  guacamole-init:
+    image: guacamole/guacamole:1.6.0
+    # Override the Tomcat entrypoint; just generate the schema and exit.
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >
+        if [ ! -s /init/initdb.sql ]; then
+          echo 'Generating Guacamole PostgreSQL schema...';
+          /opt/guacamole/bin/initdb.sh --postgresql > /init/initdb.sql;
+        else
+          echo 'Schema already present; leaving it untouched.';
+        fi
+    volumes:
+      - ${HOLA_APP_DATA}/initdb:/init
+    restart: "no"
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: guacamole_db
+      POSTGRES_USER: guacamole_user
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+    volumes:
+      - ${HOLA_APP_DATA}/postgres:/var/lib/postgresql/data
+      # Schema is applied here ONLY on a first-time (empty data dir) init.
+      - ${HOLA_APP_DATA}/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U guacamole_user -d guacamole_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    depends_on:
+      # Make sure the schema file exists before Postgres first initializes.
+      guacamole-init:
+        condition: service_completed_successfully
+
+  guacd:
+    image: guacamole/guacd:1.6.0
+    # No web port — only the guacamole web app talks to guacd (internal :4822).
+    expose:
+      - "4822"
+    volumes:
+      # Drive/recording transfer scratch space.
+      - ${HOLA_APP_DATA}/guacd:/data
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 4822 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  guacamole:
+    image: guacamole/guacamole:1.6.0
+    # The container port Traefik forwards to (manifest.ingress.port = 8080).
+    expose:
+      - "8080"
+    environment:
+      # Serve at "/" instead of the default "/guacamole/" context path so the
+      # app host root routes straight to the UI.
+      WEBAPP_CONTEXT: ROOT
+      # Where to reach the proxy daemon.
+      GUACD_HOSTNAME: guacd
+      GUACD_PORT: "4822"
+      # Database-backed auth (default admin: guacadmin / guacadmin — CHANGE IT).
+      POSTGRESQL_HOSTNAME: postgres
+      POSTGRESQL_PORT: "5432"
+      POSTGRESQL_DATABASE: guacamole_db
+      POSTGRESQL_USER: guacamole_user
+      POSTGRESQL_PASSWORD: "${POSTGRES_PASSWORD}"
+      # Auto-create a DB account on first SSO/OIDC login (used only if you wire
+      # up OpenID later; harmless with DB-only auth + the forward-auth gate).
+      POSTGRESQL_AUTO_CREATE_ACCOUNTS: "true"
+      # Honor X-Forwarded-* from Traefik so logged client IPs are correct.
+      REMOTE_IP_VALVE_ENABLED: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/ >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      guacd:
+        condition: service_started

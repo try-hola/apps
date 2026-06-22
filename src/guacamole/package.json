@@ -1,0 +1,13 @@
+{
+  "name": "guacamole",
+  "version": "1.0.0",
+  "description": "Apache Guacamole — clientless remote desktop gateway (Hola app package)",
+  "license": "Apache-2.0",
+  "oci": {
+    "annotations": {
+      "org.opencontainers.image.title": "guacamole",
+      "org.opencontainers.image.description": "Clientless remote desktop gateway (RDP/VNC/SSH in the browser)",
+      "org.opencontainers.image.version": "${npm_package_version}"
+    }
+  }
+}

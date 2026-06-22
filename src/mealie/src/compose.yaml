@@ -1,0 +1,67 @@
+# Mealie — self-hosted recipe manager & meal planner. Packaged for Hola:
+# Traefik-only ingress (no host ports); all persistence bind-mounted under
+# ${HOLA_APP_DATA}.
+#
+# Datastore: PostgreSQL (production-grade, matching Hola's other multi-container
+# apps). Mealie also supports SQLite, but Postgres is recommended for anything
+# beyond a trivial install. The DB password is collected by the install wizard
+# (manifest.defaultEnv → ${POSTGRES_PASSWORD}).
+#
+# SSO: native OIDC via env (provisioned by Hola's auth block). Mealie wants the
+# provider's *discovery* URL, so we append `.well-known/openid-configuration` to
+# the issuer that Hola injects as ${OIDC_ISSUER_URL}. (Authentik issuer URLs end
+# with a trailing slash.)
+services:
+  mealie:
+    image: ghcr.io/mealie-recipes/mealie:v3.19.2
+    environment:
+      # Public URL — Hola injects the app's Traefik host.
+      BASE_URL: "https://${HOLA_APP_HOST}"
+      ALLOW_SIGNUP: "false"
+      # PostgreSQL connection (internal; not exposed to the host).
+      DB_ENGINE: "postgres"
+      POSTGRES_USER: "mealie"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_SERVER: "mealie-postgres"
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: "mealie"
+      # --- OIDC (Authentik) — Hola provisions issuer/client id/secret. ---
+      # Mealie wants the full discovery URL, built from the injected issuer.
+      OIDC_CONFIGURATION_URL: "${OIDC_ISSUER_URL}.well-known/openid-configuration"
+      OIDC_CLIENT_ID: "${OIDC_CLIENT_ID:-}"
+      OIDC_CLIENT_SECRET: "${OIDC_CLIENT_SECRET:-}"
+      OIDC_AUTH_ENABLED: "${OIDC_AUTH_ENABLED:-false}"
+      OIDC_PROVIDER_NAME: "${OIDC_PROVIDER_NAME:-Authentik}"
+      OIDC_SIGNUP_ENABLED: "${OIDC_SIGNUP_ENABLED:-true}"
+      OIDC_AUTO_REDIRECT: "${OIDC_AUTO_REDIRECT:-false}"
+      OIDC_REMEMBER_ME: "${OIDC_REMEMBER_ME:-true}"
+      OIDC_ADMIN_GROUP: "${OIDC_ADMIN_GROUP:-}"
+      OIDC_GROUPS_CLAIM: "${OIDC_GROUPS_CLAIM:-groups}"
+    expose:
+      - "9000"
+    volumes:
+      - ${HOLA_APP_DATA}/data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:9000/api/app/about', timeout=4).status < 500 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    depends_on:
+      mealie-postgres:
+        condition: service_healthy
+
+  mealie-postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: "mealie"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_DB: "mealie"
+    volumes:
+      - ${HOLA_APP_DATA}/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mealie -d mealie"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s

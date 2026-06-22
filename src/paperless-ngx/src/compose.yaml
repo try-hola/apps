@@ -1,0 +1,82 @@
+# Paperless-ngx — document management. Packaged for Hola: Traefik-only ingress
+# (no host ports), all persistence bind-mounted under ${HOLA_APP_DATA}.
+#
+# Three containers: the paperless `webserver` (web UI + workers), a Redis broker
+# for the task queue, and PostgreSQL for metadata. Web UI listens on :8000 and is
+# routed by Traefik (see manifest.ingress.port).
+services:
+  webserver:
+    image: ghcr.io/paperless-ngx/paperless-ngx:2.20.4
+    environment:
+      # Datastores (internal — never published to the host).
+      PAPERLESS_REDIS: "redis://broker:6379"
+      PAPERLESS_DBHOST: "db"
+      PAPERLESS_DBPORT: "5432"
+      PAPERLESS_DBNAME: "paperless"
+      PAPERLESS_DBUSER: "paperless"
+      PAPERLESS_DBPASS: "paperless"
+      # Public URL — Hola injects the app's Traefik host. No trailing slash.
+      PAPERLESS_URL: "https://${HOLA_APP_HOST}"
+      # Unique per-install signing key (collected by the install wizard).
+      PAPERLESS_SECRET_KEY: "${PAPERLESS_SECRET_KEY}"
+      # Run paperless as this uid/gid so bind-mounted dirs are writable.
+      USERMAP_UID: "1000"
+      USERMAP_GID: "1000"
+      # Trusted-header (remote user) auth — paired with Hola's Traefik
+      # forward-auth gate (Authentik embedded outpost). Authentik sets the
+      # `X-authentik-username` response header on authenticated requests; Django
+      # exposes incoming headers as HTTP_<UPPERCASE_WITH_UNDERSCORES>, so the
+      # header name paperless reads is HTTP_X_AUTHENTIK_USERNAME.
+      PAPERLESS_ENABLE_HTTP_REMOTE_USER: "true"
+      PAPERLESS_HTTP_REMOTE_USER_HEADER_NAME: "HTTP_X_AUTHENTIK_USERNAME"
+      # After logging out, bounce through Authentik's sign-out so the SSO session
+      # is cleared too (otherwise the gate would silently log you back in).
+      PAPERLESS_LOGOUT_REDIRECT_URL: "https://${HOLA_APP_HOST}/outpost.goauthentik.io/sign_out"
+      # Optional fallback superuser — only created when both are set. Leave the
+      # password blank to skip and use the `createsuperuser` flow (see README).
+      PAPERLESS_ADMIN_USER: "${PAPERLESS_ADMIN_USER:-admin}"
+      PAPERLESS_ADMIN_PASSWORD: "${PAPERLESS_ADMIN_PASSWORD:-}"
+    expose:
+      - "8000"
+    volumes:
+      - ${HOLA_APP_DATA}/data:/usr/src/paperless/data
+      - ${HOLA_APP_DATA}/media:/usr/src/paperless/media
+      - ${HOLA_APP_DATA}/export:/usr/src/paperless/export
+      - ${HOLA_APP_DATA}/consume:/usr/src/paperless/consume
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "-S", "--max-time", "2", "http://localhost:8000"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    depends_on:
+      db:
+        condition: service_healthy
+      broker:
+        condition: service_healthy
+
+  broker:
+    image: redis:7.4-alpine
+    volumes:
+      - ${HOLA_APP_DATA}/redis:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: paperless
+      POSTGRES_USER: paperless
+      POSTGRES_PASSWORD: paperless
+    volumes:
+      - ${HOLA_APP_DATA}/pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U paperless -d paperless"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s

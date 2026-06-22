@@ -1,0 +1,54 @@
+{
+  "name": "webtop",
+  "version": "1.0.0",
+  "title": "Ubuntu Webtop",
+  "description": "Ubuntu desktop environment in your browser",
+  "icon": "🖥️",
+  "ingress": {
+    "service": "webtop",
+    "port": 3000
+  },
+  "defaultEnv": [
+    {
+      "key": "PUID",
+      "value": "1000",
+      "isSecret": false,
+      "description": "User ID the desktop runs as; files in /config are owned by this UID. Match the host user that owns the app data dir."
+    },
+    {
+      "key": "PGID",
+      "value": "1000",
+      "isSecret": false,
+      "description": "Group ID the desktop runs as. Match the host group that owns the app data dir."
+    },
+    {
+      "key": "TZ",
+      "value": "Etc/UTC",
+      "isSecret": false,
+      "description": "Timezone for the desktop, e.g. America/New_York."
+    },
+    {
+      "key": "CUSTOM_USER",
+      "value": "",
+      "isSecret": false,
+      "description": "Optional username for the built-in HTTP Basic login (defense-in-depth behind Hola's forward-auth SSO gate). Leave blank to rely solely on SSO."
+    },
+    {
+      "key": "PASSWORD",
+      "value": "",
+      "isSecret": true,
+      "description": "Optional password for the built-in HTTP Basic login. Generate one, e.g. `openssl rand -hex 16`. Leave blank to rely solely on SSO."
+    }
+  ],
+  "defaults": {
+    "ports": [
+      { "container": 3000, "protocol": "tcp" }
+    ],
+    "volumes": [
+      { "containerPath": "/config" }
+    ]
+  },
+  "auth": {
+    "mode": "forward-auth"
+  }
+}
