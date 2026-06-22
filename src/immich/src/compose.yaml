@@ -1,0 +1,128 @@
+# Immich — self-hosted photo & video management. Packaged for Hola:
+# Traefik-only ingress (no host ports), all persistence bind-mounted under
+# ${HOLA_APP_DATA}.
+#
+# Image tags are pinned to the Immich v2.7.5 release (the upstream
+# docker-compose for that release pins these exact db/redis images by digest).
+#
+# SSO is native OIDC (manifest auth: native-oidc), NOT a forward-auth gate —
+# Immich's mobile apps + API authenticate directly, which a proxy gate would
+# break. Immich reads OAuth only from a config file, so on deploy Hola drops the
+# provisioned creds at ${HOLA_APP_DATA}/oidc.json and the immich-oidc-init sidecar
+# below renders them into ${HOLA_APP_DATA}/config/immich.json before immich-server
+# starts. Rendering the app's own config format is a bundle concern (ADR 0002),
+# same pattern as Homepage's registry renderer.
+services:
+  immich-server:
+    image: ghcr.io/immich-app/immich-server:v2.7.5
+    environment:
+      # Internal datastores (not exposed to the host).
+      DB_HOSTNAME: immich-postgres
+      DB_USERNAME: immich
+      DB_PASSWORD: "${DB_PASSWORD}"
+      DB_DATABASE_NAME: immich
+      REDIS_HOSTNAME: immich-redis
+      # Container clock — set to your zone (host /etc/localtime can't be bind-mounted:
+      # all of an app's data must live under ${HOLA_APP_DATA}).
+      TZ: Etc/UTC
+      # SSO note: IMMICH_CONFIG_FILE is deliberately NOT set here. Hola injects it
+      # (via the manifest's auth.oidc.staticEnv) ONLY when OIDC is actually
+      # provisioned — and the immich-oidc-init sidecar renders config/immich.json
+      # only then too. Immich takes OAuth only from a config file and locks the
+      # admin UI while one is present, so without SSO the var is unset, the file is
+      # absent, and Immich keeps its own login with a fully editable settings UI.
+    volumes:
+      # Photo/video upload library.
+      - ${HOLA_APP_DATA}/library:/data
+      # immich.json (rendered by immich-oidc-init when SSO is provisioned) lives here.
+      - ${HOLA_APP_DATA}/config:/config
+    healthcheck:
+      test: ["CMD", "immich-healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    depends_on:
+      immich-postgres:
+        condition: service_healthy
+      immich-redis:
+        condition: service_healthy
+      # Wait for the OAuth config to be rendered (a no-op when SSO isn't provisioned).
+      immich-oidc-init:
+        condition: service_completed_successfully
+
+  # Hola SSO bolt-on (ADR 0002): when Hola provisions OIDC it writes the generic
+  # creds to ${HOLA_APP_DATA}/oidc.json. This one-shot renders them into Immich's
+  # own config format (config/immich.json) before immich-server boots. Stock image
+  # + inline script — no custom build; rendering an app's config is a bundle
+  # concern, not the server's. Idempotent and safe with no SSO: if oidc.json is
+  # absent it does nothing, leaving Immich on its built-in login.
+  immich-oidc-init:
+    image: mikefarah/yq:4.44.6
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        if [ ! -s /data/oidc.json ]; then
+          echo "[hola] no oidc.json — SSO not provisioned; leaving Immich on local login"
+          exit 0
+        fi
+        mkdir -p /data/config
+        yq -p=json -o=json '{
+          "oauth": {
+            "enabled": true,
+            "issuerUrl": .issuer,
+            "clientId": .clientId,
+            "clientSecret": .clientSecret,
+            "scope": "openid email profile",
+            "buttonText": "Login with Authentik",
+            "autoRegister": true,
+            "autoLaunch": false,
+            "storageLabelClaim": "preferred_username"
+          }
+        }' /data/oidc.json > /data/config/immich.json
+        chmod 600 /data/config/immich.json
+        echo "[hola] rendered config/immich.json from oidc.json"
+    volumes:
+      - ${HOLA_APP_DATA}:/data
+
+  immich-machine-learning:
+    image: ghcr.io/immich-app/immich-machine-learning:v2.7.5
+    volumes:
+      - ${HOLA_APP_DATA}/model-cache:/cache
+    healthcheck:
+      test: ["CMD", "immich-healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  immich-redis:
+    image: docker.io/valkey/valkey:9@sha256:3b55fbaa0cd93cf0d9d961f405e4dfcc70efe325e2d84da207a0a8e6d8fde4f9
+    volumes:
+      - ${HOLA_APP_DATA}/redis:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # Postgres with the vector extension (VectorChord + pgvecto.rs) that Immich
+  # requires for smart search. Pinned by digest exactly as upstream ships it.
+  immich-postgres:
+    image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0@sha256:bcf63357191b76a916ae5eb93464d65c07511da41e3bf7a8416db519b40b1c23
+    environment:
+      POSTGRES_USER: immich
+      POSTGRES_PASSWORD: "${DB_PASSWORD}"
+      POSTGRES_DB: immich
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    shm_size: 128mb
+    volumes:
+      - ${HOLA_APP_DATA}/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U immich -d immich"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s

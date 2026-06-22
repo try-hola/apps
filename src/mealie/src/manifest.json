@@ -1,0 +1,48 @@
+{
+  "name": "mealie",
+  "version": "1.0.0",
+  "title": "Mealie",
+  "description": "Self-hosted recipe manager and meal planner",
+  "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/mealie.svg",
+  "ingress": {
+    "service": "mealie",
+    "port": 9000
+  },
+  "defaultEnv": [
+    {
+      "key": "POSTGRES_PASSWORD",
+      "value": "",
+      "isSecret": true,
+      "description": "Password for Mealie's PostgreSQL database. Generate one, e.g. `openssl rand -hex 32`."
+    }
+  ],
+  "defaults": {
+    "ports": [
+      { "container": 9000, "protocol": "tcp" }
+    ],
+    "volumes": [
+      { "containerPath": "/app/data" }
+    ]
+  },
+  "auth": {
+    "mode": "native-oidc",
+    "oidc": {
+      "redirectPath": "/login",
+      "scopes": ["openid", "profile", "email"],
+      "env": {
+        "issuer": "OIDC_ISSUER_URL",
+        "clientId": "OIDC_CLIENT_ID",
+        "clientSecret": "OIDC_CLIENT_SECRET"
+      },
+      "staticEnv": {
+        "OIDC_AUTH_ENABLED": "true",
+        "OIDC_PROVIDER_NAME": "Authentik",
+        "OIDC_SIGNUP_ENABLED": "true",
+        "OIDC_AUTO_REDIRECT": "false",
+        "OIDC_REMEMBER_ME": "true",
+        "OIDC_ADMIN_GROUP": "hola-admins",
+        "OIDC_GROUPS_CLAIM": "groups"
+      }
+    }
+  }
+}

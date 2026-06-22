@@ -1,0 +1,45 @@
+{
+  "name": "paperless-ngx",
+  "version": "1.0.0",
+  "title": "Paperless-ngx",
+  "description": "Self-hosted document management system: scan, index, and archive your documents",
+  "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/paperless-ngx.svg",
+  "ingress": {
+    "service": "webserver",
+    "port": 8000
+  },
+  "defaultEnv": [
+    {
+      "key": "PAPERLESS_SECRET_KEY",
+      "value": "",
+      "isSecret": true,
+      "description": "Unique random string used to sign sessions and tokens. Generate one, e.g. `openssl rand -hex 32`."
+    },
+    {
+      "key": "PAPERLESS_ADMIN_USER",
+      "value": "admin",
+      "isSecret": false,
+      "description": "Username for the fallback local superuser created on first start. Used for emergency/local login when SSO is unavailable."
+    },
+    {
+      "key": "PAPERLESS_ADMIN_PASSWORD",
+      "value": "",
+      "isSecret": true,
+      "description": "Password for the fallback superuser. Leave blank to skip auto-creation and instead run `createsuperuser` later (see README)."
+    }
+  ],
+  "defaults": {
+    "ports": [
+      { "container": 8000, "protocol": "tcp" }
+    ],
+    "volumes": [
+      { "containerPath": "/usr/src/paperless/data" },
+      { "containerPath": "/usr/src/paperless/media" },
+      { "containerPath": "/usr/src/paperless/export" },
+      { "containerPath": "/usr/src/paperless/consume" }
+    ]
+  },
+  "auth": {
+    "mode": "forward-auth"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "mealie",
+  "version": "1.0.0",
+  "description": "Mealie — self-hosted recipe manager & meal planner (Hola app package)",
+  "license": "AGPL-3.0",
+  "oci": {
+    "annotations": {
+      "org.opencontainers.image.title": "mealie",
+      "org.opencontainers.image.description": "Self-hosted recipe manager and meal planner",
+      "org.opencontainers.image.version": "${npm_package_version}"
+    }
+  }
+}
