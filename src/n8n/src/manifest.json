@@ -3,7 +3,7 @@
   "version": "1.2.1",
   "title": "n8n",
   "description": "Workflow automation tool",
-  "icon": "🔗",
+  "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/n8n.svg",
   "ingress": {
     "service": "n8n",
     "port": 5678

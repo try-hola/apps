@@ -4,7 +4,7 @@
       "id": "actual-budget",
       "name": "Actual Budget",
       "description": "Local-first personal finance and budgeting",
-      "icon": "💰",
+      "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/actual-budget.svg",
       "category": "apps",
       "tags": [],
       "versions": [
@@ -20,7 +20,7 @@
       "id": "backrest",
       "name": "Backrest",
       "description": "Backup orchestrator (restic) with a web UI",
-      "icon": "💾",
+      "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/backrest.svg",
       "category": "apps",
       "tags": [],
       "versions": [
@@ -36,7 +36,7 @@
       "id": "gitea",
       "name": "Gitea",
       "description": "Self-hosted Git service",
-      "icon": "🍵",
+      "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/gitea.svg",
       "category": "apps",
       "tags": [],
       "versions": [
@@ -52,7 +52,7 @@
       "id": "homepage",
       "name": "Homepage",
       "description": "A highly customizable application dashboard / start page",
-      "icon": "🏠",
+      "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/homepage.svg",
       "category": "apps",
       "tags": [],
       "versions": [
@@ -68,7 +68,7 @@
       "id": "n8n",
       "name": "n8n",
       "description": "Workflow automation tool",
-      "icon": "🔗",
+      "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/n8n.svg",
       "category": "apps",
       "tags": [],
       "versions": [
@@ -84,7 +84,7 @@
       "id": "postiz",
       "name": "Postiz",
       "description": "Open-source social media scheduling tool with AI features",
-      "icon": "📅",
+      "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/postiz.svg",
       "category": "apps",
       "tags": [],
       "versions": [
@@ -100,7 +100,7 @@
       "id": "uptime-kuma",
       "name": "Uptime Kuma",
       "description": "Self-hosted uptime monitoring and status pages",
-      "icon": "📈",
+      "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/uptime-kuma.svg",
       "category": "apps",
       "tags": [],
       "versions": [
@@ -116,7 +116,7 @@
       "id": "vaultwarden",
       "name": "Vaultwarden",
       "description": "Self-hosted, Bitwarden-compatible password manager",
-      "icon": "🔐",
+      "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/vaultwarden.svg",
       "category": "apps",
       "tags": [],
       "versions": [

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "title": "Backrest",
   "description": "Backup orchestrator (restic) with a web UI",
-  "icon": "💾",
+  "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/backrest.svg",
   "ingress": {
     "service": "backrest",
     "port": 9898

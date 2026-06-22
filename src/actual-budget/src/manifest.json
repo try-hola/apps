@@ -3,7 +3,7 @@
   "version": "1.2.1",
   "title": "Actual Budget",
   "description": "Local-first personal finance and budgeting",
-  "icon": "💰",
+  "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/actual-budget.svg",
   "ingress": {
     "service": "actual-budget",
     "port": 5006
