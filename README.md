@@ -38,13 +38,36 @@ Packages are published to GHCR as **loose OCI file layers**: each top-level file
 `src/<name>/src/` becomes its own layer titled by filename, so the Hola server's
 `oras pull -o <dir>` yields `compose.yaml` / `manifest.json` directly (no tarball to unpack).
 
+## `manifest.json`
+
+Per-app metadata the Hola server reads at deploy time. Key fields:
+
+| Field | Required | Purpose |
+| --- | --- | --- |
+| `name` | yes | App id (matches the package name). |
+| `ingress.service` | **yes** | The compose service Traefik routes to **and** that receives injected SSO/auth env. Must name a service in `compose.yaml`. Hola attaches this one service to its `hola` network. |
+| `ingress.port` | yes | The container port that service listens on (Traefik targets it). |
+| `defaultEnv[]` | no | Env vars surfaced in the install wizard (`key`, `value`, `isSecret`, `description`). |
+| `defaults.ports[]` / `defaults.volumes[]` | no | Default port/volume intents shown in the wizard. |
+| `auth` | no | SSO integration (`native-oidc` / `forward-auth` / `native-ldap`); drives per-app auth provisioning. |
+| `consumes[]` | no | Cross-app capabilities (e.g. `app-registry`, `apps-data`). |
+
+**`ingress.service` matters for multi-service apps.** Hola attaches exactly one
+service to its routing network and injects auth env into it. If you omit
+`ingress.service`, Hola falls back to the service named after the app id, then the
+first service — so an app whose web tier is named differently (e.g. Immich's
+`immich-server`, Paperless's `webserver`) **must** declare it, or it will be
+mis-routed (and its SSO env wired into the wrong container). CI rejects a package
+whose `ingress.service` is missing or doesn't name a real compose service.
+
 ## Workflow
 
 1. **Scaffold:** `./bin/create-package.sh <name>` creates `src/<name>/` in the loose format.
 2. **Edit** `src/<name>/src/compose.yaml` + `manifest.json` (use a prebuilt image; declare named
    volumes; no `ports:` host publishing).
 3. **Open a PR.** CI (`verify-packages`) checks the package has `package.json`, `src/compose.yaml`,
-   and `src/manifest.json`.
+   and `src/manifest.json`, and that `manifest.json` declares an `ingress.service` that names a
+   real service in `compose.yaml`.
 4. **Merge to `main`.** CI publishes `ghcr.io/try-hola/<name>:<version>` (+ `:latest`) as loose
    layers and regenerates the root [`catalog.json`](./catalog.json) index.
 

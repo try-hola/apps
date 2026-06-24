@@ -151,4 +151,14 @@ jobs:
           [ -f "$PKG/src/compose.yaml" ] || { echo "Error: $PKG/src/compose.yaml not found (Hola requires compose.yaml)"; exit 1; }
           [ -f "$PKG/src/manifest.json" ] || { echo "Error: $PKG/src/manifest.json not found (Hola requires manifest.json)"; exit 1; }
 
-          echo "Package ${{ matrix.package }} validated (version: $VERSION)"
+          # The Hola server attaches `ingress.service` to the Traefik network and
+          # injects auth env into it. For a multi-service app whose web service is
+          # not named after the app id (or not listed first), an omitted or wrong
+          # ingress.service silently mis-routes the app, so require it to name a
+          # real service in compose.yaml.
+          SERVICE=$(jq -r '.ingress.service // empty' "$PKG/src/manifest.json")
+          [ -n "$SERVICE" ] || { echo "Error: $PKG/src/manifest.json must declare ingress.service (the compose service Traefik routes to)"; exit 1; }
+          grep -qE "^  ${SERVICE}:" "$PKG/src/compose.yaml" \
+            || { echo "Error: ingress.service '$SERVICE' is not a service in $PKG/src/compose.yaml"; exit 1; }
+
+          echo "Package ${{ matrix.package }} validated (version: $VERSION, ingress.service: $SERVICE)"
