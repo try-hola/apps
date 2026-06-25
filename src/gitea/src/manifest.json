@@ -1,6 +1,6 @@
 {
   "name": "gitea",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "title": "Gitea",
   "description": "Self-hosted Git service",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/gitea.svg",
@@ -8,7 +8,14 @@
     "service": "gitea",
     "port": 3000
   },
-  "defaultEnv": [],
+  "defaultEnv": [
+    {
+      "key": "GITEA_RUNNER_REGISTRATION_TOKEN",
+      "value": "",
+      "isSecret": true,
+      "description": "Shared secret that lets the bundled Actions runner self-register with Gitea. MUST be at least 32 characters (Gitea refuses to start otherwise). Generate one, e.g. `openssl rand -hex 32`."
+    }
+  ],
   "defaults": {
     "ports": [
       { "container": 3000, "protocol": "tcp" }

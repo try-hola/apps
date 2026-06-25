@@ -86,6 +86,53 @@ docker exec -u git <gitea-container> gitea admin user create --admin ...
 > try-hola/hola#168); on older servers, create the group and add your user in
 > Authentik, or point `--admin-group` at an existing group.
 
+## Actions (CI/CD)
+
+This package ships a built-in **Gitea Actions** runner (`gitea-runner`), so
+`.gitea/workflows` (and `.github/workflows`) run out of the box.
+
+**How registration works.** Gitea Actions needs a runner registered against the
+instance. Normally you copy a registration token from the web UI; instead Hola
+injects one shared secret, `GITEA_RUNNER_REGISTRATION_TOKEN`, into **both**
+services:
+
+- On the **gitea** service, Gitea reads it at startup and seeds a *global*
+  (instance-scoped) registration token — created on first boot, a no-op
+  afterwards. The value **must be ≥ 32 characters** or Gitea won't start
+  (`openssl rand -hex 32`). It's a plain env var read directly by Gitea, not a
+  `GITEA__…` app.ini override.
+- On the **gitea-runner** service, the same secret is used once to self-register;
+  the resulting `.runner` credentials persist under
+  `${HOLA_APP_DATA}/runner`, so restarts don't re-register.
+
+The runner waits on Gitea's `/api/healthz` healthcheck so the token is seeded
+before it connects.
+
+**Why Docker-in-Docker (and `privileged`).** Hola is Traefik-only with **no host
+ports**, and the compose validator also **rejects any bind mount outside
+`${HOLA_APP_DATA}`** — including `/var/run/docker.sock`. So the common "mount the
+host Docker socket" runner pattern is not available here. The runner therefore
+uses the **`-dind`** image, which runs its *own* Docker daemon inside the
+container; that requires `privileged: true`. Job containers run inside the
+runner, isolated from the host's Docker.
+
+> **Trust note.** A `privileged` container is a meaningful grant — privileged
+> code in the runner can escape to the host. Treat the Actions runner like any
+> CI executor: only run workflows you trust. (This is *more* isolated than the
+> host-socket pattern, which would hand jobs full control of the host's Docker.)
+
+**Rootless hardening (optional).** To drop in-container root, switch the image to
+`gitea/act_runner:0.6.1-dind-rootless`. It runs as UID 1000, so you must ensure
+`${HOLA_APP_DATA}/runner` is writable by that UID (the rootless image won't
+`chown` a server-created bind dir for you) — otherwise registration fails on
+first boot.
+
+**No Actions?** Remove the `gitea-runner` service and the
+`GITEA_RUNNER_REGISTRATION_TOKEN` env from the `gitea` service (per-app compose
+profiles aren't supported yet — try-hola/hola#162 — so the runner is otherwise
+always on). Gitea itself keeps the Actions UI; workflows just stay queued with no
+runner.
+
 ## Publish
 
 ```bash

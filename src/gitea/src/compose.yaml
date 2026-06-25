@@ -26,5 +26,56 @@ services:
       GITEA__oauth2_client__ENABLE_AUTO_REGISTRATION: "true"
       GITEA__oauth2_client__USERNAME: preferred_username
       GITEA__oauth2_client__ACCOUNT_LINKING: auto
+      # --- Gitea Actions (CI/CD) ---
+      # Actions is on by default in this image; set it explicitly so the feature
+      # is self-documenting and stays on if the upstream default ever changes.
+      GITEA__actions__ENABLED: "true"
+      # Seed a *global* (instance-scoped) runner registration token at startup so
+      # the gitea-runner service below can self-register unattended — no manual
+      # token copy from the web UI. Gitea reads this plain env var directly (it is
+      # NOT a GITEA__section__KEY app.ini override): on first boot it creates the
+      # token; on later boots it's a no-op if the token already exists. The value
+      # MUST be >= 32 characters or Gitea refuses to start. Hola injects the same
+      # secret into the runner so both sides share it.
+      GITEA_RUNNER_REGISTRATION_TOKEN: "${GITEA_RUNNER_REGISTRATION_TOKEN}"
     volumes:
       - ${HOLA_APP_DATA}/data:/data
+    healthcheck:
+      # The runner waits on this so the global token is seeded before it registers.
+      # /api/healthz returns 200 once Gitea is serving; busybox wget ships in the image.
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/api/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # Gitea Actions runner. Executes workflows from `.gitea/workflows` (and
+  # `.github/workflows`). Hola forbids host ports AND any bind mount outside
+  # ${HOLA_APP_DATA} (the compose validator rejects a `/var/run/docker.sock`
+  # mount), so the usual "share the host Docker socket" runner setup is not an
+  # option here. Instead we use the Docker-in-Docker (`-dind`) image: it runs its
+  # OWN dockerd inside the container and runs jobs there, needing no host socket.
+  # dind requires `privileged: true`. The plain `-dind` (root) variant — not
+  # `-dind-rootless` — is used deliberately: the rootless image runs as UID 1000
+  # and cannot write to the server-created ${HOLA_APP_DATA} bind dir, whereas this
+  # one writes it cleanly. See README for the rootless hardening alternative.
+  gitea-runner:
+    image: gitea/act_runner:0.6.1-dind
+    privileged: true
+    environment:
+      # Internal service URL (no ingress for the runner; Traefik never sees it).
+      GITEA_INSTANCE_URL: "http://gitea:3000"
+      # Same shared secret seeded into Gitea above — used once to self-register,
+      # after which the .runner credentials are persisted under ${HOLA_APP_DATA}.
+      GITEA_RUNNER_REGISTRATION_TOKEN: "${GITEA_RUNNER_REGISTRATION_TOKEN}"
+      GITEA_RUNNER_NAME: "hola-act-runner"
+    volumes:
+      # Persists the .runner registration file so restarts don't re-register.
+      - ${HOLA_APP_DATA}/runner:/data
+      # Persists the in-dind Docker image cache so job containers don't re-pull
+      # their images on every restart. Lives under ${HOLA_APP_DATA} (the validator
+      # forbids host binds elsewhere), keeping it inside the app's backup root.
+      - ${HOLA_APP_DATA}/runner-docker:/var/lib/docker
+    depends_on:
+      gitea:
+        condition: service_healthy
