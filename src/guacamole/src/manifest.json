@@ -1,6 +1,6 @@
 {
   "name": "guacamole",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "title": "Apache Guacamole",
   "description": "Clientless remote desktop gateway — RDP, VNC and SSH in your browser",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/guacamole.svg",
@@ -8,20 +8,17 @@
     "service": "guacamole",
     "port": 8080
   },
-  "defaultEnv": [
-    {
-      "key": "POSTGRES_PASSWORD",
-      "value": "",
-      "isSecret": true,
-      "description": "Password for Guacamole's internal PostgreSQL database. Generate one, e.g. `openssl rand -hex 32`. Used by both the database and the web app; not exposed outside the stack."
-    }
-  ],
   "defaults": {
     "ports": [
-      { "container": 8080, "protocol": "tcp" }
+      {
+        "container": 8080,
+        "protocol": "tcp"
+      }
     ],
     "volumes": [
-      { "containerPath": "/var/lib/postgresql/data" }
+      {
+        "containerPath": "/var/lib/postgresql/data"
+      }
     ]
   },
   "auth": {

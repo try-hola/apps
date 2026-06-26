@@ -37,6 +37,12 @@ services:
         fi
     volumes:
       - ${HOLA_APP_DATA}/initdb:/init
+    # The bind-mounted /init dir is created root-owned by the Docker daemon, but the
+    # guacamole image runs as a non-root user — so the default user can't write
+    # initdb.sql there (Permission denied → exit 2). This one-shot only generates a
+    # SQL file, so run it as root to own the write; postgres then reads the file
+    # (world-readable) on its first init.
+    user: "0:0"
     restart: "no"
 
   postgres:
@@ -44,7 +50,10 @@ services:
     environment:
       POSTGRES_DB: guacamole_db
       POSTGRES_USER: guacamole_user
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      # Internal-only DB (no host port, isolated per-install compose network), so a
+      # self-contained default is safe and needs zero install-time config. Override
+      # via POSTGRES_PASSWORD if you ever expose it; must match the web app below.
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-guacamole_internal_db_pw}"
     volumes:
       - ${HOLA_APP_DATA}/postgres:/var/lib/postgresql/data
       # Schema is applied here ONLY on a first-time (empty data dir) init.
@@ -92,7 +101,8 @@ services:
       POSTGRESQL_PORT: "5432"
       POSTGRESQL_DATABASE: guacamole_db
       POSTGRESQL_USER: guacamole_user
-      POSTGRESQL_PASSWORD: "${POSTGRES_PASSWORD}"
+      # Must match the postgres service's default above.
+      POSTGRESQL_PASSWORD: "${POSTGRES_PASSWORD:-guacamole_internal_db_pw}"
       # Auto-create a DB account on first SSO/OIDC login (used only if you wire
       # up OpenID later; harmless with DB-only auth + the forward-auth gate).
       POSTGRESQL_AUTO_CREATE_ACCOUNTS: "true"
