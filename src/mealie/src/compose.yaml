@@ -4,8 +4,10 @@
 #
 # Datastore: PostgreSQL (production-grade, matching Hola's other multi-container
 # apps). Mealie also supports SQLite, but Postgres is recommended for anything
-# beyond a trivial install. The DB password is collected by the install wizard
-# (manifest.defaultEnv → ${POSTGRES_PASSWORD}).
+# beyond a trivial install. The DB is internal-only (no host port, isolated
+# per-install compose network), so its password is self-contained with a default
+# (${POSTGRES_PASSWORD:-…}, identical in both the app and the postgres service) —
+# no install-time input required. Override POSTGRES_PASSWORD only if you expose it.
 #
 # SSO: native OIDC via env (provisioned by Hola's auth block). Mealie wants the
 # provider's *discovery* URL, so we append `.well-known/openid-configuration` to
@@ -21,7 +23,10 @@ services:
       # PostgreSQL connection (internal; not exposed to the host).
       DB_ENGINE: "postgres"
       POSTGRES_USER: "mealie"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      # Internal-only DB (no host port, isolated per-install compose network), so a
+      # self-contained default is safe and needs zero install-time config. Override
+      # via POSTGRES_PASSWORD if you ever expose it; must match mealie-postgres below.
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-mealie_internal_db_pw}"
       POSTGRES_SERVER: "mealie-postgres"
       POSTGRES_PORT: "5432"
       POSTGRES_DB: "mealie"
@@ -55,7 +60,8 @@ services:
     image: postgres:17-alpine
     environment:
       POSTGRES_USER: "mealie"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      # Must match the mealie service's POSTGRES_PASSWORD default above.
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-mealie_internal_db_pw}"
       POSTGRES_DB: "mealie"
     volumes:
       - ${HOLA_APP_DATA}/postgres:/var/lib/postgresql/data

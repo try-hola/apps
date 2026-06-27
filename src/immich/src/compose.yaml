@@ -19,7 +19,10 @@ services:
       # Internal datastores (not exposed to the host).
       DB_HOSTNAME: immich-postgres
       DB_USERNAME: immich
-      DB_PASSWORD: "${DB_PASSWORD}"
+      # Internal-only DB (no host port, isolated per-install compose network), so a
+      # self-contained default is safe and needs zero install-time config. Override
+      # via DB_PASSWORD if you ever expose it; must match the postgres service below.
+      DB_PASSWORD: "${DB_PASSWORD:-immich_internal_db_pw}"
       DB_DATABASE_NAME: immich
       REDIS_HOSTNAME: immich-redis
       # Container clock — set to your zone (host /etc/localtime can't be bind-mounted:
@@ -59,6 +62,11 @@ services:
   # absent it does nothing, leaving Immich on its built-in login.
   immich-oidc-init:
     image: mikefarah/yq:4.44.6
+    # The bind-mounted /data dir is created root-owned by the Docker daemon, but the
+    # yq image runs as a non-root user — so it can't mkdir /data/config or write the
+    # rendered config (Permission denied → exit 2). Run this one-shot as root; the
+    # immich-server it feeds also runs as root, so it can read the 0600 output.
+    user: "0:0"
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
@@ -115,7 +123,8 @@ services:
     image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0@sha256:bcf63357191b76a916ae5eb93464d65c07511da41e3bf7a8416db519b40b1c23
     environment:
       POSTGRES_USER: immich
-      POSTGRES_PASSWORD: "${DB_PASSWORD}"
+      # Must match immich-server's DB_PASSWORD default above.
+      POSTGRES_PASSWORD: "${DB_PASSWORD:-immich_internal_db_pw}"
       POSTGRES_DB: immich
       POSTGRES_INITDB_ARGS: "--data-checksums"
     shm_size: 128mb
