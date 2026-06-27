@@ -1,6 +1,6 @@
 {
   "name": "guacamole",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Apache Guacamole — clientless remote desktop gateway (Hola app package)",
   "license": "Apache-2.0",
   "oci": {

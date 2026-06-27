@@ -1,6 +1,6 @@
 {
   "name": "guacamole",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "title": "Apache Guacamole",
   "description": "Clientless remote desktop gateway — RDP, VNC and SSH in your browser",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/guacamole.svg",
@@ -23,5 +23,6 @@
   },
   "auth": {
     "mode": "forward-auth"
-  }
+  },
+  "defaultEnv": []
 }
