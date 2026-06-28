@@ -153,9 +153,9 @@
       "tags": [],
       "versions": [
         {
-          "version": "1.0.1",
+          "version": "1.0.3",
           "refs": {
-            "oci": "ghcr.io/try-hola/postiz:1.0.1"
+            "oci": "ghcr.io/try-hola/postiz:1.0.3"
           }
         }
       ]
