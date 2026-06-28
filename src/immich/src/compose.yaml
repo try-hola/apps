@@ -113,7 +113,10 @@ services:
       start_period: 120s
 
   immich-redis:
-    image: docker.io/valkey/valkey:9@sha256:3b55fbaa0cd93cf0d9d961f405e4dfcc70efe325e2d84da207a0a8e6d8fde4f9
+    # Alpine variant of the Valkey cache — ~80 MB smaller than the Debian image, no
+    # behavioural difference (Redis-compatible; immich uses it only as a cache/queue).
+    # Pinned by manifest-list digest (multi-arch amd64+arm64), matching the postgres pin.
+    image: docker.io/valkey/valkey:9-alpine@sha256:a35428eba9043cc0b79dbe54100f0c92784f2de00ad09b01182bfb1c5c83d1bd
     volumes:
       - ${HOLA_APP_DATA}/redis:/data
     healthcheck:
