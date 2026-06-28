@@ -1,0 +1,64 @@
+# Hangar — self-hosted "fleet control plane": aggregate your git repos across
+# providers (GitHub today, Gitea designed-for), score each against a declarative
+# best-practice policy, and remediate hygiene drift in place — every change shipped
+# as a pull request, never a push. Packaged for Hola: Traefik-only ingress (no host
+# ports), SQLite state bind-mounted under ${HOLA_APP_DATA}.
+#
+# SSO is forward-auth (manifest auth: forward-auth). Hangar has NO user system of its
+# own — it is fail-closed and sits behind a reverse proxy, trusting the identity the
+# proxy injects. Hola gates the route via Authentik's embedded outpost and forwards
+# X-authentik-username, which Hangar reads as the operator identity for its audit log.
+services:
+  hangar:
+    image: ghcr.io/get2knowio/hangar:0.1.0@sha256:634c63b9428ba68f5b3796ac408cfefaf54812f85dbaa3f0c278091d5de1a697
+    environment:
+      # Hangar is fail-closed: it refuses to start unless an access mode is chosen.
+      # forward-auth = trust the identity header the proxy injects after it authenticates.
+      HANGAR_ACCESS_MODE: forward-auth
+      # Hangar's default identity header is Remote-User; Authentik's outpost sends the
+      # username as X-authentik-username and Hola's Traefik forward-auth middleware
+      # passes it through, so point Hangar at that header.
+      HANGAR_FORWARD_AUTH_USER_HEADER: X-authentik-username
+      # Anti-spoofing: only trust that identity header when the request comes from the
+      # proxy. Traefik reaches this app over Docker's bridge/overlay network, which lives
+      # in 172.16.0.0/12; tighten if your proxy's source range is narrower.
+      HANGAR_TRUSTED_PROXY_CIDR: 172.16.0.0/12
+      # Fernet key that encrypts provider credentials (GitHub App private key, webhook
+      # secrets, tokens) at rest. Hangar boots without it, but you can't connect a
+      # provider until it's set. Collected by the install wizard (see manifest).
+      HANGAR_SECRET_KEY: "${HANGAR_SECRET_KEY}"
+      # Persistence: SQLite on the mounted /data volume. The image already points
+      # HANGAR_DATABASE_URL at /data/hangar.db; set the HANGAR_POSTGRES_* vars instead
+      # if you'd rather run against an external Postgres.
+    volumes:
+      - ${HOLA_APP_DATA}/data:/data
+    healthcheck:
+      # /health is auth-exempt in Hangar, and curl ships in the image.
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      hangar-init:
+        condition: service_completed_successfully
+
+  # The /data volume is a bind mount Docker creates root-owned, but the Hangar image
+  # runs as a non-root user (uid 10001) and must write the SQLite db there — otherwise
+  # it can't create /data/hangar.db (Permission denied). Chown it before the app starts.
+  # Reuses the Hangar image (no extra pull) just for a shell + chown. `restart: "no"` is
+  # REQUIRED — Hola applies a default restart policy to services that declare none, which
+  # would restart this after it exits 0 so it never reaches service_completed_successfully
+  # and the hangar service (which depends on that) is stuck Created forever.
+  hangar-init:
+    image: ghcr.io/get2knowio/hangar:0.1.0@sha256:634c63b9428ba68f5b3796ac408cfefaf54812f85dbaa3f0c278091d5de1a697
+    restart: "no"
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        mkdir -p /data
+        chown -R 10001:10001 /data
+        echo "[hola] chowned /data to the hangar user (uid 10001)"
+    volumes:
+      - ${HOLA_APP_DATA}/data:/data

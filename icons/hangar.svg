@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1000" height="1000" role="img" aria-label="Hangar">
+  <rect width="1000" height="1000" rx="180" fill="#1f2a44"/>
+  <!-- Hangar shell: arched roof over straight walls -->
+  <path d="M150 830 V470 C150 277 306 150 500 150 C694 150 850 277 850 470 V830 Z"
+        fill="none" stroke="#5b8def" stroke-width="64" stroke-linejoin="round"/>
+  <!-- Door opening: a smaller concentric arch -->
+  <path d="M312 830 V486 C312 372 396 300 500 300 C604 300 688 372 688 486 V830 Z"
+        fill="#5b8def" opacity="0.18"/>
+  <!-- Plane inside: fuselage + swept wings + tail -->
+  <g fill="#9fc0ff">
+    <rect x="476" y="470" width="48" height="300" rx="24"/>
+    <path d="M500 556 L690 660 L690 712 L500 636 L310 712 L310 660 Z"/>
+    <path d="M500 470 L566 416 L566 452 L500 512 L434 452 L434 416 Z"/>
+  </g>
+  <!-- Ground line -->
+  <rect x="120" y="828" width="760" height="40" rx="20" fill="#5b8def"/>
+</svg>
