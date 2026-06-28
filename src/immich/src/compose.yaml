@@ -62,6 +62,12 @@ services:
   # absent it does nothing, leaving Immich on its built-in login.
   immich-oidc-init:
     image: mikefarah/yq:4.44.6
+    # One-shot: render the OAuth config and exit. `restart: "no"` is REQUIRED — Hola
+    # applies an install-wide default restart policy to services that declare none,
+    # which would restart this after it exits 0, so it never reaches
+    # `service_completed_successfully` and immich-server (which depends on that) is
+    # stuck `Created` forever.
+    restart: "no"
     # The bind-mounted /data dir is created root-owned by the Docker daemon, but the
     # yq image runs as a non-root user — so it can't mkdir /data/config or write the
     # rendered config (Permission denied → exit 2). Run this one-shot as root; the
