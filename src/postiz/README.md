@@ -28,6 +28,25 @@ we point Temporal at its own Postgres and **omit Elasticsearch entirely**
 functionality. Advanced ES visibility could become an opt-in once Hola supports
 per-app compose profiles ([try-hola/hola#162](https://github.com/try-hola/hola/issues/162)).
 
+### Resource requirements
+
+Postiz is one of the **heavier** catalog apps: five containers, and the `postiz`
+container itself runs the Next.js frontend, the NestJS backend and a worker/cron
+process together. The backend is memory- and CPU-hungry on boot (it runs a Prisma
+schema push and connects to Temporal before it starts serving), and Temporal adds
+its own footprint on top.
+
+Budget **at least ~3–4 GB of free RAM and 2+ vCPUs for Postiz alone**, on top of
+whatever the rest of your Hola host is running (Traefik, the server, and Authentik
+if SSO is enabled). On a memory-starved host the backend can take minutes to come
+up — or never finish — and while it's down the app's API (port 3000, proxied at
+`/api`) returns **502** even though the frontend renders; the most visible symptom
+is the **"Sign in with Authentik" button doing nothing** (its login-link request
+to `/api/auth/oauth/GENERIC` 502s). The container healthcheck now gates on the
+backend actually answering, so Hola will keep the deploy in a non-ready state
+rather than reporting a healthy app whose auth is broken — give it more memory if
+it won't converge.
+
 ## Configuration
 
 The install wizard collects:

@@ -34,12 +34,23 @@ services:
     volumes:
       - ${HOLA_APP_DATA}/config:/config
       - ${HOLA_APP_DATA}/uploads:/uploads
+    # Probe the BACKEND through the in-image nginx (/api → localhost:3000), NOT
+    # just nginx/frontend on `/`. The postiz image runs the Next.js frontend (4200),
+    # the NestJS backend (3000) and nginx (5000) as separate pm2 processes; nginx and
+    # the frontend come up in seconds while the backend is slow (it runs `prisma db
+    # push` + NestJS init + Temporal connect on boot). Probing `/` only proved the
+    # frontend was up, so the container reported healthy while every `/api` call —
+    # including the "Sign in with Authentik" login-link endpoint — still 502'd
+    # (nginx → dead backend). Hitting `/api/auth/can-register` (a public backend GET)
+    # makes "healthy" mean the backend actually serves, so Hola won't present a
+    # running app whose auth is broken. The backend boot is heavy, especially on
+    # small homelab hosts, so the start_period is generous.
     healthcheck:
-      test: ["CMD", "node", "-e", "const r=require('http').get('http://localhost:5000/',res=>process.exit(res.statusCode<500?0:1));r.on('error',()=>process.exit(1));r.setTimeout(4000,()=>{r.destroy();process.exit(1)})"]
+      test: ["CMD", "node", "-e", "const r=require('http').get('http://localhost:5000/api/auth/can-register',res=>process.exit(res.statusCode<500?0:1));r.on('error',()=>process.exit(1));r.setTimeout(8000,()=>{r.destroy();process.exit(1)})"]
       interval: 30s
       timeout: 10s
-      retries: 5
-      start_period: 120s
+      retries: 6
+      start_period: 300s
     depends_on:
       postiz-postgres:
         condition: service_healthy
