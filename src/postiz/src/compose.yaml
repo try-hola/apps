@@ -34,12 +34,23 @@ services:
     volumes:
       - ${HOLA_APP_DATA}/config:/config
       - ${HOLA_APP_DATA}/uploads:/uploads
+    # Probe the BACKEND through the in-image nginx (/api → localhost:3000), NOT
+    # just nginx/frontend on `/`. The postiz image runs the Next.js frontend (4200),
+    # the NestJS backend (3000) and nginx (5000) as separate pm2 processes; nginx and
+    # the frontend come up in seconds while the backend is slow (it runs `prisma db
+    # push` + NestJS init + Temporal connect on boot). Probing `/` only proved the
+    # frontend was up, so the container reported healthy while every `/api` call —
+    # including the "Sign in with Authentik" login-link endpoint — still 502'd
+    # (nginx → dead backend). Hitting `/api/auth/can-register` (a public backend GET)
+    # makes "healthy" mean the backend actually serves, so Hola won't present a
+    # running app whose auth is broken. The backend boot is heavy, especially on
+    # small homelab hosts, so the start_period is generous.
     healthcheck:
-      test: ["CMD", "node", "-e", "const r=require('http').get('http://localhost:5000/',res=>process.exit(res.statusCode<500?0:1));r.on('error',()=>process.exit(1));r.setTimeout(4000,()=>{r.destroy();process.exit(1)})"]
+      test: ["CMD", "node", "-e", "const r=require('http').get('http://localhost:5000/api/auth/can-register',res=>process.exit(res.statusCode<500?0:1));r.on('error',()=>process.exit(1));r.setTimeout(8000,()=>{r.destroy();process.exit(1)})"]
       interval: 30s
       timeout: 10s
-      retries: 5
-      start_period: 120s
+      retries: 6
+      start_period: 300s
     depends_on:
       postiz-postgres:
         condition: service_healthy
@@ -83,6 +94,15 @@ services:
       POSTGRES_USER: temporal
       POSTGRES_PWD: temporal
       POSTGRES_SEEDS: temporal-postgres
+      # Don't register Temporal's demo custom search attributes (CustomTextField,
+      # CustomStringField, …). Postgres-backed visibility allows only 3 of type Text,
+      # and two of those demo attrs are Text; the Postiz backend registers two more
+      # of its own (organizationId, postId) on boot, which would make 4 > 3 — Temporal
+      # rejects it, the backend's NestJS init throws, and it never binds :3000, so every
+      # /api call (incl. the "Sign in with Authentik" login-link endpoint) 502s. Skipping
+      # the unused demo attrs keeps Text usage at 2/3. (Elasticsearch visibility, which
+      # upstream uses, has no such limit — see README.)
+      SKIP_ADD_CUSTOM_SEARCH_ATTRIBUTES: "true"
     depends_on:
       temporal-postgres:
         condition: service_healthy

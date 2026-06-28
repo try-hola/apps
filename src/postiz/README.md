@@ -22,11 +22,47 @@ containers:
 ### Why no Elasticsearch?
 
 Upstream's compose runs Temporal with Elasticsearch for workflow *visibility*
-(search/listing). Temporal supports Postgres-backed visibility just as well, so
-we point Temporal at its own Postgres and **omit Elasticsearch entirely**
-(`ENABLE_ES` unset) — dropping a ~512MB–1GB container with no loss of scheduling
-functionality. Advanced ES visibility could become an opt-in once Hola supports
-per-app compose profiles ([try-hola/hola#162](https://github.com/try-hola/hola/issues/162)).
+(search/listing). Temporal also supports Postgres-backed visibility, so we point
+Temporal at its own Postgres and **omit Elasticsearch entirely** (`ENABLE_ES`
+unset) — dropping a ~512MB–1GB container with no loss of scheduling functionality.
+Advanced ES visibility could become an opt-in once Hola supports per-app compose
+profiles ([try-hola/hola#162](https://github.com/try-hola/hola/issues/162)).
+
+One catch comes with that trade: Temporal's Postgres visibility schema allows only
+**3 custom search attributes of type Text**, and Temporal auto-setup otherwise
+pre-registers a set of unused demo ones (two of them — `CustomTextField`,
+`CustomStringField` — are Text). Postiz's backend registers two of its own on boot
+(`organizationId`, `postId`), which on top of the demo Text attrs makes 4 — Temporal
+rejects the extra ones, the backend throws during startup and never binds its port,
+and the whole `/api` surface 502s. We avoid this by setting
+**`SKIP_ADD_CUSTOM_SEARCH_ATTRIBUTES=true`** on the `temporal` service, so auto-setup
+never creates the demo attributes and Postiz's two Text attributes fit within the
+limit. (Elasticsearch visibility, which upstream uses, has no such limit — this is
+the one behavioural difference of running Temporal on Postgres for Postiz.)
+
+### Resource requirements
+
+Postiz is one of the **heavier** catalog apps: five containers, and the `postiz`
+container itself runs the Next.js frontend, the NestJS backend and a worker/cron
+process together. The backend is memory- and CPU-hungry on boot (it runs a Prisma
+schema push and connects to Temporal before it starts serving), and Temporal adds
+its own footprint on top.
+
+Budget **at least ~3–4 GB of free RAM and 2+ vCPUs for Postiz alone**, on top of
+whatever the rest of your Hola host is running (Traefik, the server, and Authentik
+if SSO is enabled). The backend is slow to boot even on a healthy host — it runs a
+Prisma schema push and connects to Temporal before it serves — and on a memory- or
+CPU-starved host it can take several minutes, or fail to converge at all.
+
+While the backend is down, the app's API (port 3000, proxied at `/api`) returns
+**502** even though the frontend renders, and the most visible symptom is the
+**"Sign in with Authentik" button doing nothing** (its login-link request to
+`/api/auth/oauth/GENERIC` 502s). The container healthcheck now gates on the backend
+actually answering through `/api`, so Hola keeps the deploy in a non-ready state
+rather than reporting a healthy app whose auth is broken — give it more memory/CPU
+if it won't converge. (A *deterministic* version of this 502, independent of
+resources, was the Temporal search-attribute limit described above; that's fixed by
+the `temporal-search-attributes-init` one-shot.)
 
 ## Configuration
 
