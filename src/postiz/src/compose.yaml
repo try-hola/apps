@@ -94,6 +94,15 @@ services:
       POSTGRES_USER: temporal
       POSTGRES_PWD: temporal
       POSTGRES_SEEDS: temporal-postgres
+      # Don't register Temporal's demo custom search attributes (CustomTextField,
+      # CustomStringField, …). Postgres-backed visibility allows only 3 of type Text,
+      # and two of those demo attrs are Text; the Postiz backend registers two more
+      # of its own (organizationId, postId) on boot, which would make 4 > 3 — Temporal
+      # rejects it, the backend's NestJS init throws, and it never binds :3000, so every
+      # /api call (incl. the "Sign in with Authentik" login-link endpoint) 502s. Skipping
+      # the unused demo attrs keeps Text usage at 2/3. (Elasticsearch visibility, which
+      # upstream uses, has no such limit — see README.)
+      SKIP_ADD_CUSTOM_SEARCH_ATTRIBUTES: "true"
     depends_on:
       temporal-postgres:
         condition: service_healthy
