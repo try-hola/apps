@@ -6,11 +6,13 @@
   <!-- Door opening: a smaller concentric arch -->
   <path d="M312 830 V486 C312 372 396 300 500 300 C604 300 688 372 688 486 V830 Z"
         fill="#5b8def" opacity="0.18"/>
-  <!-- Plane inside: fuselage + swept wings + tail -->
+  <!-- Plane inside, nose UP: nose cone + fuselage + swept-back wings (tips toward
+       the tail) + tail stabilizer at the rear -->
   <g fill="#9fc0ff">
-    <rect x="476" y="470" width="48" height="300" rx="24"/>
-    <path d="M500 556 L690 660 L690 712 L500 636 L310 712 L310 660 Z"/>
-    <path d="M500 470 L566 416 L566 452 L500 512 L434 452 L434 416 Z"/>
+    <path d="M500 432 L524 478 L476 478 Z"/>
+    <rect x="476" y="468" width="48" height="300" rx="24"/>
+    <path d="M500 545 L698 672 L698 700 L500 598 L302 700 L302 672 Z"/>
+    <path d="M500 690 L586 734 L586 750 L500 712 L414 750 L414 734 Z"/>
   </g>
   <!-- Ground line -->
   <rect x="120" y="828" width="760" height="40" rx="20" fill="#5b8def"/>
