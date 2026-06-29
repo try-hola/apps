@@ -53,6 +53,8 @@ Per-app metadata the Hola server reads at deploy time. Key fields:
 | `defaults.ports[]` / `defaults.volumes[]` | no | Default port/volume intents shown in the wizard. |
 | `auth` | no | SSO integration (`native-oidc` / `forward-auth` / `native-ldap`); drives per-app auth provisioning. |
 | `consumes[]` | no | Cross-app capabilities (e.g. `app-registry`, `apps-data`). |
+| `upgrade` | no | Upgrade-safety metadata — `breaking`, version-skip guard rails, pre-upgrade backup policy. See [Upgrade safety](#upgrade-safety-upgrade). |
+| `backup` | no | Per-app pre/post-backup hooks for transaction-consistent snapshots (e.g. `pg_dump`). See [Backup hooks](#backup-hooks-backup). |
 
 **`ingress.service` matters for multi-service apps.** Hola attaches exactly one
 service to its routing network and injects auth env into it. If you omit
@@ -61,6 +63,78 @@ first service — so an app whose web tier is named differently (e.g. Immich's
 `immich-server`, Paperless's `webserver`) **must** declare it, or it will be
 mis-routed (and its SSO env wired into the wrong container). CI rejects a package
 whose `ingress.service` is missing or doesn't name a real compose service.
+
+> The Hola server reads every block with **narrow-shape coercion**: it keeps only
+> the fields documented below and silently drops anything else (and any malformed
+> value). A typo'd field name is a no-op, not an error — so check the rendered
+> behavior, not just that CI passed.
+
+### Upgrade safety (`upgrade`)
+
+Hola's semver describes impact **on the Hola user**, not upstream's numbers. The
+`upgrade` block makes a release's upgrade characteristics machine-enforceable: the
+server validates them on a `promote`, and they're surfaced to the operator before a
+risky upgrade. Declare it on the **version being upgraded *to***.
+
+```jsonc
+// manifest.json
+"upgrade": {
+  "breaking": true,                 // this release migrates/breaks; the operator must confirm before promoting
+  "minFromVersion": "1.107.2",      // floor: a deployment must already be at/above this to promote to this version
+  "waypoints": ["1.132.3"],         // must be promoted THROUGH these one at a time (no skipping past them)
+  "upgradeNotesUrl": "https://…",   // link shown in the promote dialog
+  "preUpgradeBackup": "required"    // "required" | "recommended" | "none"
+}
+```
+
+| Field | Type | Effect |
+| --- | --- | --- |
+| `breaking` | `boolean` | Marks a migrating/breaking release. Surfaced to the operator to confirm before the promote. |
+| `minFromVersion` | `string` | **Server-enforced floor.** Promoting from below it is rejected with an actionable error (upgrade to the floor first). For an app with a documented minimum upgrade origin (e.g. Immich's `1.107.2`). |
+| `waypoints[]` | `string[]` | **Server-enforced.** Versions a deployment must pass through one at a time; a promote that would skip past one is rejected and names the next stop. For chains that must be walked step-by-step (Nextcloud one-major-at-a-time; Immich waypoints). |
+| `upgradeNotesUrl` | `string` | Release/upgrade notes link rendered in the promote dialog. |
+| `preUpgradeBackup` | `"required" \| "recommended" \| "none"` | `required` ⇒ Hola always takes a pre-upgrade snapshot before the promote and **fails the upgrade if it can't** (fail-closed). `recommended`/`none` are advisory. |
+
+The skip-guard only fires for a real forward upgrade (target newer than installed);
+same-version re-promotes and rollbacks pass through. Only set `minFromVersion` /
+`waypoints` when upstream genuinely requires it — they **block** otherwise-valid
+upgrades.
+
+### Backup hooks (`backup`)
+
+A file-level snapshot of a running app (Hola's backup + the pre-upgrade snapshot)
+is **crash-consistent, not transaction-consistent** — fine for most apps and for
+SQLite, but a live SQL database can need a quiesce or dump first. Declare hooks and
+Hola runs them in the app's **own containers** (via `docker compose exec`) around
+the snapshot.
+
+```jsonc
+// manifest.json
+"backup": {
+  "preHook":  { "service": "db", "command": ["sh", "-c", "pg_dump -U postgres app > /backups/dump.sql"] },
+  "postHook": { "service": "db", "command": ["rm", "-f", "/backups/dump.sql"] }
+}
+```
+
+| Field | Type | Purpose |
+| --- | --- | --- |
+| `preHook` | `{ service, command[] }` | Run **before** the file capture — quiesce or dump (e.g. `pg_dump`). `service` must name a compose service; `command` is **exec-form** (argv), not a shell string. |
+| `postHook` | `{ service, command[] }` | Run **after** the capture — clean up (e.g. remove the dump). Same shape. |
+
+Rules that make the hooks useful:
+
+- **Write the dump where the snapshot can see it.** The snapshot captures the app's
+  on-disk data root, so the dump must land **inside a path bind-mounted under the
+  app's data root** — e.g. mount `${HOLA_APP_DATA}/backups:/backups` and
+  `pg_dump > /backups/dump.sql`. The hook runs *inside* the container, so use the
+  **container-side** path (Hola does not rewrite `${HOLA_APP_DATA}` inside hook
+  commands).
+- **Failure handling.** A `preHook` failure is **fail-closed** when the target
+  release declares `upgrade.preUpgradeBackup: "required"` (the upgrade aborts rather
+  than snapshot a useless dump), and best-effort (warn + continue) otherwise. The
+  `postHook` always runs (even if the capture failed) and never fails the upgrade.
+- Multi-DB apps: point the hook at the database service (`postiz-postgres`,
+  `immich-postgres`, etc.). One hook per block today.
 
 ## Workflow
 
