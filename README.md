@@ -12,11 +12,13 @@ at `<app>.<HOLA_BASE_DOMAIN>` — **no host ports**, ingress is Traefik-only).
 | 🖥️ Apache Guacamole | Clientless remote desktop gateway (RDP/VNC/SSH in the browser) |
 | 💾 Backrest | Backup orchestrator (restic) with a web UI |
 | 🍵 Gitea | Self-hosted Git service |
+| 🛩️ Hangar | Self-hosted fleet control plane — git repo hygiene & remediation across providers |
 | 🏠 Homepage | A highly customizable application dashboard / start page |
 | 📷 Immich | Self-hosted photo & video management |
 | 🍲 Mealie | Self-hosted recipe manager & meal planner |
 | 🔗 n8n | Workflow automation tool |
 | 📄 Paperless-ngx | Document management — scan, index, and archive your documents |
+| 📅 Postiz | Open-source social media scheduling tool with AI features |
 | 🐧 Ubuntu Webtop | A full Ubuntu desktop environment in your browser |
 | 📈 Uptime Kuma | Self-hosted uptime monitoring and status pages |
 | 🔐 Vaultwarden | Self-hosted, Bitwarden-compatible password manager |
