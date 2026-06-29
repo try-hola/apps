@@ -10,7 +10,7 @@
 # X-authentik-username, which Hangar reads as the operator identity for its audit log.
 services:
   hangar:
-    image: ghcr.io/get2knowio/hangar:0.2.0@sha256:5c3172b61c9c22f43b2c6967a1a0bbf102682d964bc3d25c2a53fa854cf3147a
+    image: ghcr.io/get2knowio/hangar:0.3.0@sha256:cea072f9292cc58507bf03f0b16948b7f06c40cfef707cf15f228036e75ad61c
     environment:
       # Hangar is fail-closed: it refuses to start unless an access mode is chosen.
       # forward-auth = trust the identity header the proxy injects after it authenticates.
@@ -27,6 +27,14 @@ services:
       # secrets, tokens) at rest. Hangar boots without it, but you can't connect a
       # provider until it's set. Collected by the install wizard (see manifest).
       HANGAR_SECRET_KEY: "${HANGAR_SECRET_KEY}"
+      # Browser-visible base URL, used to build the GitHub App manifest's redirect/
+      # setup callback URLs for the 0.3.0 one-click "Connect with GitHub" flow. The
+      # callbacks are BROWSER redirects (GitHub never connects inbound), so this is
+      # just Hangar's public Hola URL. Pin it explicitly because behind Hola's
+      # TLS-terminating Traefik proxy the app would otherwise derive an internal
+      # http:// URL from the request. Enterprise hosts (GHES/GHEC) are chosen
+      # per-connection in the UI, so no global host setting is needed.
+      HANGAR_BASE_URL: "https://${HOLA_APP_HOST}"
       # Persistence: SQLite on the mounted /data volume. The image already points
       # HANGAR_DATABASE_URL at /data/hangar.db; set the HANGAR_POSTGRES_* vars instead
       # if you'd rather run against an external Postgres.
@@ -51,7 +59,7 @@ services:
   # would restart this after it exits 0 so it never reaches service_completed_successfully
   # and the hangar service (which depends on that) is stuck Created forever.
   hangar-init:
-    image: ghcr.io/get2knowio/hangar:0.2.0@sha256:5c3172b61c9c22f43b2c6967a1a0bbf102682d964bc3d25c2a53fa854cf3147a
+    image: ghcr.io/get2knowio/hangar:0.3.0@sha256:cea072f9292cc58507bf03f0b16948b7f06c40cfef707cf15f228036e75ad61c
     restart: "no"
     user: "0:0"
     entrypoint: ["/bin/sh", "-c"]

@@ -39,9 +39,12 @@ The install wizard collects:
   ```
 
 Everything else uses safe defaults (SQLite persistence, a 5-minute poll interval). After
-install, add a **GitHub App** connection from Hangar's *Providers* screen to start
-watching real repositories; until then the dashboard is empty. To explore with sample
-data instead, you can set `HANGAR_SEED_DEMO_DATA=true`.
+install, connect a provider from Hangar's *Providers* screen to start watching real
+repositories; until then the dashboard is empty. As of upstream **0.3.0** you can use the
+one-click **"Connect with GitHub"** flow (this package sets `HANGAR_BASE_URL` to your
+Hola URL so the GitHub App callbacks resolve correctly), pick a per-connection host for
+**GitHub Enterprise Server / GHEC**, or paste GitHub App credentials manually. To explore
+with sample data instead, you can set `HANGAR_SEED_DEMO_DATA=true`.
 
 ### Postgres (optional)
 
