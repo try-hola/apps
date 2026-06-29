@@ -1,0 +1,30 @@
+{
+  "name": "hangar",
+  "version": "1.0.0",
+  "title": "Hangar",
+  "description": "Self-hosted fleet control plane — aggregate your git repos across providers, score each against a best-practice policy, and remediate hygiene drift via pull requests",
+  "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/hangar.svg",
+  "ingress": {
+    "service": "hangar",
+    "port": 8000
+  },
+  "defaultEnv": [
+    {
+      "key": "HANGAR_SECRET_KEY",
+      "value": "",
+      "isSecret": true,
+      "description": "Fernet key that encrypts provider credentials (GitHub App private key, tokens) at rest. Required before you connect a provider. Generate one with: python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'"
+    }
+  ],
+  "defaults": {
+    "ports": [
+      { "container": 8000, "protocol": "tcp" }
+    ],
+    "volumes": [
+      { "containerPath": "/data" }
+    ]
+  },
+  "auth": {
+    "mode": "forward-auth"
+  }
+}

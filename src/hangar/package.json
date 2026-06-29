@@ -1,0 +1,12 @@
+{
+  "name": "hangar",
+  "version": "1.0.0",
+  "description": "Hangar — self-hosted fleet control plane for git repo hygiene (Hola app package)",
+  "oci": {
+    "annotations": {
+      "org.opencontainers.image.title": "hangar",
+      "org.opencontainers.image.description": "Self-hosted fleet control plane — repo hygiene & remediation",
+      "org.opencontainers.image.version": "${npm_package_version}"
+    }
+  }
+}
