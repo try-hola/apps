@@ -10,7 +10,7 @@
 # X-authentik-username, which Hangar reads as the operator identity for its audit log.
 services:
   hangar:
-    image: ghcr.io/get2knowio/hangar:0.1.0@sha256:634c63b9428ba68f5b3796ac408cfefaf54812f85dbaa3f0c278091d5de1a697
+    image: ghcr.io/get2knowio/hangar:0.2.0@sha256:5c3172b61c9c22f43b2c6967a1a0bbf102682d964bc3d25c2a53fa854cf3147a
     environment:
       # Hangar is fail-closed: it refuses to start unless an access mode is chosen.
       # forward-auth = trust the identity header the proxy injects after it authenticates.
@@ -51,7 +51,7 @@ services:
   # would restart this after it exits 0 so it never reaches service_completed_successfully
   # and the hangar service (which depends on that) is stuck Created forever.
   hangar-init:
-    image: ghcr.io/get2knowio/hangar:0.1.0@sha256:634c63b9428ba68f5b3796ac408cfefaf54812f85dbaa3f0c278091d5de1a697
+    image: ghcr.io/get2knowio/hangar:0.2.0@sha256:5c3172b61c9c22f43b2c6967a1a0bbf102682d964bc3d25c2a53fa854cf3147a
     restart: "no"
     user: "0:0"
     entrypoint: ["/bin/sh", "-c"]
