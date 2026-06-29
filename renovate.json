@@ -1,0 +1,19 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "dependencyDashboard": true,
+  "enabledManagers": ["docker-compose", "github-actions"],
+  "packageRules": [
+    {
+      "description": "Catalog app upstream container images (src/<app>/src/compose.yaml). One PR per app, never auto-merged — a human must also bump the Hola bundle version and review the upgrade/backup manifest metadata.",
+      "matchManagers": ["docker-compose"],
+      "labels": ["dependencies", "catalog-upstream"],
+      "automerge": false,
+      "pinDigests": true,
+      "separateMinorPatch": true,
+      "prBodyNotes": [
+        "⚠️ This bumps the **upstream image** (tag + digest) only. Before merging, also bump the **Hola bundle version** (`src/<app>/package.json` + `src/<app>/src/manifest.json` — Hola's semver describes impact on the *Hola user*, not upstream's number) and review whether the manifest's `upgrade`/`backup` blocks need changes. CI regenerates `catalog.json` on merge."
+      ]
+    }
+  ]
+}
