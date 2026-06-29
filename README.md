@@ -165,6 +165,20 @@ https://raw.githubusercontent.com/try-hola/apps/main/catalog.json
 
 A fresh Hola install points at this URL by default, so published apps appear in the web catalog.
 
+## Keeping upstream images current (Renovate)
+
+Catalog entries pin a specific upstream image (`tag@sha256:<digest>` in
+`src/<app>/src/compose.yaml`). [Renovate](https://docs.renovatebot.com/) (config in
+[`renovate.json`](./renovate.json)) watches those pins and **opens a PR when an upstream
+image publishes a newer tag** — so we learn when a catalog entry needs refreshing.
+
+It's **notify-only** (never auto-merges), because Hola's bundle version is decoupled from
+upstream's number: a Renovate PR bumps only the image, and a maintainer must also bump the
+**Hola bundle version** (`package.json` + `manifest.json`, describing impact on the *Hola
+user*) and review the manifest's `upgrade`/`backup` metadata before merging. On merge, CI
+regenerates `catalog.json`, and Hola servers then surface "update available" for installed
+deployments. Renovate runs via the GitHub App (install it once on the org).
+
 ## GHCR visibility
 
 Newly published GHCR packages are **private** by default. For the Hola server to pull them without
