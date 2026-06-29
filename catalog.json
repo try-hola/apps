@@ -65,6 +65,22 @@
       ]
     },
     {
+      "id": "hangar",
+      "name": "Hangar",
+      "description": "Self-hosted fleet control plane — aggregate your git repos across providers, score each against a best-practice policy, and remediate hygiene drift via pull requests",
+      "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/hangar.svg",
+      "category": "apps",
+      "tags": [],
+      "versions": [
+        {
+          "version": "1.0.0",
+          "refs": {
+            "oci": "ghcr.io/try-hola/hangar:1.0.0"
+          }
+        }
+      ]
+    },
+    {
       "id": "homepage",
       "name": "Homepage",
       "description": "A highly customizable application dashboard / start page",
