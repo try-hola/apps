@@ -60,13 +60,23 @@ services:
         condition: service_healthy
 
   postiz-postgres:
-    image: postgres:17-alpine@sha256:dc17045ccfd343b49600570ea734b9c4991cf1c3f3302e67df51e3b402dd55c4
+    # pgautoupgrade: on boot, detects an older PGDATA and runs `pg_upgrade` in place
+    # before starting — so an existing install's data migrates across the Postgres
+    # major automatically. A fresh install just initializes a new PG18 cluster.
+    image: pgautoupgrade/pgautoupgrade:18-alpine@sha256:b0a1664b89698dba72276b3a4a2da9f2c879e9bb1d770fa273391bf6a4038e78
     environment:
       POSTGRES_USER: postiz-user
       POSTGRES_PASSWORD: postiz-password
       POSTGRES_DB: postiz-db-local
+      # REQUIRED. PG18's image moved the default PGDATA to /var/lib/postgresql/18/docker;
+      # pin it back so the data persists on the volume below and pgautoupgrade finds an
+      # existing PG16/17 cluster here to upgrade.
+      PGDATA: /var/lib/postgresql/data
     volumes:
       - ${HOLA_APP_DATA}/postgres:/var/lib/postgresql/data
+      # Destination for the pre-backup pg_dump hook (manifest `backup.preHook`), under
+      # the app data root so Hola's pre-upgrade/backrest snapshot captures the dump.
+      - ${HOLA_APP_DATA}/backups:/backups
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postiz-user -d postiz-db-local"]
       interval: 10s
@@ -114,10 +124,15 @@ services:
       start_period: 30s
 
   temporal-postgres:
-    image: postgres:16-alpine@sha256:e013e867e712fec275706a6c51c966f0bb0c93cfa8f51000f85a15f9865a28cb
+    # pgautoupgrade: migrates this DB across the Postgres major in place on boot (see
+    # postiz-postgres). Temporal's own DB; the app-data snapshot covers it at file level
+    # (the manifest backup hook dumps the primary postiz DB).
+    image: pgautoupgrade/pgautoupgrade:18-alpine@sha256:b0a1664b89698dba72276b3a4a2da9f2c879e9bb1d770fa273391bf6a4038e78
     environment:
       POSTGRES_USER: temporal
       POSTGRES_PASSWORD: temporal
+      # REQUIRED — see postiz-postgres. Pin PGDATA back to the historical path.
+      PGDATA: /var/lib/postgresql/data
     volumes:
       - ${HOLA_APP_DATA}/temporal-postgres:/var/lib/postgresql/data
     healthcheck:

@@ -1,6 +1,6 @@
 {
   "name": "mealie",
-  "version": "1.1.1",
+  "version": "2.0.0",
   "description": "Mealie — self-hosted recipe manager & meal planner (Hola app package)",
   "license": "AGPL-3.0",
   "oci": {
