@@ -24,7 +24,7 @@
 services:
   # One-shot: write the Postgres schema SQL (only if not already present), exit.
   guacamole-init:
-    image: guacamole/guacamole:1.6.0
+    image: guacamole/guacamole:1.6.0@sha256:f344085e618bb05e22b964b0208dbd06d3468275bac70206f93805245e067b40
     # Override the Tomcat entrypoint; just generate the schema and exit.
     entrypoint: ["/bin/sh", "-c"]
     command:
@@ -46,7 +46,7 @@ services:
     restart: "no"
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:e013e867e712fec275706a6c51c966f0bb0c93cfa8f51000f85a15f9865a28cb
     environment:
       POSTGRES_DB: guacamole_db
       POSTGRES_USER: guacamole_user
@@ -70,7 +70,7 @@ services:
         condition: service_completed_successfully
 
   guacd:
-    image: guacamole/guacd:1.6.0
+    image: guacamole/guacd:1.6.0@sha256:8974eaa9ba32f713daf311e7cc8cd7e4cdfba1edea39eed75524e78ef4b08f4f
     # No web port — only the guacamole web app talks to guacd (internal :4822).
     expose:
       - "4822"
@@ -85,7 +85,7 @@ services:
       start_period: 10s
 
   guacamole:
-    image: guacamole/guacamole:1.6.0
+    image: guacamole/guacamole:1.6.0@sha256:f344085e618bb05e22b964b0208dbd06d3468275bac70206f93805245e067b40
     # The container port Traefik forwards to (manifest.ingress.port = 8080).
     expose:
       - "8080"

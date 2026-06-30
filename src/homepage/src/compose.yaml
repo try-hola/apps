@@ -1,6 +1,6 @@
 services:
   homepage:
-    image: ghcr.io/gethomepage/homepage:v1.13.2
+    image: ghcr.io/gethomepage/homepage:v1.13.2@sha256:a0b71c8e757298d02560186bab9fbe3fc2d375c523a62cc1019177b37e48aa28
     environment:
       # Required since Homepage v1.0 — the dashboard refuses requests whose Host
       # header isn't allow-listed. Hola fills in the app's public host.
@@ -15,7 +15,7 @@ services:
   # come and go. Stock image + inline command — no custom build; rendering is a
   # bundle concern, not the server's.
   homepage-registry:
-    image: mikefarah/yq:4.44.6
+    image: mikefarah/yq:4.44.6@sha256:b1d117c609ba990436ad1649299e2f6c378f62cb562caf30b6f2fb6144713422
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
