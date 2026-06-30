@@ -1,6 +1,6 @@
 {
   "name": "paperless-ngx",
-  "version": "1.0.2",
+  "version": "2.0.0",
   "title": "Paperless-ngx",
   "description": "Self-hosted document management system: scan, index, and archive your documents",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/paperless-ngx.svg",
@@ -52,5 +52,28 @@
   },
   "auth": {
     "mode": "forward-auth"
+  },
+  "backup": {
+    "preHook": {
+      "service": "db",
+      "command": [
+        "sh",
+        "-c",
+        "pg_dump -U paperless -d paperless -f /backups/paperless.sql"
+      ]
+    },
+    "postHook": {
+      "service": "db",
+      "command": [
+        "sh",
+        "-c",
+        "rm -f /backups/paperless.sql"
+      ]
+    }
+  },
+  "upgrade": {
+    "breaking": true,
+    "preUpgradeBackup": "required",
+    "upgradeNotesUrl": "https://github.com/pgautoupgrade/docker-pgautoupgrade"
   }
 }

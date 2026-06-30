@@ -1,6 +1,6 @@
 {
   "name": "postiz",
-  "version": "1.0.5",
+  "version": "2.0.0",
   "title": "Postiz",
   "description": "Open-source social media scheduling tool with AI features",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/postiz.svg",
@@ -60,5 +60,28 @@
         "NEXT_PUBLIC_POSTIZ_OAUTH_DISPLAY_NAME": "Authentik"
       }
     }
+  },
+  "backup": {
+    "preHook": {
+      "service": "postiz-postgres",
+      "command": [
+        "sh",
+        "-c",
+        "pg_dump -U postiz-user -d postiz-db-local -f /backups/postiz.sql"
+      ]
+    },
+    "postHook": {
+      "service": "postiz-postgres",
+      "command": [
+        "sh",
+        "-c",
+        "rm -f /backups/postiz.sql"
+      ]
+    }
+  },
+  "upgrade": {
+    "breaking": true,
+    "preUpgradeBackup": "required",
+    "upgradeNotesUrl": "https://github.com/pgautoupgrade/docker-pgautoupgrade"
   }
 }
