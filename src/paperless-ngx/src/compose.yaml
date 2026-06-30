@@ -6,7 +6,7 @@
 # routed by Traefik (see manifest.ingress.port).
 services:
   webserver:
-    image: ghcr.io/paperless-ngx/paperless-ngx:2.20.4@sha256:06ca6a6c2a21cfebcc7c5f2e0d38f892dba4bcb090b8781a55d003c63cce386a
+    image: ghcr.io/paperless-ngx/paperless-ngx:2.20.15@sha256:835974fc3368fc6714aa38542db7a1f0f542d03244e39b981e519aefc100f355
     environment:
       # Datastores (internal — never published to the host).
       PAPERLESS_REDIS: "redis://broker:6379"

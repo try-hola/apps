@@ -15,7 +15,7 @@ services:
   # come and go. Stock image + inline command — no custom build; rendering is a
   # bundle concern, not the server's.
   homepage-registry:
-    image: mikefarah/yq:4.44.6@sha256:b1d117c609ba990436ad1649299e2f6c378f62cb562caf30b6f2fb6144713422
+    image: mikefarah/yq:4.53.3@sha256:752ae3c50efa722fb0617e73f3c27b185b912c4eabc055e429c563702da6b79c
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
