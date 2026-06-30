@@ -1,6 +1,6 @@
 {
   "name": "paperless-ngx",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "title": "Paperless-ngx",
   "description": "Self-hosted document management system: scan, index, and archive your documents",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/paperless-ngx.svg",
@@ -30,13 +30,24 @@
   ],
   "defaults": {
     "ports": [
-      { "container": 8000, "protocol": "tcp" }
+      {
+        "container": 8000,
+        "protocol": "tcp"
+      }
     ],
     "volumes": [
-      { "containerPath": "/usr/src/paperless/data" },
-      { "containerPath": "/usr/src/paperless/media" },
-      { "containerPath": "/usr/src/paperless/export" },
-      { "containerPath": "/usr/src/paperless/consume" }
+      {
+        "containerPath": "/usr/src/paperless/data"
+      },
+      {
+        "containerPath": "/usr/src/paperless/media"
+      },
+      {
+        "containerPath": "/usr/src/paperless/export"
+      },
+      {
+        "containerPath": "/usr/src/paperless/consume"
+      }
     ]
   },
   "auth": {

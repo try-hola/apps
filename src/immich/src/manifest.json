@@ -1,6 +1,6 @@
 {
   "name": "immich",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "title": "Immich",
   "description": "Self-hosted photo and video management solution",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/immich.svg",

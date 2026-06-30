@@ -1,5 +1,5 @@
 services:
   uptime-kuma:
-    image: louislam/uptime-kuma:1.23.16@sha256:431fee3be822b04861cf0e35daf4beef6b7cb37391c5f26c3ad6e12ce280fe18
+    image: louislam/uptime-kuma:1.23.17@sha256:0f6c88f1e5f98146dcc2ca8408d2982e2d25db968be14ff718e10a59c9a84938
     volumes:
       - ${HOLA_APP_DATA}/data:/app/data

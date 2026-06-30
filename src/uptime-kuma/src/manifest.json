@@ -1,6 +1,6 @@
 {
   "name": "uptime-kuma",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "title": "Uptime Kuma",
   "description": "Self-hosted uptime monitoring and status pages",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/uptime-kuma.svg",
@@ -11,10 +11,15 @@
   "defaultEnv": [],
   "defaults": {
     "ports": [
-      { "container": 3001, "protocol": "tcp" }
+      {
+        "container": 3001,
+        "protocol": "tcp"
+      }
     ],
     "volumes": [
-      { "containerPath": "/app/data" }
+      {
+        "containerPath": "/app/data"
+      }
     ]
   },
   "auth": {
