@@ -6,7 +6,7 @@
 # routed by Traefik (see manifest.ingress.port).
 services:
   webserver:
-    image: ghcr.io/paperless-ngx/paperless-ngx:2.20.4
+    image: ghcr.io/paperless-ngx/paperless-ngx:2.20.4@sha256:06ca6a6c2a21cfebcc7c5f2e0d38f892dba4bcb090b8781a55d003c63cce386a
     environment:
       # Datastores (internal — never published to the host).
       PAPERLESS_REDIS: "redis://broker:6379"
@@ -56,7 +56,7 @@ services:
         condition: service_healthy
 
   broker:
-    image: redis:7.4-alpine
+    image: redis:7.4-alpine@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99
     volumes:
       - ${HOLA_APP_DATA}/redis:/data
     healthcheck:
@@ -67,7 +67,7 @@ services:
       start_period: 5s
 
   db:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:e013e867e712fec275706a6c51c966f0bb0c93cfa8f51000f85a15f9865a28cb
     environment:
       POSTGRES_DB: paperless
       POSTGRES_USER: paperless

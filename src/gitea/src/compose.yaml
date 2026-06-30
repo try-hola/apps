@@ -1,6 +1,6 @@
 services:
   gitea:
-    image: gitea/gitea:1.26
+    image: gitea/gitea:1.26@sha256:8e25c717b8f748445e15ec46e0390f577cb628101184cb0a150d1dae126c1f39
     environment:
       USER_UID: "1000"
       USER_GID: "1000"
@@ -60,7 +60,7 @@ services:
   # and cannot write to the server-created ${HOLA_APP_DATA} bind dir, whereas this
   # one writes it cleanly. See README for the rootless hardening alternative.
   gitea-runner:
-    image: gitea/act_runner:0.6.1-dind
+    image: gitea/act_runner:0.6.1-dind@sha256:578925b4bdec5f60d93b5ba766cf02f2f9f32b1c8a4ec665ddf4d53d45f683c7
     privileged: true
     environment:
       # Internal service URL (no ingress for the runner; Traefik never sees it).

@@ -15,7 +15,7 @@
 # with a trailing slash.)
 services:
   mealie:
-    image: ghcr.io/mealie-recipes/mealie:v3.19.2
+    image: ghcr.io/mealie-recipes/mealie:v3.19.2@sha256:f68e959bf66f4f458893ea58facac71690fe6f2ac7a31466b5cecb41b4e99c02
     environment:
       # Public URL — Hola injects the app's Traefik host.
       BASE_URL: "https://${HOLA_APP_HOST}"
@@ -57,7 +57,7 @@ services:
         condition: service_healthy
 
   mealie-postgres:
-    image: postgres:17-alpine
+    image: postgres:17-alpine@sha256:dc17045ccfd343b49600570ea734b9c4991cf1c3f3302e67df51e3b402dd55c4
     environment:
       POSTGRES_USER: "mealie"
       # Must match the mealie service's POSTGRES_PASSWORD default above.

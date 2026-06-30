@@ -14,7 +14,7 @@
 # same pattern as Homepage's registry renderer.
 services:
   immich-server:
-    image: ghcr.io/immich-app/immich-server:v2.7.5
+    image: ghcr.io/immich-app/immich-server:v2.7.5@sha256:c15bff75068effb03f4355997d03dc7e0fc58720c2b54ad6f7f10d1bc57efaa5
     environment:
       # Internal datastores (not exposed to the host).
       DB_HOSTNAME: immich-postgres
@@ -61,7 +61,7 @@ services:
   # concern, not the server's. Idempotent and safe with no SSO: if oidc.json is
   # absent it does nothing, leaving Immich on its built-in login.
   immich-oidc-init:
-    image: mikefarah/yq:4.44.6
+    image: mikefarah/yq:4.44.6@sha256:b1d117c609ba990436ad1649299e2f6c378f62cb562caf30b6f2fb6144713422
     # One-shot: render the OAuth config and exit. `restart: "no"` is REQUIRED — Hola
     # applies an install-wide default restart policy to services that declare none,
     # which would restart this after it exits 0, so it never reaches
@@ -102,7 +102,7 @@ services:
       - ${HOLA_APP_DATA}:/data
 
   immich-machine-learning:
-    image: ghcr.io/immich-app/immich-machine-learning:v2.7.5
+    image: ghcr.io/immich-app/immich-machine-learning:v2.7.5@sha256:a2501141440f10516d329fdfba2c68082e19eb9ba6016c061ac80d23beadf7f3
     volumes:
       - ${HOLA_APP_DATA}/model-cache:/cache
     healthcheck:
