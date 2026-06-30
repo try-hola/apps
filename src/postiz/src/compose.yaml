@@ -8,7 +8,7 @@
 # an opt-in profile once Hola supports per-app compose profiles.
 services:
   postiz:
-    image: ghcr.io/gitroomhq/postiz-app:v2.21.10@sha256:26fb4fa6a35b36c41c9a813f2fae97fdb8177e4d5841345480ba179d9eda4ed3
+    image: ghcr.io/gitroomhq/postiz-app:v2.21.10@sha256:1d5a5dc6b896747d1483c01dc2562165bd313ad601b32f6cabb7f7dd08a911a9
     environment:
       # Public URLs — Hola injects the app's Traefik host.
       MAIN_URL: "https://${HOLA_APP_HOST}"
@@ -75,7 +75,7 @@ services:
       start_period: 10s
 
   postiz-redis:
-    image: redis:7.4-alpine@sha256:b1addbe72465a718643cff9e60a58e6df1841e29d6d7d60c9a85d8d72f08d1a7
+    image: redis:7.4-alpine@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99
     volumes:
       - ${HOLA_APP_DATA}/redis:/data
     healthcheck:
@@ -87,7 +87,7 @@ services:
 
   # Temporal server, configured for Postgres-backed visibility (no Elasticsearch).
   temporal:
-    image: temporalio/auto-setup:1.29.7@sha256:e6177198ce6031f289bf24d80c42bf6b50f19768a8833d043eb74422430b054e
+    image: temporalio/auto-setup:1.29.7@sha256:f14912b699cf73015ad5c4fc18d522d4b014db90e794039214dfb7c022c2644f
     environment:
       DB: postgres12
       DB_PORT: "5432"

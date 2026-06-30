@@ -15,7 +15,7 @@
 # with a trailing slash.)
 services:
   mealie:
-    image: ghcr.io/mealie-recipes/mealie:v3.20.1@sha256:ecfb596c89a6081f760b38a20d22f51f9c41079e76357a684d4c11eb40a22278
+    image: ghcr.io/mealie-recipes/mealie:v3.20.1@sha256:9b680f5dad8618e69317a005e083a00a699845fb2a72c392a558a4e2898aed20
     environment:
       # Public URL — Hola injects the app's Traefik host.
       BASE_URL: "https://${HOLA_APP_HOST}"
