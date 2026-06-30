@@ -1,5 +1,6 @@
 # Hangar — self-hosted "fleet control plane": aggregate your git repos across
-# providers (GitHub today, Gitea designed-for), score each against a declarative
+# providers (GitHub and Gitea — Gitea interrogation/remediation landed in 0.3.3),
+# score each against a declarative
 # best-practice policy, and remediate hygiene drift in place — every change shipped
 # as a pull request, never a push. Packaged for Hola: Traefik-only ingress (no host
 # ports), SQLite state bind-mounted under ${HOLA_APP_DATA}.
@@ -10,7 +11,7 @@
 # X-authentik-username, which Hangar reads as the operator identity for its audit log.
 services:
   hangar:
-    image: ghcr.io/get2knowio/hangar:0.3.1@sha256:3d30a64b11d64bc2526e5ba173f3289683183a991fd8e38e83d639bf8d0d6a9b
+    image: ghcr.io/get2knowio/hangar:0.3.3@sha256:bd75ff7c2aa17ecba5a1c120c7333b217a1bdd186b05a441ce4dd583c711d17b
     environment:
       # Hangar is fail-closed: it refuses to start unless an access mode is chosen.
       # forward-auth = trust the identity header the proxy injects after it authenticates.
@@ -59,7 +60,7 @@ services:
   # would restart this after it exits 0 so it never reaches service_completed_successfully
   # and the hangar service (which depends on that) is stuck Created forever.
   hangar-init:
-    image: ghcr.io/get2knowio/hangar:0.3.1@sha256:3d30a64b11d64bc2526e5ba173f3289683183a991fd8e38e83d639bf8d0d6a9b
+    image: ghcr.io/get2knowio/hangar:0.3.3@sha256:bd75ff7c2aa17ecba5a1c120c7333b217a1bdd186b05a441ce4dd583c711d17b
     restart: "no"
     user: "0:0"
     entrypoint: ["/bin/sh", "-c"]
