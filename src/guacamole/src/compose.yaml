@@ -46,7 +46,11 @@ services:
     restart: "no"
 
   postgres:
-    image: postgres:16-alpine@sha256:e013e867e712fec275706a6c51c966f0bb0c93cfa8f51000f85a15f9865a28cb
+    # pgautoupgrade is a drop-in for the official postgres image that, on boot,
+    # detects an older PGDATA and runs `pg_upgrade` in place before starting — so an
+    # existing install's data migrates automatically across the Postgres major. A
+    # fresh install just initializes a new PG18 cluster (and runs the schema below).
+    image: pgautoupgrade/pgautoupgrade:18-alpine@sha256:b0a1664b89698dba72276b3a4a2da9f2c879e9bb1d770fa273391bf6a4038e78
     environment:
       POSTGRES_DB: guacamole_db
       POSTGRES_USER: guacamole_user
@@ -54,10 +58,17 @@ services:
       # self-contained default is safe and needs zero install-time config. Override
       # via POSTGRES_PASSWORD if you ever expose it; must match the web app below.
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-guacamole_internal_db_pw}"
+      # REQUIRED. PG18's image moved the default PGDATA to /var/lib/postgresql/18/docker;
+      # pin it back to the historical path so (a) the data persists on the volume mounted
+      # below and (b) pgautoupgrade finds an existing PG16/17 cluster here to upgrade.
+      PGDATA: /var/lib/postgresql/data
     volumes:
       - ${HOLA_APP_DATA}/postgres:/var/lib/postgresql/data
       # Schema is applied here ONLY on a first-time (empty data dir) init.
       - ${HOLA_APP_DATA}/initdb:/docker-entrypoint-initdb.d:ro
+      # Destination for the pre-backup pg_dump hook (manifest `backup.preHook`). It sits
+      # under the app data root so Hola's pre-upgrade/backrest snapshot captures the dump.
+      - ${HOLA_APP_DATA}/backups:/backups
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U guacamole_user -d guacamole_db"]
       interval: 10s

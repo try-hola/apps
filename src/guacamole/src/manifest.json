@@ -1,6 +1,6 @@
 {
   "name": "guacamole",
-  "version": "1.0.2",
+  "version": "2.0.0",
   "title": "Apache Guacamole",
   "description": "Clientless remote desktop gateway — RDP, VNC and SSH in your browser",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/guacamole.svg",
@@ -24,5 +24,20 @@
   "auth": {
     "mode": "forward-auth"
   },
-  "defaultEnv": []
+  "defaultEnv": [],
+  "backup": {
+    "preHook": {
+      "service": "postgres",
+      "command": ["sh", "-c", "pg_dump -U guacamole_user -d guacamole_db -f /backups/guacamole_db.sql"]
+    },
+    "postHook": {
+      "service": "postgres",
+      "command": ["sh", "-c", "rm -f /backups/guacamole_db.sql"]
+    }
+  },
+  "upgrade": {
+    "breaking": true,
+    "preUpgradeBackup": "required",
+    "upgradeNotesUrl": "https://github.com/pgautoupgrade/docker-pgautoupgrade"
+  }
 }
