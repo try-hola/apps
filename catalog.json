@@ -57,9 +57,9 @@
       "tags": [],
       "versions": [
         {
-          "version": "1.0.2",
+          "version": "2.0.0",
           "refs": {
-            "oci": "ghcr.io/try-hola/guacamole:1.0.2"
+            "oci": "ghcr.io/try-hola/guacamole:2.0.0"
           }
         }
       ]
