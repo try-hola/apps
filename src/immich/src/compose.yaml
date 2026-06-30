@@ -61,7 +61,7 @@ services:
   # concern, not the server's. Idempotent and safe with no SSO: if oidc.json is
   # absent it does nothing, leaving Immich on its built-in login.
   immich-oidc-init:
-    image: mikefarah/yq:4.53.3@sha256:752ae3c50efa722fb0617e73f3c27b185b912c4eabc055e429c563702da6b79c
+    image: mikefarah/yq:4.53.3@sha256:11a1f0b604b13dbbdc662260d8db6f644b22d8553122a25c1b5b2e8713ca6977
     # One-shot: render the OAuth config and exit. `restart: "no"` is REQUIRED — Hola
     # applies an install-wide default restart policy to services that declare none,
     # which would restart this after it exits 0, so it never reaches

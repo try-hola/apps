@@ -1,6 +1,6 @@
 {
   "name": "immich",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Immich — self-hosted photo and video management (Hola app package)",
   "license": "AGPL-3.0",
   "oci": {
