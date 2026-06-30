@@ -32,7 +32,7 @@ jobs:
     outputs:
       changed_packages: ${{ steps.filter.outputs.changes }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -72,17 +72,17 @@ jobs:
       matrix:
         package: ${{ fromJson(needs.detect-changes.outputs.changed_packages) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install ORAS
-        uses: oras-project/setup-oras@v1
+        uses: oras-project/setup-oras@v2
 
       # The matrix is built from the diff, which includes deletions — skip a
       # package that was removed in this push.
@@ -104,7 +104,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Generate catalog.json
         run: ./bin/build-catalog.sh "${{ github.repository_owner }}"
@@ -130,7 +130,7 @@ jobs:
       matrix:
         package: ${{ fromJson(needs.detect-changes.outputs.changed_packages) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Validate package layout
         run: |
