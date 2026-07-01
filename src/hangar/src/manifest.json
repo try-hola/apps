@@ -1,6 +1,6 @@
 {
   "name": "hangar",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "title": "Hangar",
   "description": "Self-hosted fleet control plane — aggregate your git repos across providers, score each against a best-practice policy, and remediate hygiene drift via pull requests",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/hangar.svg",
@@ -13,7 +13,7 @@
       "key": "HANGAR_SECRET_KEY",
       "value": "",
       "isSecret": true,
-      "description": "Fernet key that encrypts provider credentials (GitHub App private key, tokens) at rest. Required before you connect a provider. Generate one with: python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'"
+      "description": "Fernet key that signs your OIDC login session AND encrypts provider credentials (GitHub App private key, tokens) at rest. Required — in SSO (OIDC) mode Hangar is fail-closed and refuses to start without it. Generate one with: python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'"
     }
   ],
   "defaults": {
@@ -25,7 +25,17 @@
     ]
   },
   "auth": {
-    "mode": "forward-auth"
+    "mode": "native-oidc",
+    "oidc": {
+      "redirectPath": "/auth/callback",
+      "scopes": ["openid", "profile", "email"],
+      "env": {
+        "issuer": "HANGAR_OIDC_ISSUER",
+        "clientId": "HANGAR_OIDC_CLIENT_ID",
+        "clientSecret": "HANGAR_OIDC_CLIENT_SECRET",
+        "redirectUri": "HANGAR_OIDC_REDIRECT_URL"
+      }
+    }
   },
   "upgrade": {
     "preUpgradeBackup": "recommended",

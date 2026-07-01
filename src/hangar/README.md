@@ -19,20 +19,27 @@ Reachable at `https://hangar.<HOLA_BASE_DOMAIN>` once installed.
 
 ## Authentication
 
-Hangar has **no user system of its own** — it is *fail-closed* and designed to sit
-behind a forward-auth reverse proxy. This package ships `auth.mode: forward-auth`, so
-Hola gates the route with Authentik's embedded outpost and forwards the authenticated
-identity (`X-authentik-username`) to Hangar, which records it as the operator in its
-audit log. No per-app OIDC client is provisioned and Hangar never sees a password.
+Hangar has **no local user system** — it is *fail-closed* and delegates login to your
+SSO. This package ships `auth.mode: native-oidc`, so Hola provisions a per-app Authentik
+OIDC client and Hangar runs the OIDC Authorization-Code + PKCE flow against it directly
+(as a confidential client), serving its own `/auth/*` login endpoints. The authenticated
+Authentik username is recorded as the operator in Hangar's audit log.
+
+> **Why not forward-auth?** Hangar's dashboard is a React SPA whose data layer is XHR
+> (`fetch`). Behind a forward-auth proxy, an unauthenticated XHR is answered with a
+> cross-origin `302` to the IdP, which the browser refuses to follow inside a CORS fetch —
+> the page renders blank. App-native OIDC avoids this: unauthenticated API calls get a
+> clean `401`, and sign-in is a top-level browser redirect the SPA performs itself.
+> (Releases ≤ 1.3.0 of this package used `forward-auth` and are affected; upgrade to fix.)
 
 ## Configuration
 
 The install wizard collects:
 
 - **`HANGAR_SECRET_KEY`** (required, secret) — a [Fernet](https://cryptography.io/en/latest/fernet/)
-  key used to encrypt provider credentials (GitHub App private key, webhook secrets,
-  tokens) at rest. Hangar boots without it, but you must set it before connecting a
-  provider. Generate one with:
+  key that **signs your OIDC login session** and encrypts provider credentials (GitHub App
+  private key, webhook secrets, tokens) at rest. In SSO (OIDC) mode Hangar is fail-closed
+  and refuses to start without it, so it must be set at install. Generate one with:
 
   ```bash
   python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'
