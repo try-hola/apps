@@ -5,28 +5,31 @@
 # as a pull request, never a push. Packaged for Hola: Traefik-only ingress (no host
 # ports), SQLite state bind-mounted under ${HOLA_APP_DATA}.
 #
-# SSO is forward-auth (manifest auth: forward-auth). Hangar has NO user system of its
-# own — it is fail-closed and sits behind a reverse proxy, trusting the identity the
-# proxy injects. Hola gates the route via Authentik's embedded outpost and forwards
-# X-authentik-username, which Hangar reads as the operator identity for its audit log.
+# SSO is app-native OIDC (manifest auth: native-oidc). Hangar has NO local user system —
+# it is fail-closed and runs the OIDC Authorization-Code+PKCE flow against Authentik as a
+# confidential client, serving its own /auth/* login endpoints. Hola provisions the
+# Authentik OIDC client and injects HANGAR_OIDC_ISSUER / _CLIENT_ID / _CLIENT_SECRET /
+# _REDIRECT_URL at deploy time. This replaces forward-auth: Hangar's React SPA does its
+# data fetching over XHR, and a forward-auth proxy answers an unauthenticated XHR with a
+# cross-origin 302 to the IdP that the browser can't follow (CORS) — a blank page. In OIDC
+# mode the SPA instead gets a clean 401 + in-app login redirect. The authenticated user
+# (preferred_username claim) is recorded as the operator identity in Hangar's audit log.
 services:
   hangar:
     image: ghcr.io/get2knowio/hangar:0.3.3@sha256:bd75ff7c2aa17ecba5a1c120c7333b217a1bdd186b05a441ce4dd583c711d17b
     environment:
       # Hangar is fail-closed: it refuses to start unless an access mode is chosen.
-      # forward-auth = trust the identity header the proxy injects after it authenticates.
-      HANGAR_ACCESS_MODE: forward-auth
-      # Hangar's default identity header is Remote-User; Authentik's outpost sends the
-      # username as X-authentik-username and Hola's Traefik forward-auth middleware
-      # passes it through, so point Hangar at that header.
-      HANGAR_FORWARD_AUTH_USER_HEADER: X-authentik-username
-      # Anti-spoofing: only trust that identity header when the request comes from the
-      # proxy. Traefik reaches this app over Docker's bridge/overlay network, which lives
-      # in 172.16.0.0/12; tighten if your proxy's source range is narrower.
-      HANGAR_TRUSTED_PROXY_CIDR: 172.16.0.0/12
-      # Fernet key that encrypts provider credentials (GitHub App private key, webhook
-      # secrets, tokens) at rest. Hangar boots without it, but you can't connect a
-      # provider until it's set. Collected by the install wizard (see manifest).
+      # oidc = app-native login; Hangar validates the ID token and mints a signed session
+      # cookie. HANGAR_OIDC_ISSUER / _CLIENT_ID / _CLIENT_SECRET / _REDIRECT_URL are injected
+      # by Hola's provisioner (manifest auth.oidc.env), so they are NOT listed here.
+      HANGAR_ACCESS_MODE: oidc
+      # Record the Authentik username (not the email or a hashed sub) as the audit-log
+      # operator identity, matching the prior forward-auth behavior (X-authentik-username).
+      HANGAR_OIDC_USERNAME_CLAIM: preferred_username
+      # Fernet key: signs the OIDC session cookie AND encrypts provider credentials (GitHub
+      # App private key, webhook secrets, tokens) at rest. REQUIRED — in OIDC mode Hangar is
+      # fail-closed and refuses to start without a session-signing secret. Collected by the
+      # install wizard (see manifest).
       HANGAR_SECRET_KEY: "${HANGAR_SECRET_KEY}"
       # Browser-visible base URL, used to build the GitHub App manifest's redirect/
       # setup callback URLs for the 0.3.0 one-click "Connect with GitHub" flow. The
