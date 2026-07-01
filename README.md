@@ -179,6 +179,16 @@ user*) and review the manifest's `upgrade`/`backup` metadata before merging. On 
 regenerates `catalog.json`, and Hola servers then surface "update available" for installed
 deployments. Renovate runs via the GitHub App (install it once on the org).
 
+**Exception — `ghcr.io/immich-app/postgres` is Renovate-disabled.** Immich's Postgres image
+is coupled to the `immich-server` version: its tag encodes the PG major *and* the exact
+VectorChord/pgvecto.rs extension versions, and Immich pins one specific image per server
+release in their own `docker-compose.yml`. It must move **only in lockstep with an
+`immich-server` bump** (to whatever that release's compose pins), never independently — a
+decoupled PG-major bump diverges from Immich's tested config and needs a manual data
+migration Immich doesn't support. (Newer tags like `16-*` exist on GHCR, but Immich ships
+`14-*` across v2.7.5 and the v3.0.0 RCs.) So when you bump `immich-server`, also update its
+`immich-postgres` to match Immich's compose for that version.
+
 ## GHCR visibility
 
 Newly published GHCR packages are **private** by default. For the Hola server to pull them without
