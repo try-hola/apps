@@ -1,6 +1,6 @@
 {
   "name": "hangar",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "title": "Hangar",
   "description": "Self-hosted fleet control plane — aggregate your git repos across providers, score each against a best-practice policy, and remediate hygiene drift via pull requests",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/hangar.svg",
