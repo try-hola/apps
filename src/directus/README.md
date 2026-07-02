@@ -21,9 +21,10 @@ Reachable at `https://directus.<HOLA_BASE_DOMAIN>` once installed.
 - **No host ports** — Hola routes ingress through Traefik to container port **8055**.
 
 On the **first boot** against an empty database the image runs `directus bootstrap`,
-which applies migrations and creates the first admin account from the `ADMIN_EMAIL` /
-`ADMIN_PASSWORD` you provide in the install wizard. Every later start just re-runs
-migrations.
+which applies migrations and creates the first admin account from `ADMIN_EMAIL` /
+`ADMIN_PASSWORD`. Both carry a default so a fresh install goes **straight to the login
+screen** (with the SSO button) rather than Directus's browser "create admin"
+onboarding. Every later start just re-runs migrations.
 
 ## Configuration
 
@@ -33,8 +34,13 @@ Collected by the install wizard:
   tokens; `KEY` is the project identifier used for caching/signing. Keep them stable
   across restarts (a changed `SECRET` invalidates all issued tokens). Generate each
   with `openssl rand -hex 32`.
-- **`ADMIN_EMAIL`** / **`ADMIN_PASSWORD`** — the first admin account, created on the
-  initial boot. Use it to sign in locally.
+- **`ADMIN_EMAIL`** — the first admin account's email. **Set it to your own Authentik/SSO
+  email** and the "Sign in with Authentik" button logs you straight into that account
+  (SSO users are matched by email). Left at the default (`admin@example.com`) it's just
+  a local break-glass admin, and you invite your SSO users afterwards.
+- **`ADMIN_PASSWORD`** — optional. Leave it blank and it defaults to your `SECRET` (a
+  strong, unique per-install value), so the break-glass admin is secure without you
+  managing another password. Set one only if you want a memorable local login.
 
 The PostgreSQL password is internal and self-contained (`POSTGRES_PASSWORD` defaults
 in-compose); no input required unless you expose the DB.
@@ -50,9 +56,14 @@ email/password login.
   independent of SSO. If SSO is ever misconfigured you can still get in.
 - **SSO users** sign in with the Authentik button. Public self-registration is **off**
   (Directus needs a default-role UUID that doesn't exist until the project is seeded),
-  so an admin invites users from **Settings → Access Control** first; they're matched
-  to their Authentik identity by **email** (`AUTH_AUTHENTIK_IDENTIFIER_KEY`). The OIDC
-  callback is `https://directus.<HOLA_BASE_DOMAIN>/auth/login/authentik/callback`.
+  so a Directus user must exist whose **email** matches the Authentik identity
+  (`AUTH_AUTHENTIK_IDENTIFIER_KEY`). Two ways to get there:
+  - **Easiest:** set `ADMIN_EMAIL` to *your* Authentik email at install — the
+    bootstrapped admin *is* you, so "Sign in with Authentik" logs straight into it.
+  - **Otherwise:** log in as the local break-glass admin and invite your SSO users from
+    **Settings → Access Control**.
+
+  The OIDC callback is `https://directus.<HOLA_BASE_DOMAIN>/auth/login/authentik/callback`.
 
 Directus wants the provider's OpenID **discovery** URL, so the compose appends
 `.well-known/openid-configuration` to the issuer Hola injects.
