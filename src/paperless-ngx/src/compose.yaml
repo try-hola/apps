@@ -36,6 +36,11 @@ services:
       # password blank to skip and use the `createsuperuser` flow (see README).
       PAPERLESS_ADMIN_USER: "${PAPERLESS_ADMIN_USER:-admin}"
       PAPERLESS_ADMIN_PASSWORD: "${PAPERLESS_ADMIN_PASSWORD:-}"
+      # Stamp the superuser's email with the installing dashboard user's address
+      # (Hola's ${HOLA_USER_EMAIL} token) so it's populated for notifications and the
+      # Django admin. Empty for admin-key/CLI installs — login is via forward-auth by
+      # username, so this is cosmetic and never blocks account creation.
+      PAPERLESS_ADMIN_MAIL: "${HOLA_USER_EMAIL:-}"
     expose:
       - "8000"
     volumes:
