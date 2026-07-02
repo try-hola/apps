@@ -85,8 +85,11 @@ First SSO login auto-provisions the paperless user, but a brand-new account is a
 ### Getting an initial admin
 
 A fallback local superuser is created on first start from `PAPERLESS_ADMIN_USER` /
-`PAPERLESS_ADMIN_PASSWORD` (set them in the install wizard). Log in with that
-account via Django admin (`/admin/`) to promote your SSO user to staff/superuser.
+`PAPERLESS_ADMIN_PASSWORD` (set them in the install wizard). Its email is stamped
+automatically from the installing dashboard user (Hola's `${HOLA_USER_EMAIL}` token)
+when you install while SSO-logged-in — handy for notifications; login itself is via
+forward-auth by username, so the email is cosmetic. Log in with that account via
+Django admin (`/admin/`) to promote your SSO user to staff/superuser.
 
 If you leave `PAPERLESS_ADMIN_PASSWORD` blank, no superuser is auto-created —
 create one manually on the Hola host instead:
