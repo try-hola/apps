@@ -1,6 +1,6 @@
 {
   "name": "directus",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "title": "Directus",
   "description": "Open-source headless CMS and data platform — wraps any SQL database in a realtime REST/GraphQL API and a no-code admin app for managing content",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/directus.svg",
@@ -20,12 +20,6 @@
       "value": "",
       "isSecret": true,
       "description": "Secret used to sign access tokens (sessions). Required — if it changes, all issued tokens are invalidated. Generate one with: openssl rand -hex 32"
-    },
-    {
-      "key": "ADMIN_EMAIL",
-      "value": "admin@example.com",
-      "isSecret": false,
-      "description": "Email for the first admin account, created automatically on first boot. TIP: set this to your own Authentik/SSO email so the 'Sign in with Authentik' button logs you straight into this account (SSO users are matched by email). Left at the default it stays a local break-glass admin, and you invite SSO users from the admin app afterwards."
     },
     {
       "key": "ADMIN_PASSWORD",

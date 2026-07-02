@@ -34,13 +34,15 @@ Collected by the install wizard:
   tokens; `KEY` is the project identifier used for caching/signing. Keep them stable
   across restarts (a changed `SECRET` invalidates all issued tokens). Generate each
   with `openssl rand -hex 32`.
-- **`ADMIN_EMAIL`** — the first admin account's email. **Set it to your own Authentik/SSO
-  email** and the "Sign in with Authentik" button logs you straight into that account
-  (SSO users are matched by email). Left at the default (`admin@example.com`) it's just
-  a local break-glass admin, and you invite your SSO users afterwards.
 - **`ADMIN_PASSWORD`** — optional. Leave it blank and it defaults to your `SECRET` (a
   strong, unique per-install value), so the break-glass admin is secure without you
   managing another password. Set one only if you want a memorable local login.
+
+There's **no admin-email field** — the first admin's email auto-fills from Hola's
+`${HOLA_USER_EMAIL}` token (the dashboard user installing the app). When you're
+SSO-logged-in to the dashboard, the bootstrapped admin *is you*, so the "Sign in with
+Authentik" button logs straight into it. For admin-key / CLI installs (no user email)
+it falls back to `admin@example.com` as a local break-glass admin.
 
 The PostgreSQL password is internal and self-contained (`POSTGRES_PASSWORD` defaults
 in-compose); no input required unless you expose the DB.
@@ -58,8 +60,9 @@ email/password login.
   (Directus needs a default-role UUID that doesn't exist until the project is seeded),
   so a Directus user must exist whose **email** matches the Authentik identity
   (`AUTH_AUTHENTIK_IDENTIFIER_KEY`). Two ways to get there:
-  - **Easiest:** set `ADMIN_EMAIL` to *your* Authentik email at install — the
-    bootstrapped admin *is* you, so "Sign in with Authentik" logs straight into it.
+  - **Automatic:** install while SSO-logged-in to the Hola dashboard — the admin email
+    auto-fills with your `${HOLA_USER_EMAIL}`, so the bootstrapped admin *is* you and
+    "Sign in with Authentik" logs straight into it.
   - **Otherwise:** log in as the local break-glass admin and invite your SSO users from
     **Settings → Access Control**.
 
