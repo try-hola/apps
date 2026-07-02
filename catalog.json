@@ -41,9 +41,9 @@
       "tags": [],
       "versions": [
         {
-          "version": "1.0.2",
+          "version": "1.0.3",
           "refs": {
-            "oci": "ghcr.io/try-hola/directus:1.0.2"
+            "oci": "ghcr.io/try-hola/directus:1.0.3"
           }
         }
       ]
