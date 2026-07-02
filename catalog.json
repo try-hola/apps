@@ -33,6 +33,22 @@
       ]
     },
     {
+      "id": "directus",
+      "name": "Directus",
+      "description": "Open-source headless CMS and data platform — wraps any SQL database in a realtime REST/GraphQL API and a no-code admin app for managing content",
+      "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/directus.svg",
+      "category": "apps",
+      "tags": [],
+      "versions": [
+        {
+          "version": "1.0.0",
+          "refs": {
+            "oci": "ghcr.io/try-hola/directus:1.0.0"
+          }
+        }
+      ]
+    },
+    {
       "id": "gitea",
       "name": "Gitea",
       "description": "Self-hosted Git service",
