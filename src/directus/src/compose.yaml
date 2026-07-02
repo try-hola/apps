@@ -13,8 +13,9 @@
 # applies migrations and, against an empty database, creates the first admin from
 # ADMIN_EMAIL / ADMIN_PASSWORD. Both default (see below) so a fresh install lands
 # straight on the login screen (with the SSO button) instead of Directus's browser
-# "create admin" onboarding — set ADMIN_EMAIL to your own SSO email for one-click
-# Authentik login.
+# "create admin" onboarding. ADMIN_EMAIL auto-fills with the installing dashboard
+# user's own email (Hola's ${HOLA_USER_EMAIL} token), so an SSO-logged-in operator
+# gets one-click Authentik login into the bootstrapped admin — no wizard input.
 #
 # SSO: native OIDC via env (provisioned by Hola's auth block). Directus wants the
 # provider's *discovery* URL for ISSUER_URL, so we append
@@ -40,12 +41,15 @@ services:
       SECRET: "${SECRET}"
       # First admin account, created by `directus bootstrap` on the initial boot
       # against an empty database. Both must be non-empty or bootstrap skips admin
-      # creation and Directus shows its browser onboarding "create admin" screen —
-      # so both carry a default: the email falls back to a placeholder (override it
-      # with your own SSO email to log in via the Authentik button), and the
-      # password falls back to the per-install ${SECRET} (a strong, unique random)
-      # so the local admin is a secure break-glass account even when skipped.
-      ADMIN_EMAIL: "${ADMIN_EMAIL:-admin@example.com}"
+      # creation and Directus shows its browser onboarding "create admin" screen.
+      # ADMIN_EMAIL auto-fills with ${HOLA_USER_EMAIL} — the email of the dashboard
+      # user installing the app — so when they're SSO-logged-in the bootstrapped
+      # admin IS them and "Sign in with Authentik" logs straight into it (matched by
+      # email). Hola supplies that variable at deploy time; for admin-key/CLI installs
+      # it's empty and the `:-admin@example.com` fallback gives a local break-glass
+      # admin. ADMIN_PASSWORD falls back to the per-install ${SECRET} (a strong, unique
+      # random) so the account is secure even when skipped in the wizard.
+      ADMIN_EMAIL: "${HOLA_USER_EMAIL:-admin@example.com}"
       ADMIN_PASSWORD: "${ADMIN_PASSWORD:-${SECRET}}"
       # PostgreSQL connection (internal; not exposed to the host).
       DB_CLIENT: "pg"
