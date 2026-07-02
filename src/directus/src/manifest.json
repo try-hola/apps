@@ -1,6 +1,6 @@
 {
   "name": "directus",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "title": "Directus",
   "description": "Open-source headless CMS and data platform — wraps any SQL database in a realtime REST/GraphQL API and a no-code admin app for managing content",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/directus.svg",
@@ -23,15 +23,15 @@
     },
     {
       "key": "ADMIN_EMAIL",
-      "value": "",
+      "value": "admin@example.com",
       "isSecret": false,
-      "description": "Email for the first admin account, created automatically on the initial boot against an empty database. Use this to sign in locally (SSO users are added from the admin app)."
+      "description": "Email for the first admin account, created automatically on first boot. TIP: set this to your own Authentik/SSO email so the 'Sign in with Authentik' button logs you straight into this account (SSO users are matched by email). Left at the default it stays a local break-glass admin, and you invite SSO users from the admin app afterwards."
     },
     {
       "key": "ADMIN_PASSWORD",
       "value": "",
       "isSecret": true,
-      "description": "Password for the first admin account created on the initial boot. Store it somewhere safe."
+      "description": "Password for the first admin account. Optional — leave blank and it defaults to your SECRET value (a strong, unique per-install random), so the local admin is a secure break-glass login you can look up later. Set one only if you want a memorable local password."
     }
   ],
   "defaults": {

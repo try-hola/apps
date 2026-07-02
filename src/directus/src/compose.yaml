@@ -11,7 +11,10 @@
 #
 # The image's default command runs `node cli.js bootstrap` on every start: it
 # applies migrations and, against an empty database, creates the first admin from
-# ADMIN_EMAIL / ADMIN_PASSWORD (collected by the install wizard).
+# ADMIN_EMAIL / ADMIN_PASSWORD. Both default (see below) so a fresh install lands
+# straight on the login screen (with the SSO button) instead of Directus's browser
+# "create admin" onboarding — set ADMIN_EMAIL to your own SSO email for one-click
+# Authentik login.
 #
 # SSO: native OIDC via env (provisioned by Hola's auth block). Directus wants the
 # provider's *discovery* URL for ISSUER_URL, so we append
@@ -35,9 +38,15 @@ services:
       # access tokens; KEY is the project identifier used for caching/signing.
       KEY: "${KEY}"
       SECRET: "${SECRET}"
-      # First admin account, created on the initial boot against an empty database.
-      ADMIN_EMAIL: "${ADMIN_EMAIL}"
-      ADMIN_PASSWORD: "${ADMIN_PASSWORD}"
+      # First admin account, created by `directus bootstrap` on the initial boot
+      # against an empty database. Both must be non-empty or bootstrap skips admin
+      # creation and Directus shows its browser onboarding "create admin" screen —
+      # so both carry a default: the email falls back to a placeholder (override it
+      # with your own SSO email to log in via the Authentik button), and the
+      # password falls back to the per-install ${SECRET} (a strong, unique random)
+      # so the local admin is a secure break-glass account even when skipped.
+      ADMIN_EMAIL: "${ADMIN_EMAIL:-admin@example.com}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:-${SECRET}}"
       # PostgreSQL connection (internal; not exposed to the host).
       DB_CLIENT: "pg"
       DB_HOST: "directus-postgres"

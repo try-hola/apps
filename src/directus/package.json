@@ -1,6 +1,6 @@
 {
   "name": "directus",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Directus — open-source headless CMS & data platform on top of your SQL database (Hola app package)",
   "oci": {
     "annotations": {
