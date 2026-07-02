@@ -1,0 +1,129 @@
+# Directus — open-source headless CMS & data platform. It wraps a SQL database in
+# a realtime REST/GraphQL API plus a no-code admin app. Packaged for Hola:
+# Traefik-only ingress (no host ports); all persistence bind-mounted under
+# ${HOLA_APP_DATA}.
+#
+# Datastore: PostgreSQL (Directus's recommended production DB), matching Hola's
+# other multi-container apps. The DB is internal-only (no host port, isolated
+# per-install compose network), so its password is self-contained with a default
+# (${POSTGRES_PASSWORD:-…}, identical in the app and the postgres service) — no
+# install-time input required. Override POSTGRES_PASSWORD only if you expose it.
+#
+# The image's default command runs `node cli.js bootstrap` on every start: it
+# applies migrations and, against an empty database, creates the first admin from
+# ADMIN_EMAIL / ADMIN_PASSWORD (collected by the install wizard).
+#
+# SSO: native OIDC via env (provisioned by Hola's auth block). Directus wants the
+# provider's *discovery* URL for ISSUER_URL, so we append
+# `.well-known/openid-configuration` to the issuer Hola injects as
+# ${OIDC_ISSUER_URL} (Authentik issuer URLs end with a trailing slash). The
+# provider is only loaded when AUTH_PROVIDERS is set — Hola's auth block injects
+# `AUTH_PROVIDERS=authentik` (staticEnv) at deploy, so an unprovisioned install
+# falls back to Directus's built-in email/password login (ADMIN_EMAIL). Public
+# self-registration stays off (no DEFAULT_ROLE_ID); the admin invites SSO users
+# from the admin app and they sign in with the "Authentik" button. The OIDC
+# callback is <PUBLIC_URL>/auth/login/authentik/callback (manifest redirectPath).
+services:
+  directus:
+    image: directus/directus:12.1.1@sha256:27fd291463f4e746a7911139377a1dbc7a5c09ae82ee15b028b97bcc4950c69d
+    environment:
+      # Public URL — Hola injects the app's Traefik host. Directus derives its OIDC
+      # redirect URLs and absolute asset links from this.
+      PUBLIC_URL: "https://${HOLA_APP_HOST}"
+      WEBSOCKETS_ENABLED: "true"
+      # Stable per-install secrets (collected by the install wizard). SECRET signs
+      # access tokens; KEY is the project identifier used for caching/signing.
+      KEY: "${KEY}"
+      SECRET: "${SECRET}"
+      # First admin account, created on the initial boot against an empty database.
+      ADMIN_EMAIL: "${ADMIN_EMAIL}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD}"
+      # PostgreSQL connection (internal; not exposed to the host).
+      DB_CLIENT: "pg"
+      DB_HOST: "directus-postgres"
+      DB_PORT: "5432"
+      DB_DATABASE: "directus"
+      DB_USER: "directus"
+      # Internal-only DB (no host port, isolated per-install compose network), so a
+      # self-contained default is safe and needs zero install-time config. Override
+      # via POSTGRES_PASSWORD if you ever expose it; must match directus-postgres below.
+      DB_PASSWORD: "${POSTGRES_PASSWORD:-directus_internal_db_pw}"
+      # --- OIDC (Authentik) — Hola provisions issuer/client id/secret. ---
+      # Empty AUTH_PROVIDERS (unprovisioned) → built-in email/password login only.
+      # Hola's native-oidc auth block injects AUTH_PROVIDERS=authentik + the driver
+      # metadata (staticEnv) and OIDC_* (env) at deploy time.
+      AUTH_PROVIDERS: "${AUTH_PROVIDERS:-}"
+      AUTH_AUTHENTIK_DRIVER: "${AUTH_AUTHENTIK_DRIVER:-openid}"
+      AUTH_AUTHENTIK_LABEL: "${AUTH_AUTHENTIK_LABEL:-Authentik}"
+      # Match SSO users to Directus users by email (default is the opaque `sub`).
+      AUTH_AUTHENTIK_IDENTIFIER_KEY: "${AUTH_AUTHENTIK_IDENTIFIER_KEY:-email}"
+      AUTH_AUTHENTIK_SCOPE: "openid profile email"
+      # Directus wants the discovery document URL; build it from the injected issuer.
+      AUTH_AUTHENTIK_ISSUER_URL: "${OIDC_ISSUER_URL:-}.well-known/openid-configuration"
+      AUTH_AUTHENTIK_CLIENT_ID: "${OIDC_CLIENT_ID:-}"
+      AUTH_AUTHENTIK_CLIENT_SECRET: "${OIDC_CLIENT_SECRET:-}"
+    expose:
+      - "8055"
+    volumes:
+      - ${HOLA_APP_DATA}/uploads:/directus/uploads
+      - ${HOLA_APP_DATA}/extensions:/directus/extensions
+    healthcheck:
+      # /server/ping is public (auth-exempt) and returns "pong" once the app serves.
+      test: ["CMD", "node", "-e", "const r=require('http').get('http://localhost:8055/server/ping',res=>process.exit(res.statusCode<500?0:1));r.on('error',()=>process.exit(1));r.setTimeout(8000,()=>{r.destroy();process.exit(1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 6
+      start_period: 90s
+    depends_on:
+      directus-postgres:
+        condition: service_healthy
+      directus-init:
+        condition: service_completed_successfully
+
+  directus-postgres:
+    # pgautoupgrade: on boot, detects an older PGDATA and runs `pg_upgrade` in place
+    # before starting — so an existing install's data migrates across the Postgres
+    # major automatically. A fresh install just initializes a new PG18 cluster.
+    image: pgautoupgrade/pgautoupgrade:18-alpine@sha256:b0a1664b89698dba72276b3a4a2da9f2c879e9bb1d770fa273391bf6a4038e78
+    environment:
+      POSTGRES_USER: "directus"
+      # Must match the directus service's DB_PASSWORD default above.
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-directus_internal_db_pw}"
+      POSTGRES_DB: "directus"
+      # REQUIRED. PG18's image moved the default PGDATA to /var/lib/postgresql/18/docker;
+      # pin it back so the data persists on the volume below and pgautoupgrade finds an
+      # existing PG16/17 cluster here to upgrade.
+      PGDATA: /var/lib/postgresql/data
+    volumes:
+      - ${HOLA_APP_DATA}/postgres:/var/lib/postgresql/data
+      # Destination for the pre-backup pg_dump hook (manifest `backup.preHook`), under
+      # the app data root so Hola's pre-upgrade/backrest snapshot captures the dump.
+      - ${HOLA_APP_DATA}/backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U directus -d directus"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # The uploads/extensions bind mounts are created root-owned by Docker, but the
+  # Directus image runs as the non-root `node` user (uid 1000) and must write file
+  # uploads there — otherwise every upload fails (Permission denied). Chown them
+  # before the app starts. Reuses the Directus image (no extra pull) just for a
+  # shell + chown. `restart: "no"` is REQUIRED — Hola applies a default restart
+  # policy to services that declare none, which would restart this after it exits 0
+  # so it never reaches service_completed_successfully and the directus service
+  # (which depends on that) is stuck Created forever.
+  directus-init:
+    image: directus/directus:12.1.1@sha256:27fd291463f4e746a7911139377a1dbc7a5c09ae82ee15b028b97bcc4950c69d
+    restart: "no"
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        mkdir -p /directus/uploads /directus/extensions
+        chown -R 1000:1000 /directus/uploads /directus/extensions
+        echo "[hola] chowned uploads + extensions to the directus user (uid 1000)"
+    volumes:
+      - ${HOLA_APP_DATA}/uploads:/directus/uploads
+      - ${HOLA_APP_DATA}/extensions:/directus/extensions

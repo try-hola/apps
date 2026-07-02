@@ -1,0 +1,86 @@
+{
+  "name": "directus",
+  "version": "1.0.0",
+  "title": "Directus",
+  "description": "Open-source headless CMS and data platform — wraps any SQL database in a realtime REST/GraphQL API and a no-code admin app for managing content",
+  "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/directus.svg",
+  "ingress": {
+    "service": "directus",
+    "port": 8055
+  },
+  "defaultEnv": [
+    {
+      "key": "KEY",
+      "value": "",
+      "isSecret": true,
+      "description": "Unique per-install project identifier used for caching and internal signing. Keep it stable across restarts. Generate one with: openssl rand -hex 32"
+    },
+    {
+      "key": "SECRET",
+      "value": "",
+      "isSecret": true,
+      "description": "Secret used to sign access tokens (sessions). Required — if it changes, all issued tokens are invalidated. Generate one with: openssl rand -hex 32"
+    },
+    {
+      "key": "ADMIN_EMAIL",
+      "value": "",
+      "isSecret": false,
+      "description": "Email for the first admin account, created automatically on the initial boot against an empty database. Use this to sign in locally (SSO users are added from the admin app)."
+    },
+    {
+      "key": "ADMIN_PASSWORD",
+      "value": "",
+      "isSecret": true,
+      "description": "Password for the first admin account created on the initial boot. Store it somewhere safe."
+    }
+  ],
+  "defaults": {
+    "ports": [
+      { "container": 8055, "protocol": "tcp" }
+    ],
+    "volumes": [
+      { "containerPath": "/directus/uploads" },
+      { "containerPath": "/directus/extensions" }
+    ]
+  },
+  "auth": {
+    "mode": "native-oidc",
+    "oidc": {
+      "redirectPath": "/auth/login/authentik/callback",
+      "scopes": ["openid", "profile", "email"],
+      "env": {
+        "issuer": "OIDC_ISSUER_URL",
+        "clientId": "OIDC_CLIENT_ID",
+        "clientSecret": "OIDC_CLIENT_SECRET"
+      },
+      "staticEnv": {
+        "AUTH_PROVIDERS": "authentik",
+        "AUTH_AUTHENTIK_DRIVER": "openid",
+        "AUTH_AUTHENTIK_LABEL": "Authentik",
+        "AUTH_AUTHENTIK_IDENTIFIER_KEY": "email"
+      }
+    }
+  },
+  "backup": {
+    "preHook": {
+      "service": "directus-postgres",
+      "command": [
+        "sh",
+        "-c",
+        "pg_dump -U directus -d directus -f /backups/directus.sql"
+      ]
+    },
+    "postHook": {
+      "service": "directus-postgres",
+      "command": [
+        "sh",
+        "-c",
+        "rm -f /backups/directus.sql"
+      ]
+    }
+  },
+  "upgrade": {
+    "preUpgradeBackup": "recommended",
+    "upgradeNotesUrl": "https://github.com/directus/directus/releases"
+  }
+}
