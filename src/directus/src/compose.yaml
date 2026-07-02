@@ -29,7 +29,13 @@
 # callback is <PUBLIC_URL>/auth/login/authentik/callback (manifest redirectPath).
 services:
   directus:
-    image: directus/directus:12.1.1@sha256:27fd291463f4e746a7911139377a1dbc7a5c09ae82ee15b028b97bcc4950c69d
+    # Pinned to the last Directus 11 release ON PURPOSE. Directus 12 moved external
+    # SSO providers (OpenID/OAuth2/SAML/LDAP) behind a paid Team+ license: on the free
+    # Core tier v12 logs "you have SSO providers configured these will be unavailable
+    # under the current license tier" and drops the login button even when AUTH_* is
+    # fully configured. 11.17.4 is the newest version with free self-hosted SSO, so the
+    # Authentik button below actually works. Do NOT bump to 12.x without a license.
+    image: directus/directus:11.17.4@sha256:eb326f679ae847c0a776f93b972761dc2ebe84980e0b9d274a6bc31cd62809f7
     environment:
       # Public URL — Hola injects the app's Traefik host. Directus derives its OIDC
       # redirect URLs and absolute asset links from this.
@@ -128,7 +134,7 @@ services:
   # so it never reaches service_completed_successfully and the directus service
   # (which depends on that) is stuck Created forever.
   directus-init:
-    image: directus/directus:12.1.1@sha256:27fd291463f4e746a7911139377a1dbc7a5c09ae82ee15b028b97bcc4950c69d
+    image: directus/directus:11.17.4@sha256:eb326f679ae847c0a776f93b972761dc2ebe84980e0b9d274a6bc31cd62809f7
     restart: "no"
     user: "0:0"
     entrypoint: ["/bin/sh", "-c"]

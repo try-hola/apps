@@ -54,6 +54,13 @@ client and injects it as Directus's `authentik` OpenID provider, so the login sc
 shows a **"Sign in with Authentik"** button alongside Directus's built-in
 email/password login.
 
+> **Version note — why this pins Directus 11.** Directus **12** moved external SSO
+> providers (OpenID/OAuth2/SAML/LDAP) behind a paid **Team+** license; on the free
+> Core tier v12 silently disables the SSO button even when it's fully configured
+> (`WARN: you have SSO providers configured these will be unavailable under the
+> current license tier`). **11.17.4** is the last release with free self-hosted SSO,
+> so this package pins it. Don't bump to 12.x unless you hold a Directus SSO license.
+
 - **Local admin** always works — the `ADMIN_EMAIL` account is a full local login,
   independent of SSO. If SSO is ever misconfigured you can still get in.
 - **SSO users** sign in with the Authentik button. Public self-registration is **off**
