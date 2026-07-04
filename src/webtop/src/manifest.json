@@ -33,7 +33,7 @@
     },
     {
       "key": "TZ",
-      "value": "Etc/UTC",
+      "value": "UTC",
       "isSecret": false,
       "description": "Timezone for the desktop, e.g. America/New_York.",
       "label": "Timezone",

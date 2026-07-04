@@ -158,8 +158,13 @@ function validateManifest(manifestPath) {
     return issues;
   }
 
-  for (const entry of manifest.defaultEnv ?? []) {
-    checkParamSpec(app, entry, issues);
+  // `defaultEnv` should be an array; a non-array (e.g. `{}`) is already an ajv
+  // failure, so just skip the semantic loop rather than throwing
+  // "not iterable" and aborting every remaining manifest in the run.
+  if (Array.isArray(manifest.defaultEnv)) {
+    for (const entry of manifest.defaultEnv) {
+      checkParamSpec(app, entry, issues);
+    }
   }
 
   checkIngressService(app, manifest, manifestPath, issues);
@@ -199,7 +204,10 @@ function main() {
     }
   }
 
-  process.exit(hadFailure ? 1 : 0);
+  // Set the code and let the event loop drain naturally — `process.exit()` can
+  // truncate buffered stdout/stderr on a pipe (CI), dropping the tail of the
+  // per-app FAIL detail even though the exit code is correct.
+  process.exitCode = hadFailure ? 1 : 0;
 }
 
 main();
