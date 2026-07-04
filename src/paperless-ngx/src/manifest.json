@@ -1,6 +1,6 @@
 {
   "name": "paperless-ngx",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "title": "Paperless-ngx",
   "description": "Self-hosted document management system: scan, index, and archive your documents",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/paperless-ngx.svg",
@@ -13,19 +13,28 @@
       "key": "PAPERLESS_SECRET_KEY",
       "value": "",
       "isSecret": true,
-      "description": "Unique random string used to sign sessions and tokens. Generate one, e.g. `openssl rand -hex 32`."
+      "description": "Unique random string used to sign sessions and tokens. Generate one, e.g. `openssl rand -hex 32`.",
+      "label": "Secret Key",
+      "required": true,
+      "generate": { "kind": "hex", "length": 32 }
     },
     {
       "key": "PAPERLESS_ADMIN_USER",
       "value": "admin",
       "isSecret": false,
-      "description": "Username for the fallback local superuser created on first start. Used for emergency/local login when SSO is unavailable."
+      "description": "Username for the fallback local superuser created on first start. Used for emergency/local login when SSO is unavailable.",
+      "label": "Admin Username",
+      "type": "string",
+      "advanced": true
     },
     {
       "key": "PAPERLESS_ADMIN_PASSWORD",
       "value": "",
       "isSecret": true,
-      "description": "Password for the fallback superuser. Leave blank to skip auto-creation and instead run `createsuperuser` later (see README)."
+      "description": "Password for the fallback superuser. Leave blank to skip auto-creation and instead run `createsuperuser` later (see README).",
+      "label": "Admin Password",
+      "required": false,
+      "advanced": true
     }
   ],
   "defaults": {

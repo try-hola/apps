@@ -1,6 +1,6 @@
 {
   "name": "actual-budget",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "title": "Actual Budget",
   "description": "Local-first personal finance and budgeting",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/actual-budget.svg",
@@ -13,7 +13,10 @@
       "key": "ACTUAL_OPENID_SERVER_HOSTNAME",
       "value": "https://actual.example.com",
       "isSecret": false,
-      "description": "Public URL — set to https://actual.<your HOLA_BASE_DOMAIN> (Actual builds its OIDC redirect from this)"
+      "description": "Public URL — set to https://actual.<your HOLA_BASE_DOMAIN> (Actual builds its OIDC redirect from this)",
+      "label": "Public URL",
+      "type": "url",
+      "required": true
     }
   ],
   "defaults": {
