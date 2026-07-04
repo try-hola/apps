@@ -1,6 +1,6 @@
 {
   "name": "gitea",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Gitea — self-hosted Git service (Hola app package)",
   "license": "MIT",
   "oci": {

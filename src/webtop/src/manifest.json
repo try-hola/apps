@@ -1,6 +1,6 @@
 {
   "name": "webtop",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "title": "Ubuntu Webtop",
   "description": "Ubuntu desktop environment in your browser",
   "icon": "🖥️",
@@ -13,31 +13,50 @@
       "key": "PUID",
       "value": "1000",
       "isSecret": false,
-      "description": "User ID the desktop runs as; files in /config are owned by this UID. Match the host user that owns the app data dir."
+      "description": "User ID the desktop runs as; files in /config are owned by this UID. Match the host user that owns the app data dir.",
+      "label": "User ID (PUID)",
+      "type": "integer",
+      "min": 0,
+      "max": 65535,
+      "advanced": true
     },
     {
       "key": "PGID",
       "value": "1000",
       "isSecret": false,
-      "description": "Group ID the desktop runs as. Match the host group that owns the app data dir."
+      "description": "Group ID the desktop runs as. Match the host group that owns the app data dir.",
+      "label": "Group ID (PGID)",
+      "type": "integer",
+      "min": 0,
+      "max": 65535,
+      "advanced": true
     },
     {
       "key": "TZ",
       "value": "Etc/UTC",
       "isSecret": false,
-      "description": "Timezone for the desktop, e.g. America/New_York."
+      "description": "Timezone for the desktop, e.g. America/New_York.",
+      "label": "Timezone",
+      "type": "timezone",
+      "placeholder": "America/New_York"
     },
     {
       "key": "CUSTOM_USER",
       "value": "",
       "isSecret": false,
-      "description": "Optional username for the built-in HTTP Basic login (defense-in-depth behind Hola's forward-auth SSO gate). Leave blank to rely solely on SSO."
+      "description": "Optional username for the built-in HTTP Basic login (defense-in-depth behind Hola's forward-auth SSO gate). Leave blank to rely solely on SSO.",
+      "label": "Basic Auth Username",
+      "type": "string",
+      "advanced": true
     },
     {
       "key": "PASSWORD",
       "value": "",
       "isSecret": true,
-      "description": "Optional password for the built-in HTTP Basic login. Generate one, e.g. `openssl rand -hex 16`. Leave blank to rely solely on SSO."
+      "description": "Optional password for the built-in HTTP Basic login. Generate one, e.g. `openssl rand -hex 16`. Leave blank to rely solely on SSO.",
+      "label": "Basic Auth Password",
+      "required": false,
+      "advanced": true
     }
   ],
   "defaults": {

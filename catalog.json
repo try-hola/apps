@@ -9,9 +9,9 @@
       "tags": [],
       "versions": [
         {
-          "version": "1.2.1",
+          "version": "1.2.2",
           "refs": {
-            "oci": "ghcr.io/try-hola/actual-budget:1.2.1"
+            "oci": "ghcr.io/try-hola/actual-budget:1.2.2"
           }
         }
       ]
@@ -41,9 +41,9 @@
       "tags": [],
       "versions": [
         {
-          "version": "1.4.0",
+          "version": "1.4.1",
           "refs": {
-            "oci": "ghcr.io/try-hola/gitea:1.4.0"
+            "oci": "ghcr.io/try-hola/gitea:1.4.1"
           }
         }
       ]
@@ -73,9 +73,9 @@
       "tags": [],
       "versions": [
         {
-          "version": "1.4.1",
+          "version": "1.4.2",
           "refs": {
-            "oci": "ghcr.io/try-hola/hangar:1.4.1"
+            "oci": "ghcr.io/try-hola/hangar:1.4.2"
           }
         }
       ]
@@ -153,9 +153,9 @@
       "tags": [],
       "versions": [
         {
-          "version": "2.0.1",
+          "version": "2.0.2",
           "refs": {
-            "oci": "ghcr.io/try-hola/paperless-ngx:2.0.1"
+            "oci": "ghcr.io/try-hola/paperless-ngx:2.0.2"
           }
         }
       ]
@@ -169,9 +169,9 @@
       "tags": [],
       "versions": [
         {
-          "version": "2.0.0",
+          "version": "2.0.1",
           "refs": {
-            "oci": "ghcr.io/try-hola/postiz:2.0.0"
+            "oci": "ghcr.io/try-hola/postiz:2.0.1"
           }
         }
       ]
@@ -201,9 +201,9 @@
       "tags": [],
       "versions": [
         {
-          "version": "1.4.1",
+          "version": "1.4.2",
           "refs": {
-            "oci": "ghcr.io/try-hola/vaultwarden:1.4.1"
+            "oci": "ghcr.io/try-hola/vaultwarden:1.4.2"
           }
         }
       ]
@@ -217,9 +217,9 @@
       "tags": [],
       "versions": [
         {
-          "version": "1.0.0",
+          "version": "1.0.1",
           "refs": {
-            "oci": "ghcr.io/try-hola/webtop:1.0.0"
+            "oci": "ghcr.io/try-hola/webtop:1.0.1"
           }
         }
       ]

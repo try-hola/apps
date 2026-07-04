@@ -1,6 +1,6 @@
 {
   "name": "postiz",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "title": "Postiz",
   "description": "Open-source social media scheduling tool with AI features",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/postiz.svg",
@@ -13,13 +13,18 @@
       "key": "JWT_SECRET",
       "value": "",
       "isSecret": true,
-      "description": "Unique random string used to sign sessions. Generate one, e.g. `openssl rand -hex 32`."
+      "description": "Unique random string used to sign sessions. Generate one, e.g. `openssl rand -hex 32`.",
+      "label": "Session Signing Key",
+      "required": true,
+      "generate": { "kind": "hex", "length": 32 }
     },
     {
       "key": "DISABLE_REGISTRATION",
       "value": "false",
       "isSecret": false,
-      "description": "Leave 'false' when using Hola SSO — Postiz disables OIDC entirely when registration is off. Without SSO, set 'true' after creating your account to block further sign-ups."
+      "description": "Leave 'false' when using Hola SSO — Postiz disables OIDC entirely when registration is off. Without SSO, set 'true' after creating your account to block further sign-ups.",
+      "label": "Disable New Sign-ups",
+      "type": "boolean"
     }
   ],
   "defaults": {

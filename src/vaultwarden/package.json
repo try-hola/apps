@@ -1,6 +1,6 @@
 {
   "name": "vaultwarden",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Vaultwarden — self-hosted, Bitwarden-compatible password manager (Hola app package)",
   "license": "MIT",
   "oci": {

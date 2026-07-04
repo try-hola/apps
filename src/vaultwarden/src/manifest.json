@@ -1,6 +1,6 @@
 {
   "name": "vaultwarden",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "title": "Vaultwarden",
   "description": "Self-hosted, Bitwarden-compatible password manager",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/vaultwarden.svg",
@@ -13,13 +13,19 @@
       "key": "DOMAIN",
       "value": "https://vaultwarden.example.com",
       "isSecret": false,
-      "description": "Public URL — set to https://vaultwarden.<your HOLA_BASE_DOMAIN>/ (required for WebAuthn, attachments, email links)"
+      "description": "Public URL — set to https://vaultwarden.<your HOLA_BASE_DOMAIN>/ (required for WebAuthn, attachments, email links)",
+      "label": "Public URL",
+      "type": "url",
+      "httpsOnly": true,
+      "required": true
     },
     {
       "key": "SIGNUPS_ALLOWED",
       "value": "true",
       "isSecret": false,
-      "description": "Allow new account registration. Set to false once your account exists."
+      "description": "Allow new account registration. Set to false once your account exists.",
+      "label": "Allow New Sign-ups",
+      "type": "boolean"
     }
   ],
   "defaults": {

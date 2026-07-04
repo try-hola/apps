@@ -1,6 +1,6 @@
 {
   "name": "gitea",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "title": "Gitea",
   "description": "Self-hosted Git service",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/gitea.svg",
@@ -13,7 +13,11 @@
       "key": "GITEA_RUNNER_REGISTRATION_TOKEN",
       "value": "",
       "isSecret": true,
-      "description": "Shared secret that lets the bundled Actions runner self-register with Gitea. MUST be at least 32 characters (Gitea refuses to start otherwise). Generate one, e.g. `openssl rand -hex 32`."
+      "description": "Shared secret that lets the bundled Actions runner self-register with Gitea. MUST be at least 32 characters (Gitea refuses to start otherwise). Generate one, e.g. `openssl rand -hex 32`.",
+      "label": "Actions Runner Registration Token",
+      "required": true,
+      "minLength": 32,
+      "generate": { "kind": "hex", "length": 32 }
     }
   ],
   "defaults": {
