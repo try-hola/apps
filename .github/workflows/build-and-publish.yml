@@ -162,3 +162,17 @@ jobs:
             || { echo "Error: ingress.service '$SERVICE' is not a service in $PKG/src/compose.yaml"; exit 1; }
 
           echo "Package ${{ matrix.package }} validated (version: $VERSION, ingress.service: $SERVICE)"
+
+      - name: Set up Node.js
+        if: ${{ hashFiles(format('src/{0}/src/manifest.json', matrix.package)) != '' }}
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      # Full manifest.json schema check (typed defaultEnv shape, auth/upgrade/backup
+      # blocks, etc.) plus semantic checks (enum defaults, min<=max, generate requires
+      # isSecret, ingress.service vs compose.yaml) that the jq/grep checks above don't
+      # cover. See schemas/manifest.schema.json and bin/validate-manifest.mjs.
+      - name: Validate manifest.json schema
+        if: ${{ hashFiles(format('src/{0}/src/manifest.json', matrix.package)) != '' }}
+        run: node bin/validate-manifest.mjs "src/${{ matrix.package }}/src/manifest.json"

@@ -1,0 +1,317 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/try-hola/apps/schemas/manifest.schema.json",
+  "title": "Hola app manifest.json",
+  "description": "Shape of src/<name>/src/manifest.json, the per-app metadata the Hola server reads at deploy time. See README.md for full field docs. additionalProperties:false is used at the top level and for defaultEnv entries because the Hola server's manifest coercion silently drops unknown/malformed fields instead of erroring -- a typo'd field name is otherwise a silent no-op, not a CI failure.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "version", "title", "description", "ingress"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "App id; should match the package name."
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Hola bundle version (describes impact on the Hola user, not upstream's version)."
+    },
+    "title": { "type": "string", "minLength": 1 },
+    "description": { "type": "string", "minLength": 1 },
+    "icon": {
+      "type": "string",
+      "description": "Emoji or an icon URL."
+    },
+    "category": { "type": "string" },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "ingress": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["service", "port"],
+      "properties": {
+        "service": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Compose service Traefik routes to and that receives injected SSO/auth env. Must name a real service in compose.yaml."
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "Container port that service listens on."
+        }
+      }
+    },
+    "defaultEnv": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/appEnvVar" }
+    },
+    "defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ports": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["container"],
+            "properties": {
+              "host": { "type": "integer" },
+              "container": { "type": "integer" },
+              "protocol": { "type": "string", "enum": ["tcp", "udp"] }
+            }
+          }
+        },
+        "volumes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["containerPath"],
+            "properties": {
+              "hostPath": { "type": "string" },
+              "containerPath": { "type": "string" },
+              "readOnly": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    },
+    "auth": {
+      "type": "object",
+      "description": "SSO integration. Permissive on nested shapes -- this block is not part of the typed-defaultEnv contract and the server's coercion is deliberately forward-compatible about extra fields.",
+      "additionalProperties": true,
+      "required": ["mode"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["none", "native-oidc", "forward-auth", "native-ldap"]
+        },
+        "fallback": {
+          "type": "string",
+          "enum": ["forward-auth"],
+          "description": "Gates a native-oidc/none app behind proxy login too; can coexist with any mode."
+        },
+        "oidc": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "redirectPath": { "type": "string" },
+            "scopes": { "type": "array", "items": { "type": "string" } },
+            "env": {
+              "type": "object",
+              "additionalProperties": { "type": "string" },
+              "properties": {
+                "issuer": { "type": "string" },
+                "clientId": { "type": "string" },
+                "clientSecret": { "type": "string" },
+                "redirectUri": { "type": "string" },
+                "authUrl": { "type": "string" },
+                "tokenUrl": { "type": "string" },
+                "userinfoUrl": { "type": "string" }
+              }
+            },
+            "staticEnv": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            },
+            "setup": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": ["command"],
+              "properties": {
+                "service": { "type": "string" },
+                "user": { "type": "string" },
+                "check": { "type": "array", "items": { "type": "string" } },
+                "checkMatch": { "type": "string" },
+                "command": { "type": "array", "items": { "type": "string" } }
+              }
+            },
+            "extraRedirectUris": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "credentialsFile": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": ["path"],
+              "properties": {
+                "path": { "type": "string" }
+              }
+            },
+            "roleClaim": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": ["claim"],
+              "properties": {
+                "claim": { "type": "string" },
+                "adminGroup": { "type": "string" },
+                "adminValue": { "type": "string" },
+                "memberValue": { "type": "string" },
+                "scope": { "type": "string" }
+              }
+            }
+          }
+        },
+        "ldap": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": ["env"],
+          "properties": {
+            "env": {
+              "type": "object",
+              "additionalProperties": { "type": "string" },
+              "required": ["host", "port", "bindDn", "bindPassword", "baseDn"],
+              "properties": {
+                "host": { "type": "string" },
+                "port": { "type": "string" },
+                "bindDn": { "type": "string" },
+                "bindPassword": { "type": "string" },
+                "baseDn": { "type": "string" }
+              }
+            }
+          }
+        },
+        "forwardAuth": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "allowedGroups": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "consumes": {
+      "description": "Cross-app capability(ies) this app consumes, e.g. 'app-registry', 'apps-data'. A bare string or an array of strings.",
+      "anyOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" } }
+      ]
+    },
+    "upgrade": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "breaking": { "type": "boolean" },
+        "minFromVersion": { "type": "string" },
+        "waypoints": { "type": "array", "items": { "type": "string" } },
+        "upgradeNotesUrl": { "type": "string" },
+        "preUpgradeBackup": {
+          "type": "string",
+          "enum": ["required", "recommended", "none"]
+        }
+      }
+    },
+    "backup": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "preHook": { "$ref": "#/$defs/backupHook" },
+        "postHook": { "$ref": "#/$defs/backupHook" }
+      }
+    }
+  },
+  "$defs": {
+    "backupHook": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["service", "command"],
+      "properties": {
+        "service": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Compose service the hook runs in (via docker compose exec)."
+        },
+        "command": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" },
+          "description": "Exec-form argv, not a shell string."
+        }
+      }
+    },
+    "paramType": {
+      "type": "string",
+      "enum": ["string", "integer", "port", "boolean", "enum", "url", "email", "timezone"]
+    },
+    "paramGenerate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["hex", "base64", "fernet"]
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Bytes; default 32."
+        }
+      }
+    },
+    "paramEnumOption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value"],
+      "properties": {
+        "value": { "type": "string" },
+        "label": { "type": "string" },
+        "description": { "type": "string" }
+      }
+    },
+    "appEnvVar": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "value", "isSecret"],
+      "properties": {
+        "key": { "type": "string", "minLength": 1 },
+        "value": { "type": "string" },
+        "isSecret": { "type": "boolean" },
+        "description": { "type": "string" },
+        "label": { "type": "string" },
+        "type": { "$ref": "#/$defs/paramType" },
+        "required": {
+          "type": "boolean",
+          "description": "Tri-state: true/false/absent. Absent means legacy \"isSecret implies required\"."
+        },
+        "advanced": { "type": "boolean" },
+        "placeholder": { "type": "string" },
+        "pattern": {
+          "type": "string",
+          "description": "string type: regex the value must match."
+        },
+        "minLength": { "type": "integer", "minimum": 0 },
+        "maxLength": { "type": "integer", "minimum": 0 },
+        "min": {
+          "type": "integer",
+          "description": "integer/port type."
+        },
+        "max": {
+          "type": "integer",
+          "description": "integer/port type."
+        },
+        "options": {
+          "type": "array",
+          "description": "enum type.",
+          "items": { "$ref": "#/$defs/paramEnumOption" }
+        },
+        "trueValue": { "type": "string", "description": "boolean type." },
+        "falseValue": { "type": "string", "description": "boolean type." },
+        "httpsOnly": { "type": "boolean", "description": "url type." },
+        "generate": {
+          "$ref": "#/$defs/paramGenerate",
+          "description": "Only meaningful when isSecret is true."
+        }
+      }
+    }
+  }
+}
