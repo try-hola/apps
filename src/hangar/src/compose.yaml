@@ -16,7 +16,7 @@
 # (preferred_username claim) is recorded as the operator identity in Hangar's audit log.
 services:
   hangar:
-    image: ghcr.io/get2knowio/hangar:0.3.4@sha256:3aa139dead2c00ca9debd4673462fd61b5bd0244ca7f474419731b9629969476
+    image: ghcr.io/get2knowio/hangar:0.3.8@sha256:9529dade915e22ebd282a18a66042f767b4f52de233ea2fbd38c54d48a773568
     environment:
       # Hangar is fail-closed: it refuses to start unless an access mode is chosen.
       # oidc = app-native login; Hangar validates the ID token and mints a signed session
@@ -63,7 +63,7 @@ services:
   # would restart this after it exits 0 so it never reaches service_completed_successfully
   # and the hangar service (which depends on that) is stuck Created forever.
   hangar-init:
-    image: ghcr.io/get2knowio/hangar:0.3.4@sha256:3aa139dead2c00ca9debd4673462fd61b5bd0244ca7f474419731b9629969476
+    image: ghcr.io/get2knowio/hangar:0.3.8@sha256:9529dade915e22ebd282a18a66042f767b4f52de233ea2fbd38c54d48a773568
     restart: "no"
     user: "0:0"
     entrypoint: ["/bin/sh", "-c"]
