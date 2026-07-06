@@ -1,6 +1,6 @@
 {
   "name": "hangar",
-  "version": "1.4.6",
+  "version": "1.4.7",
   "description": "Hangar — self-hosted fleet control plane for git repo hygiene (Hola app package)",
   "oci": {
     "annotations": {
