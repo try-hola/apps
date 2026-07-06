@@ -1,6 +1,9 @@
 services:
   n8n:
     image: n8nio/n8n:2.29.0@sha256:846f0248604d82d989e30457277da9004cdf8a69ad7b6a27ae2ad811841cf25d
+    depends_on:
+      n8n-init:
+        condition: service_completed_successfully
     environment:
       # n8n sits behind Traefik (TLS terminated at the edge). Hola fills in the
       # app's public host for N8N_HOST + WEBHOOK_URL. The rest are fixed: trust one
@@ -14,5 +17,27 @@ services:
       N8N_SECURE_COOKIE: "true"
       # Opt into task runners (n8n logs a deprecation warning without this).
       N8N_RUNNERS_ENABLED: "true"
+    volumes:
+      - ${HOLA_APP_DATA}/data:/home/node/.n8n
+
+  # The /home/node/.n8n bind mount is created root-owned by Hola, but the n8n
+  # image hardcodes `USER node` (uid 1000) and never runs as root — so it can
+  # never chown its own data dir, unlike images that start as root and step
+  # down. Without this, n8n crash-loops on EACCES writing /home/node/.n8n/config.
+  # Reuses the n8n image (no extra pull) just for a shell + chown. `restart: "no"`
+  # is REQUIRED — Hola applies a default restart policy to services that declare
+  # none, which would restart this after it exits 0 so it never reaches
+  # service_completed_successfully and the n8n service (which depends on that)
+  # is stuck Created forever.
+  n8n-init:
+    image: n8nio/n8n:2.29.0@sha256:846f0248604d82d989e30457277da9004cdf8a69ad7b6a27ae2ad811841cf25d
+    restart: "no"
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        mkdir -p /home/node/.n8n
+        chown -R 1000:1000 /home/node/.n8n
+        echo "[hola] chowned /home/node/.n8n to the n8n user (uid 1000)"
     volumes:
       - ${HOLA_APP_DATA}/data:/home/node/.n8n
