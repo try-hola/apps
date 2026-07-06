@@ -39,6 +39,14 @@ services:
       # http:// URL from the request. Enterprise hosts (GHES/GHEC) are chosen
       # per-connection in the UI, so no global host setting is needed.
       HANGAR_BASE_URL: "https://${HOLA_APP_HOST}"
+      # Whether the GitHub App Hangar auto-creates during "Connect with GitHub" is
+      # registered PUBLIC (installable on your organizations, not just your personal
+      # account). Collected by the install wizard's "Install on Organizations" toggle
+      # (manifest defaultEnv). MUST be mapped through here — Hola writes wizard answers
+      # to .env, but Compose only uses .env for ${...} interpolation; a var reaches the
+      # container only if it's named in this environment block. Default false keeps the
+      # App private if the wizard value is ever absent.
+      HANGAR_GITHUB_APP_PUBLIC: "${HANGAR_GITHUB_APP_PUBLIC:-false}"
       # Persistence: SQLite on the mounted /data volume. The image already points
       # HANGAR_DATABASE_URL at /data/hangar.db; set the HANGAR_POSTGRES_* vars instead
       # if you'd rather run against an external Postgres.
