@@ -73,9 +73,9 @@
       "tags": [],
       "versions": [
         {
-          "version": "1.4.7",
+          "version": "1.4.8",
           "refs": {
-            "oci": "ghcr.io/try-hola/hangar:1.4.7"
+            "oci": "ghcr.io/try-hola/hangar:1.4.8"
           }
         }
       ]
