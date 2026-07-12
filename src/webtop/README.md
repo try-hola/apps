@@ -57,10 +57,15 @@ happens at the SSO layer; only authenticated Hola users get through.
 
 - **Do not** remove the `forward-auth` auth block or route this app around Traefik.
   Doing so leaves an unauthenticated remote desktop open to the internet.
-- **Defense-in-depth (optional).** You may also set the built-in HTTP Basic auth via
-  the `CUSTOM_USER` / `PASSWORD` env vars (a second login *behind* the SSO gate).
-  This is optional — the forward-auth gate is the real boundary; leave them blank to
-  rely solely on SSO.
+- **The image's built-in HTTP Basic auth is intentionally not wired up.** The
+  LinuxServer image enables its nginx Basic auth whenever the `PASSWORD` env var is
+  *defined at all* — even empty — and Hola cannot express an env var that is unset
+  when a wizard field is left blank (it always materializes `PASSWORD=`). An empty
+  `PASSWORD` makes the image write a broken `/etc/nginx/.htpasswd` that matches no
+  credentials, locking every user out. So this package does **not** pass
+  `CUSTOM_USER`/`PASSWORD`, and forward-auth (SSO) is the sole boundary — which is
+  the real security boundary regardless. (A working optional second factor would
+  require Hola to support omit-when-blank env vars; tracked upstream.)
 
 ## Deploy
 
