@@ -1,6 +1,6 @@
 {
   "name": "webtop",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "title": "Ubuntu Webtop",
   "description": "Ubuntu desktop environment in your browser",
   "icon": "🖥️",
@@ -39,24 +39,6 @@
       "label": "Timezone",
       "type": "timezone",
       "placeholder": "America/New_York"
-    },
-    {
-      "key": "CUSTOM_USER",
-      "value": "",
-      "isSecret": false,
-      "description": "Optional username for the built-in HTTP Basic login (defense-in-depth behind Hola's forward-auth SSO gate). Leave blank to rely solely on SSO.",
-      "label": "Basic Auth Username",
-      "type": "string",
-      "advanced": true
-    },
-    {
-      "key": "PASSWORD",
-      "value": "",
-      "isSecret": true,
-      "description": "Optional password for the built-in HTTP Basic login. Generate one, e.g. `openssl rand -hex 16`. Leave blank to rely solely on SSO.",
-      "label": "Basic Auth Password",
-      "required": false,
-      "advanced": true
     }
   ],
   "defaults": {
@@ -69,5 +51,13 @@
   },
   "auth": {
     "mode": "forward-auth"
+  },
+  "security": {
+    "elevated": [
+      {
+        "type": "allow-privilege-escalation",
+        "reason": "The Ubuntu desktop needs sudo for installing packages (apt) and administering the environment. Without it, Hola's default no-new-privileges hardening blocks sudo entirely."
+      }
+    ]
   }
 }

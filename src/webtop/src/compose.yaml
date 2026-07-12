@@ -5,10 +5,13 @@ services:
       PUID: ${PUID}
       PGID: ${PGID}
       TZ: ${TZ}
-      # Optional built-in HTTP Basic auth (defense-in-depth behind Traefik/SSO).
-      # Leave blank to rely solely on Hola's forward-auth gate.
-      CUSTOM_USER: ${CUSTOM_USER}
-      PASSWORD: ${PASSWORD}
+      # NOTE: the image's built-in HTTP Basic auth (CUSTOM_USER/PASSWORD) is
+      # intentionally NOT wired here. Hola always gates this app at the SSO layer
+      # via forward-auth (see manifest.auth), and the image enables its nginx
+      # Basic auth whenever PASSWORD is *defined at all* — even empty — which
+      # would write a broken /etc/nginx/.htpasswd and lock every user out. Hola
+      # can't express an "unset when blank" env var, so the built-in Basic auth
+      # is left off and SSO is the sole boundary.
     volumes:
       - ${HOLA_APP_DATA}/config:/config
     # The web UI is served on 3000 (HTTP) / 3001 (HTTPS). Hola routes ingress
