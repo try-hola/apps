@@ -217,6 +217,34 @@
         "preHook": { "$ref": "#/$defs/backupHook" },
         "postHook": { "$ref": "#/$defs/backupHook" }
       }
+    },
+    "security": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Elevated container permissions this app requests. Each relaxes the platform's default container hardening and is surfaced in the install wizard for explicit operator consent. Omit for the fully-hardened default.",
+      "properties": {
+        "elevated": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "reason"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["allow-privilege-escalation"],
+                "description": "allow-privilege-escalation: drop no-new-privileges on the ingress service so setuid escalation (sudo) works. Needed by browser-desktop apps."
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Why the app needs this grant. Shown next to the consent checkbox so the operator can make an informed decision."
+              }
+            }
+          }
+        }
+      }
     }
   },
   "$defs": {

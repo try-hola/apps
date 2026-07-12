@@ -35,6 +35,26 @@ src/webtop/
   directory so file ownership stays sane.
 - `TZ` (default `Etc/UTC`) — timezone for the desktop, e.g. `America/New_York`.
 
+### `sudo` inside the desktop (privilege escalation)
+
+The image ships passwordless `sudo` for the desktop user (`abc` is in the `sudo`
+group with a `NOPASSWD` sudoers rule), but Hola hardens every container with
+`no-new-privileges` by default, which blocks setuid escalation — so `sudo` fails
+with *"the 'no new privileges' flag is set"* unless that hardening is lifted.
+
+This package declares that need in its manifest:
+
+```json
+"security": { "elevated": [{ "type": "allow-privilege-escalation", "reason": "…" }] }
+```
+
+At install time the Hola wizard surfaces this as a **red, must-acknowledge
+permission** ("Allow privilege escalation (sudo / root)"). When you consent, Hola
+drops `no-new-privileges` **for this app's ingress service only** (sidecars, if any,
+stay hardened) and `sudo` works. Decline it and the desktop still installs, but
+`sudo` won't function. Requires a Hola server new enough to understand the
+`security` block; older servers ignore it (fully hardened, no `sudo`).
+
 ### Desktop GUI compatibility
 
 - **`shm_size: "1gb"`** is set in `compose.yaml`. Desktop images (KasmVNC-based) and
