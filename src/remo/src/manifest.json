@@ -1,0 +1,24 @@
+{
+  "name": "remo",
+  "version": "0.1.0",
+  "title": "Remo",
+  "description": "Browser terminal for your Remo-managed remote development instances",
+  "icon": "🖥️",
+  "ingress": {
+    "service": "remo-web",
+    "port": 8080
+  },
+  "defaultEnv": [],
+  "defaults": {
+    "ports": [
+      { "container": 8080, "protocol": "tcp" }
+    ],
+    "volumes": [
+      { "containerPath": "/home/remo/.config/remo" },
+      { "containerPath": "/home/remo/.ssh" }
+    ]
+  },
+  "auth": {
+    "mode": "forward-auth"
+  }
+}

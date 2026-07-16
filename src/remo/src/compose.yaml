@@ -1,0 +1,25 @@
+services:
+  remo-web:
+    image: ghcr.io/get2knowio/remo-web:2.2.0-rc1@sha256:59c36093cf5c5a71f0d1b03fa8f097288372601207b260e729c510234a5c6083
+    environment:
+      # Host-header allowlist (no wildcards). Traefik serves the public host;
+      # loopback is kept so the container healthcheck below is accepted.
+      REMO_WEB_ALLOWED_HOSTS: "${HOLA_APP_HOST},127.0.0.1,localhost"
+      # Browser/WebSocket origin — Traefik terminates TLS, so this is https.
+      REMO_WEB_ALLOWED_ORIGINS: "https://${HOLA_APP_HOST}"
+    volumes:
+      # Operator-seeded, read-only. After install, drop the Remo registry and an
+      # SSH key into this app's data dir (see README) — both owned by uid 1000,
+      # the key mode 600 — so remo-web can discover instances and SSH to them.
+      - ${HOLA_APP_DATA}/config:/home/remo/.config/remo:ro
+      - ${HOLA_APP_DATA}/ssh:/home/remo/.ssh:ro
+    tmpfs:
+      # SSH ControlMaster sockets (REMO_WEB_SSH_CONTROL_DIR); the container home
+      # is otherwise not writable.
+      - /run/remo-ssh
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/api/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s

@@ -1,0 +1,13 @@
+{
+  "name": "remo",
+  "version": "0.1.0",
+  "description": "Remo — browser terminal for remote development instances (Hola app package)",
+  "license": "MIT",
+  "oci": {
+    "annotations": {
+      "org.opencontainers.image.title": "remo",
+      "org.opencontainers.image.description": "Browser terminal for your Remo-managed remote development instances",
+      "org.opencontainers.image.version": "${npm_package_version}"
+    }
+  }
+}
