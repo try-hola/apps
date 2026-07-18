@@ -35,10 +35,5 @@
     "forwardAuth": {
       "bypassPaths": ["/api/v1/setup/"]
     }
-  },
-  "connect": {
-    "keyEnv": "REMO_WEB_API_TOKEN",
-    "label": "Adopt this instance",
-    "help": "From a workstation with the remo CLI:\n  REMO_API_TOKEN={code} remo web adopt {url}"
   }
 }

@@ -40,21 +40,21 @@ and instance host keys into the service and authorizes the service's **own**
 public key on each instance — your personal SSH private key never leaves your
 workstation. Push later registry changes with `remo web push`.
 
-Adopt it straight from the Hola dashboard — no SSH tunnel needed. This package
-declares `auth.forwardAuth.bypassPaths: ["/api/v1/setup/"]`, so Hola exempts the
-adoption **setup API** from Authentik forward-auth (the rest of the app stays
-gated). The setup path is reachable on the normal public URL and is protected by
-`REMO_WEB_API_TOKEN`, which the app enforces itself.
+Adopt it over the normal public URL — no SSH tunnel needed. This package declares
+`auth.forwardAuth.bypassPaths: ["/api/v1/setup/"]`, so Hola exempts the adoption
+**setup API** from Authentik forward-auth (the rest of the app stays gated). The
+setup path is reachable at `https://remo.<HOLA_BASE_DOMAIN>` and is protected by
+`REMO_WEB_API_TOKEN`, which the app enforces itself. (Requires Hola with
+forward-auth `bypassPaths` — try-hola/hola#356.)
 
-**1. Open the deployment in the Hola dashboard.** The **Connect** card (Overview
-tab) shows the app URL and the generated **Adoption API Token** — reveal and copy
-both. (Hola generates `REMO_WEB_API_TOKEN` at install; the card reads it from the
-app config.)
+**1. Get the token.** Hola generates `REMO_WEB_API_TOKEN` at install. Reveal and
+copy it from the deployment's **Configuration** tab in the dashboard (it's the
+"Adoption API Token" secret row), or via `hola` config.
 
 **2. Adopt from a workstation** with a working `remo` CLI + registry:
 
 ```bash
-REMO_API_TOKEN=<token from the Connect card> remo web adopt https://remo.<HOLA_BASE_DOMAIN>
+REMO_API_TOKEN=<token> remo web adopt https://remo.<HOLA_BASE_DOMAIN>
 ```
 
 Adoption is a one-time step; after it, open `https://remo.<HOLA_BASE_DOMAIN>` and
