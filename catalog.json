@@ -177,6 +177,22 @@
       ]
     },
     {
+      "id": "remo",
+      "name": "Remo",
+      "description": "Browser terminal for your Remo-managed remote development instances",
+      "icon": "🖥️",
+      "category": "apps",
+      "tags": [],
+      "versions": [
+        {
+          "version": "0.1.0",
+          "refs": {
+            "oci": "ghcr.io/try-hola/remo:0.1.0"
+          }
+        }
+      ]
+    },
+    {
       "id": "uptime-kuma",
       "name": "Uptime Kuma",
       "description": "Self-hosted uptime monitoring and status pages",
