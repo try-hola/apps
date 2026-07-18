@@ -1,6 +1,6 @@
 {
   "name": "remo",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "title": "Remo",
   "description": "Browser terminal for your Remo-managed remote development instances",
   "icon": "🖥️",
@@ -31,6 +31,9 @@
     ]
   },
   "auth": {
-    "mode": "forward-auth"
+    "mode": "forward-auth",
+    "forwardAuth": {
+      "bypassPaths": ["/api/v1/setup/"]
+    }
   }
 }
