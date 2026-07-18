@@ -10,12 +10,14 @@ Reachable at `https://remo.<HOLA_BASE_DOMAIN>` once installed.
 - **Single container** (`remo-web`) — FastAPI backend that also serves the React
   SPA, on port **8080** (a browser terminal broker over WebSockets).
 - **No host ports** — Hola routes ingress through Traefik to container port **8080**.
-- **No database or extra services.** remo-web reaches your instances by **SSH**
-  (and AWS SSM where configured); it holds no state of its own beyond what you seed.
+- **One writable data dir, no extra services.** remo-web reaches your instances
+  by **SSH** (and AWS SSM where configured). It generates its own service SSH
+  identity and stores the registry you push into its config dir (see setup below).
 
 > **Tracking a release candidate.** This package pins
-> `ghcr.io/get2knowio/remo-web:2.2.0-rc2`. Bump it to the stable tag/digest once
-> remo-web ships a final release.
+> `ghcr.io/get2knowio/remo-web:2.2.0-rc3`. Bump it to the stable tag/digest once
+> remo-web ships a final release. (rc3+ is required — its entrypoint self-heals
+> the config-dir ownership, so no chown sidecar is needed.)
 
 ## Authentication
 
@@ -26,35 +28,36 @@ terminal. Because that grants SSH access to every managed instance, restrict who
 can log in to your Authentik application, or add an allowed-group restriction (see
 below) if you want to narrow it further.
 
-## Post-install setup (required)
+## Post-install setup: adopt the service
 
-remo-web needs two things from you, delivered through the app's data dir — Hola
-mounts them **read-only** into the container:
+This package runs remo-web in **adopted mode** (get2knowio/remo `011-web-adopt`):
+nothing is seeded from your workstation. On install it boots **unconfigured**,
+generates its own service SSH identity in the config dir, and sits in a healthy
+**"awaiting adoption"** state (the browser page shows no instances yet). You then
+adopt it from a workstation that has a working `remo` CLI + registry with
+[`remo web adopt`](https://github.com/get2knowio/remo), which pushes your registry
+and instance host keys into the service and authorizes the service's **own**
+public key on each instance — your personal SSH private key never leaves your
+workstation. Push later registry changes with `remo web push`.
 
-| Seed into | Mounted at | What it is |
-|---|---|---|
-| `<app-data>/config/` | `/home/remo/.config/remo` | Your Remo registry (instance/project discovery data from `remo`). |
-| `<app-data>/ssh/` | `/home/remo/.ssh` | An SSH key (e.g. `id_ed25519`), plus optional `config` / `known_hosts`. |
+**1. Get the adoption token.** Hola generates `REMO_WEB_API_TOKEN` at install (it
+gates the setup API). Retrieve it with `hola credentials --host <hola-host>`, or
+read it from the app's environment in the dashboard.
 
-After installing, on the Hola host:
+**2. Adopt.** The public route (`https://remo.<HOLA_BASE_DOMAIN>`) is behind
+Authentik **forward-auth**, which the CLI can't complete — so the adoption call
+must reach remo-web's port **directly**, bypassing Traefik. Tunnel to the
+container on the Hola host (e.g. `remo web adopt --via <hola-host>`, which opens
+`ssh -N -L <local>:127.0.0.1:8080 <hola-host>`; adjust to how the container's
+`8080` is reachable on your host), then:
 
 ```bash
-# <app-data> is this deployment's data root under the Hola data directory.
-install -d -o 1000 -g 1000 <app-data>/config <app-data>/ssh
-
-# Registry: copy your ~/.config/remo contents (or run `remo` to generate it).
-cp -a ~/.config/remo/. <app-data>/config/
-
-# SSH key remo-web uses to reach instances (must be owned by uid 1000, mode 600).
-cp ~/.ssh/id_ed25519 <app-data>/ssh/id_ed25519
-chown -R 1000:1000 <app-data>/config <app-data>/ssh
-chmod 600 <app-data>/ssh/id_ed25519
+REMO_API_TOKEN=<the token from step 1> remo web adopt <tunnel-url>
 ```
 
-Then restart the deployment. Until the registry and key are present, remo-web's
-startup check fails and the container stays unhealthy (it opens no terminals to
-nothing). If any instance uses AWS SSM, also seed `<app-data>/aws/` and mount it —
-or bake credentials into the environment your instances expect.
+Adoption is a one-time step; after it, open `https://remo.<HOLA_BASE_DOMAIN>` and
+sign in through Authentik to use the terminals. If any instance uses AWS SSM,
+supply the credentials the way remo expects for those targets.
 
 ## Configuration
 

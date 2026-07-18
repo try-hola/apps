@@ -1,6 +1,6 @@
 {
   "name": "remo",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "title": "Remo",
   "description": "Browser terminal for your Remo-managed remote development instances",
   "icon": "🖥️",
@@ -8,14 +8,26 @@
     "service": "remo-web",
     "port": 8080
   },
-  "defaultEnv": [],
+  "defaultEnv": [
+    {
+      "key": "REMO_WEB_API_TOKEN",
+      "value": "",
+      "isSecret": true,
+      "description": "Token that gates the adoption setup API (/api/v1/setup/*). Required to adopt this deployment with `remo web adopt`; while unset the service still boots (awaiting adoption) but can never be configured. Pass this same value to the CLI as REMO_API_TOKEN. Generated automatically.",
+      "label": "Adoption API Token",
+      "required": true,
+      "generate": {
+        "kind": "hex",
+        "length": 24
+      }
+    }
+  ],
   "defaults": {
     "ports": [
       { "container": 8080, "protocol": "tcp" }
     ],
     "volumes": [
-      { "containerPath": "/home/remo/.config/remo" },
-      { "containerPath": "/home/remo/.ssh" }
+      { "containerPath": "/home/remo/.config/remo" }
     ]
   },
   "auth": {
