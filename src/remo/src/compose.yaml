@@ -1,23 +1,34 @@
 services:
   remo-web:
-    image: ghcr.io/get2knowio/remo-web:2.2.0-rc2@sha256:f83a9ded50624a13b2bd970efa6e59754dc7558a820ed5970c004898927ff430
+    image: ghcr.io/get2knowio/remo-web:2.2.0-rc3@sha256:e1898cbcf3cb4bbecc00a21d67789dd54ce98e0a61fe490354fa78af4e9948f1
     environment:
       # Host-header allowlist (no wildcards). Traefik serves the public host;
       # loopback is kept so the container healthcheck below is accepted.
       REMO_WEB_ALLOWED_HOSTS: "${HOLA_APP_HOST},127.0.0.1,localhost"
       # Browser/WebSocket origin — Traefik terminates TLS, so this is https.
       REMO_WEB_ALLOWED_ORIGINS: "https://${HOLA_APP_HOST}"
+      # Adopted mode (get2knowio/remo 011-web-adopt): the service boots
+      # UNCONFIGURED, generates its own service SSH identity under the config
+      # volume, and waits in a healthy "awaiting adoption" state. This token
+      # gates the setup API that `remo web adopt` calls; while it is unset the
+      # /api/v1/setup/* routes 404 and the service can never be adopted.
+      # Generated and injected by Hola (see manifest defaultEnv).
+      REMO_WEB_API_TOKEN: "${REMO_WEB_API_TOKEN}"
     volumes:
-      # Operator-seeded, read-only. After install, drop the Remo registry and an
-      # SSH key into this app's data dir (see README) — both owned by uid 1000,
-      # the key mode 600 — so remo-web can discover instances and SSH to them.
-      - ${HOLA_APP_DATA}/config:/home/remo/.config/remo:ro
-      - ${HOLA_APP_DATA}/ssh:/home/remo/.ssh:ro
+      # Writable state volume (REMO_HOME). remo-web generates its service SSH
+      # identity here (web-identity/) and stores the registry pushed by
+      # `remo web adopt`. Nothing from a workstation is mounted — adopted mode.
+      # The image's entrypoint starts as root, chowns this dir to the remo user,
+      # then drops privileges — so a root-owned Hola bind mount just works (no
+      # chown sidecar needed; requires remo-web >= 2.2.0-rc3).
+      - ${HOLA_APP_DATA}/config:/home/remo/.config/remo
     tmpfs:
-      # SSH ControlMaster sockets (REMO_WEB_SSH_CONTROL_DIR); the container home
-      # is otherwise not writable.
+      # Per-instance SSH ControlMaster sockets. The entrypoint re-fixes this on
+      # every (re)start, so no mode pin is needed.
       - /run/remo-ssh
     healthcheck:
+      # /api/v1/health returns healthy in the awaiting-adoption state, so the
+      # container goes green as soon as it boots (before it is adopted).
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/api/v1/health"]
       interval: 30s
       timeout: 5s
