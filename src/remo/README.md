@@ -14,7 +14,7 @@ Reachable at `https://remo.<HOLA_BASE_DOMAIN>` once installed.
   (and AWS SSM where configured); it holds no state of its own beyond what you seed.
 
 > **Tracking a release candidate.** This package pins
-> `ghcr.io/get2knowio/remo-web:2.2.0-rc1`. Bump it to the stable tag/digest once
+> `ghcr.io/get2knowio/remo-web:2.2.0-rc2`. Bump it to the stable tag/digest once
 > remo-web ships a final release.
 
 ## Authentication
