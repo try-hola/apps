@@ -14,6 +14,12 @@ services:
       # /api/v1/setup/* routes 404 and the service can never be adopted.
       # Generated and injected by Hola (see manifest defaultEnv).
       REMO_WEB_API_TOKEN: "${REMO_WEB_API_TOKEN}"
+      # Forward-auth: behind Hola's Authentik/Traefik forward-auth, remo-web
+      # trusts the proxy-injected identity header. `forward` selects remo-web's
+      # forward-auth provider; the header is the one Authentik's outpost passes
+      # through (Traefik copies it onto the request). Both from manifest defaultEnv.
+      REMO_WEB_OPERATOR_AUTH: "${REMO_WEB_OPERATOR_AUTH}"
+      REMO_WEB_FORWARD_AUTH_HEADER: "${REMO_WEB_FORWARD_AUTH_HEADER}"
     volumes:
       # Writable state volume (REMO_HOME). remo-web generates its service SSH
       # identity here (web-identity/) and stores the registry pushed by
