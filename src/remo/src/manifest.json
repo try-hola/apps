@@ -1,6 +1,6 @@
 {
   "name": "remo",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "title": "Remo",
   "description": "Browser terminal for your Remo-managed remote development instances",
   "icon": "🖥️",
