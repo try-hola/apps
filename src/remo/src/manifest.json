@@ -1,6 +1,6 @@
 {
   "name": "remo",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "title": "Remo",
   "description": "Browser terminal for your Remo-managed remote development instances",
   "icon": "🖥️",
@@ -25,7 +25,11 @@
       "key": "REMO_WEB_OPERATOR_AUTH",
       "value": "forward",
       "isSecret": false,
-      "description": "How remo-web authenticates the operator who mints adoption/pairing codes. Behind Hola's Authentik forward-auth this should be `forward`, so remo-web trusts the proxy-injected identity header named by REMO_WEB_FORWARD_AUTH_HEADER. Use `none` only for a loopback/dev deployment (anonymous). Unset disables minting (fail-closed).",
+      "type": "enum",
+      "options": [
+        { "value": "forward", "label": "Forward auth (Authentik / Traefik)", "description": "Trust the proxy-injected identity header named by REMO_WEB_FORWARD_AUTH_HEADER." }
+      ],
+      "description": "How remo-web authenticates the operator who mints adoption/pairing codes. Behind Hola's Authentik forward-auth, `forward` trusts the proxy-injected identity header named by REMO_WEB_FORWARD_AUTH_HEADER.",
       "label": "Operator auth mode"
     },
     {
