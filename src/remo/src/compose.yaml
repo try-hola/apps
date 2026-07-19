@@ -1,6 +1,6 @@
 services:
   remo-web:
-    image: ghcr.io/get2knowio/remo-web:2.2.0-rc3@sha256:e1898cbcf3cb4bbecc00a21d67789dd54ce98e0a61fe490354fa78af4e9948f1
+    image: ghcr.io/get2knowio/remo-web:2.2.0-rc4@sha256:75f1708f5a34a7e1f6371824f9fbf6c7bcf65d0ea5fbb00097eb6353456a43d0
     environment:
       # Host-header allowlist (no wildcards). Traefik serves the public host;
       # loopback is kept so the container healthcheck below is accepted.
