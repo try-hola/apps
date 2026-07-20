@@ -180,14 +180,14 @@
       "id": "remo",
       "name": "Remo",
       "description": "Browser terminal for your Remo-managed remote development instances",
-      "icon": "🖥️",
+      "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/remo.svg",
       "category": "apps",
       "tags": [],
       "versions": [
         {
-          "version": "0.4.6",
+          "version": "0.5.0",
           "refs": {
-            "oci": "ghcr.io/try-hola/remo:0.4.6"
+            "oci": "ghcr.io/try-hola/remo:0.5.0"
           }
         }
       ]
