@@ -1,6 +1,6 @@
 {
   "name": "webtop",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Ubuntu Webtop — a full Ubuntu Linux desktop environment in your browser, by LinuxServer.io (Hola app package)",
   "license": "GPL-3.0",
   "oci": {

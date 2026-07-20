@@ -1,6 +1,6 @@
 {
   "name": "remo",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "title": "Remo",
   "description": "Browser terminal for your Remo-managed remote development instances",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/remo.svg",
