@@ -1,6 +1,6 @@
 {
   "name": "remo",
-  "version": "0.4.6",
+  "version": "0.5.0",
   "description": "Remo — browser terminal for remote development instances (Hola app package)",
   "license": "MIT",
   "oci": {

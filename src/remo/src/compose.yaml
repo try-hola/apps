@@ -1,6 +1,6 @@
 services:
   remo-web:
-    image: ghcr.io/get2knowio/remo-web:2.2.0-rc13@sha256:b6e9301cb3c5391c007f9bac7bb4616628a709c4c039a9f5b34a53f7735aacc6
+    image: ghcr.io/get2knowio/remo-web:2.2.0@sha256:380ca3b1a657ec3de11c2773027b318b608f1b79f3f00f98fbcee9b1e8746901
     environment:
       # Host-header allowlist (no wildcards). Traefik serves the public host;
       # loopback is kept so the container healthcheck below is accepted.
@@ -26,7 +26,7 @@ services:
       # `remo web adopt`. Nothing from a workstation is mounted — adopted mode.
       # The image's entrypoint starts as root, chowns this dir to the remo user,
       # then drops privileges — so a root-owned Hola bind mount just works (no
-      # chown sidecar needed; requires remo-web >= 2.2.0-rc3).
+      # chown sidecar needed; requires remo-web >= 2.2.0).
       - ${HOLA_APP_DATA}/config:/home/remo/.config/remo
     tmpfs:
       # Per-instance SSH ControlMaster sockets. The entrypoint re-fixes this on
