@@ -1,9 +1,9 @@
 {
   "name": "webtop",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "title": "Ubuntu Webtop",
   "description": "Ubuntu desktop environment in your browser",
-  "icon": "🖥️",
+  "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/webtop.svg",
   "ingress": {
     "service": "webtop",
     "port": 3000

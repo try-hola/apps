@@ -21,6 +21,9 @@ the apps they represent. SVGs were sourced from community icon sets:
 
 - Most icons: [homarr-labs/dashboard-icons](https://github.com/homarr-labs/dashboard-icons)
 - `homepage.svg`: [selfhst/icons](https://github.com/selfhst/icons)
+- `webtop.svg`: dashboard-icons' `ubuntu-linux.svg`. The webtop package is a
+  distro desktop rather than a branded product, so it carries the Ubuntu
+  Circle of Friends (a Canonical trademark) to identify the distro it ships.
 
 ## Adding / updating an icon
 
