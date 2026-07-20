@@ -14,11 +14,6 @@ Reachable at `https://remo.<HOLA_BASE_DOMAIN>` once installed.
   by **SSH** (and AWS SSM where configured). It generates its own service SSH
   identity and stores the registry you push into its config dir (see setup below).
 
-> **Tracking a release candidate.** This package pins
-> `ghcr.io/get2knowio/remo-web:2.2.0-rc13`. Bump it to the stable tag/digest once
-> remo-web ships a final release. (rc3+ is required — its entrypoint self-heals
-> the config-dir ownership, so no chown sidecar is needed.)
-
 ## Authentication
 
 remo-web has **no user system of its own** and is designed for a trusted network.

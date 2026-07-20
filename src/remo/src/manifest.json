@@ -1,9 +1,9 @@
 {
   "name": "remo",
-  "version": "0.4.6",
+  "version": "0.5.0",
   "title": "Remo",
   "description": "Browser terminal for your Remo-managed remote development instances",
-  "icon": "🖥️",
+  "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/remo.svg",
   "ingress": {
     "service": "remo-web",
     "port": 8080
