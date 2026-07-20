@@ -24,11 +24,13 @@ the apps they represent. SVGs were sourced from community icon sets:
 - `webtop.svg`: dashboard-icons' `ubuntu-linux.svg`. The webtop package is a
   distro desktop rather than a branded product, so it carries the Ubuntu
   Circle of Friends (a Canonical trademark) to identify the distro it ships.
-- `remo.svg`: upstream's own logo, copied verbatim from
+- `remo.svg`: upstream's own logo from
   [get2knowio/remo](https://github.com/get2knowio/remo/blob/main/remo.svg).
-  Unlike the rest of these it is a raster (a JPEG in an SVG wrapper, 1024²),
-  hence the file size; it renders identically to a vector at the 34–60px the
-  dashboard draws icons at.
+  Unlike the rest of these it is not a vector — upstream ships a 1024² JPEG in
+  an SVG wrapper (~146KB). Downscaled here to a 256² WebP in the same wrapper
+  (~14KB): the dashboard draws icons at 34–60px, so 256² still covers 2× DPR
+  with room to spare and the two are indistinguishable at every render size.
+  Re-do that step if you refresh this file from upstream.
 
 ## Adding / updating an icon
 
