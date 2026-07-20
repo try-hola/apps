@@ -15,7 +15,7 @@ Reachable at `https://remo.<HOLA_BASE_DOMAIN>` once installed.
   identity and stores the registry you push into its config dir (see setup below).
 
 > **Tracking a release candidate.** This package pins
-> `ghcr.io/get2knowio/remo-web:2.2.0-rc12`. Bump it to the stable tag/digest once
+> `ghcr.io/get2knowio/remo-web:2.2.0-rc13`. Bump it to the stable tag/digest once
 > remo-web ships a final release. (rc3+ is required — its entrypoint self-heals
 > the config-dir ownership, so no chown sidecar is needed.)
 
