@@ -185,9 +185,9 @@
       "tags": [],
       "versions": [
         {
-          "version": "0.5.1",
+          "version": "0.6.0",
           "refs": {
-            "oci": "ghcr.io/try-hola/remo:0.5.1"
+            "oci": "ghcr.io/try-hola/remo:0.6.0"
           }
         }
       ]
