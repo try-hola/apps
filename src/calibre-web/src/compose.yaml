@@ -1,0 +1,121 @@
+# Calibre-Web — web front-end for a Calibre ebook library. Packaged for Hola:
+# Traefik-only ingress (no host ports), all persistence bind-mounted under
+# ${HOLA_APP_DATA}.
+#
+# Reader connectivity is the reason this package exists in the shape it does.
+# E-reader apps (OPDS) and Kobo devices can't follow an SSO redirect, so the
+# manifest exempts /opds and /kobo/ from Hola's Authentik forward-auth gate.
+# Those paths are NOT left open: Calibre-Web authenticates them itself — HTTP
+# Basic for OPDS, and a per-user secret sync token embedded in the URL path for
+# Kobo. See README.md for the verification of that.
+services:
+  # First-run seeder. Calibre-Web can only *read* an existing Calibre library —
+  # it never creates one (cps/db.py's check_valid_db and setup_db both bail out
+  # when metadata.db is absent), so on a fresh Hola install the app would come
+  # up permanently stuck on its /admin/dbconfig setup page with nothing the
+  # user could point it at. This sidecar puts an empty Calibre library in place
+  # and pre-answers the first-run config, so the app boots straight to a login.
+  #
+  # Runs the app's own image (already pulled — no second image to fetch) with
+  # the s6 entrypoint overridden, so it seeds and exits instead of starting a
+  # server. Everything it does is guarded: an existing library is never touched.
+  calibre-web-init:
+    image: lscr.io/linuxserver/calibre-web:0.6.26-ls393@sha256:7c0464228f2fdcf543b46e5327f36114596b097db6af0297c26b0452ed15f17c
+    entrypoint: ["/bin/bash", "-c"]
+    environment:
+      PUID: ${PUID}
+      PGID: ${PGID}
+    command:
+      - |
+        set -e
+        mkdir -p /books /config /custom-cont-init.d
+
+        if [ ! -f /books/metadata.db ]; then
+          echo "[hola] no Calibre library at /books — seeding an empty one"
+          # An empty Calibre library (metadata.db), gzipped and base64'd. Taken
+          # verbatim from upstream's own template at janeczku/calibre-web
+          # library/metadata.db, VACUUMed to shrink it. It's embedded rather
+          # than downloaded so a fresh install needs no network beyond the
+          # image pull. To regenerate:
+          #   curl -sLO https://raw.githubusercontent.com/janeczku/calibre-web/master/library/metadata.db
+          #   sqlite3 metadata.db 'VACUUM;' && gzip -9 -c metadata.db | base64 -w0
+          echo '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' | base64 -d | gunzip > /books/metadata.db
+          # Give this library its own identity. The upstream template ships a
+          # fixed library UUID; Calibre-Web keys database-change detection (and
+          # Kobo sync state) off it, so every install gets a fresh one.
+          python3 -c "
+        import sqlite3, uuid
+        c = sqlite3.connect('/books/metadata.db')
+        c.execute('update library_id set uuid = ?', (str(uuid.uuid4()),))
+        c.commit()
+        "
+          echo "[hola] seeded an empty Calibre library"
+        else
+          echo "[hola] existing Calibre library found at /books — leaving it alone"
+        fi
+
+        # Pre-answer Calibre-Web's first-run setup. Its settings live in
+        # /config/app.db, which doesn't exist until the app container's own s6
+        # init creates it — so this can't be done from here. Instead drop a
+        # script in LinuxServer's custom-init hook: s6 runs it after
+        # init-calibre-web-config (which creates app.db) and before the app
+        # starts. It's idempotent — it only writes when the library path is
+        # still unset, so anything changed later in the UI is never clobbered.
+        cat > /custom-cont-init.d/10-hola-first-run <<'INIT'
+        #!/usr/bin/with-contenv bash
+        python3 -c "
+        import sqlite3, os
+
+        db = '/config/app.db'
+        if not os.path.exists(db):
+            raise SystemExit(0)
+
+        c = sqlite3.connect(db)
+        row = c.execute('select config_calibre_dir from settings').fetchone()
+        if row and row[0]:
+            raise SystemExit(0)
+
+        c.execute(
+            'update settings set config_calibre_dir = ?, config_kobo_sync = 1,'
+            ' config_external_port = 443, config_kobo_proxy = 0',
+            ('/books',),
+        )
+        c.commit()
+        print('[hola] first-run defaults written to app.db')
+        "
+        INIT
+        chmod +x /custom-cont-init.d/10-hola-first-run
+
+        chown -R "${PUID:-1000}:${PGID:-1000}" /books /config /custom-cont-init.d
+    volumes:
+      - ${HOLA_APP_DATA}/config:/config
+      - ${HOLA_APP_DATA}/books:/books
+      - ${HOLA_APP_DATA}/custom-cont-init.d:/custom-cont-init.d
+
+  calibre-web:
+    image: lscr.io/linuxserver/calibre-web:0.6.26-ls393@sha256:7c0464228f2fdcf543b46e5327f36114596b097db6af0297c26b0452ed15f17c
+    environment:
+      PUID: ${PUID}
+      PGID: ${PGID}
+      TZ: ${TZ}
+      # Optional (x86-64 only): installs Calibre's command-line tools at
+      # container start so Calibre-Web can convert between ebook formats on
+      # download. Empty = skip. EPUB→KEPUB conversion for Kobo does NOT need
+      # this — kepubify ships in the image and LinuxServer's init points
+      # Calibre-Web at it automatically.
+      DOCKER_MODS: ${DOCKER_MODS}
+    volumes:
+      # Calibre-Web's own state: app.db (users, settings, Kobo sync tokens).
+      - ${HOLA_APP_DATA}/config:/config
+      # The Calibre library itself — metadata.db plus the book files.
+      - ${HOLA_APP_DATA}/books:/books
+      # LinuxServer's custom-init hook, populated by calibre-web-init above.
+      - ${HOLA_APP_DATA}/custom-cont-init.d:/custom-cont-init.d
+    # Web UI on 8083. Hola routes ingress through Traefik to this container port
+    # (manifest.ingress.port) — no host ports.
+    expose:
+      - "8083"
+    depends_on:
+      # Don't start until the library exists and the first-run hook is in place.
+      calibre-web-init:
+        condition: service_completed_successfully
