@@ -1,0 +1,72 @@
+{
+  "name": "calibre-web",
+  "version": "1.0.0",
+  "title": "Calibre-Web",
+  "description": "Browse, read, and download your Calibre ebook library",
+  "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/calibre-web.svg",
+  "category": "apps",
+  "tags": ["ebooks", "library", "opds", "kobo", "reading"],
+  "ingress": {
+    "service": "calibre-web",
+    "port": 8083
+  },
+  "defaultEnv": [
+    {
+      "key": "PUID",
+      "value": "1000",
+      "isSecret": false,
+      "description": "User ID Calibre-Web runs as; the library and config files are owned by this UID. Match the host user that owns the app data dir.",
+      "label": "User ID (PUID)",
+      "type": "integer",
+      "min": 0,
+      "max": 65535,
+      "advanced": true
+    },
+    {
+      "key": "PGID",
+      "value": "1000",
+      "isSecret": false,
+      "description": "Group ID Calibre-Web runs as. Match the host group that owns the app data dir.",
+      "label": "Group ID (PGID)",
+      "type": "integer",
+      "min": 0,
+      "max": 65535,
+      "advanced": true
+    },
+    {
+      "key": "TZ",
+      "value": "UTC",
+      "isSecret": false,
+      "description": "Timezone used for timestamps, e.g. America/New_York.",
+      "label": "Timezone",
+      "type": "timezone",
+      "placeholder": "America/New_York"
+    },
+    {
+      "key": "DOCKER_MODS",
+      "value": "",
+      "isSecret": false,
+      "type": "boolean",
+      "trueValue": "linuxserver/mods:universal-calibre",
+      "falseValue": "",
+      "advanced": true,
+      "label": "Enable ebook format conversion",
+      "description": "Installs Calibre's command-line tools at container start so Calibre-Web can convert between ebook formats on download. Adds roughly a minute to first boot and several hundred MB, and is x86-64 only. Kobo EPUB→KEPUB conversion does NOT need this — kepubify ships in the image already."
+    }
+  ],
+  "defaults": {
+    "ports": [
+      { "container": 8083, "protocol": "tcp" }
+    ],
+    "volumes": [
+      { "containerPath": "/config" },
+      { "containerPath": "/books" }
+    ]
+  },
+  "auth": {
+    "mode": "forward-auth",
+    "forwardAuth": {
+      "bypassPaths": ["/opds", "/kobo/"]
+    }
+  }
+}
