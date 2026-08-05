@@ -115,8 +115,27 @@ survives restarts and redeploys.
 The result is that the app boots straight to a login page. Sign in with the
 LinuxServer default — **`admin` / `admin123`** — and change the password immediately.
 
-Upload books through **Admin → Upload** (the `+` button), or drop them into the app's
-`books` directory and use **Admin → Reconnect to Calibre Database**.
+Upload books through **Admin → Upload** (the `+` button).
+
+## Pushing your own library
+
+If you already curate a Calibre library on your own machine, push the whole thing
+instead of uploading book by book — this package declares it as a push target:
+
+```bash
+hola app data push calibre-web-<id> --list
+hola app data push calibre-web-<id> library ~/Calibre\ Library --host me@server
+```
+
+Hola stops the app, mirrors the library into `books` (so deletions on your side
+propagate), fixes ownership to the app's PUID/PGID, and starts it again — the
+restart is what makes a replaced `metadata.db` visible, since Calibre-Web caches
+its database connection.
+
+It's rsync, so re-running it after adding books or fixing metadata in desktop
+Calibre only transfers what changed. The push is one-way: your machine is the
+source of truth, and the server copy is a replica — `mode: mirror` means files
+you deleted locally are deleted on the server too.
 
 ## Install-time settings
 
