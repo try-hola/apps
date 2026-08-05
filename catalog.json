@@ -201,9 +201,9 @@
       "tags": [],
       "versions": [
         {
-          "version": "1.2.3",
+          "version": "2.0.0",
           "refs": {
-            "oci": "ghcr.io/try-hola/uptime-kuma:1.2.3"
+            "oci": "ghcr.io/try-hola/uptime-kuma:2.0.0"
           }
         }
       ]
