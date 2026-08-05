@@ -1,6 +1,6 @@
 {
   "name": "guacamole",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "title": "Apache Guacamole",
   "description": "Clientless remote desktop gateway — RDP, VNC and SSH in your browser",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/guacamole.svg",
