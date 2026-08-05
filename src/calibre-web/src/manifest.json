@@ -1,6 +1,6 @@
 {
   "name": "calibre-web",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "title": "Calibre-Web",
   "description": "Browse, read, and download your Calibre ebook library",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/calibre-web.svg",
@@ -63,6 +63,16 @@
       { "containerPath": "/books" }
     ]
   },
+  "push": [
+    {
+      "id": "library",
+      "label": "Calibre library",
+      "description": "Your Calibre library folder — the one containing metadata.db. Push it again after adding books or fixing metadata in desktop Calibre; only the changes transfer.",
+      "path": "books",
+      "mode": "mirror",
+      "quiesce": "stop"
+    }
+  ],
   "auth": {
     "mode": "forward-auth",
     "forwardAuth": {
