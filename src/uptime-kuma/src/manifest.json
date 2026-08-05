@@ -1,6 +1,6 @@
 {
   "name": "uptime-kuma",
-  "version": "1.2.3",
+  "version": "2.0.0",
   "title": "Uptime Kuma",
   "description": "Self-hosted uptime monitoring and status pages",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/uptime-kuma.svg",
@@ -24,5 +24,10 @@
   },
   "auth": {
     "mode": "forward-auth"
+  },
+  "upgrade": {
+    "breaking": true,
+    "upgradeNotesUrl": "https://github.com/louislam/uptime-kuma/wiki/Migration-From-v1-To-v2",
+    "preUpgradeBackup": "required"
   }
 }
