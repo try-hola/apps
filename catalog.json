@@ -41,9 +41,9 @@
       "tags": [],
       "versions": [
         {
-          "version": "1.4.1",
+          "version": "2.0.0",
           "refs": {
-            "oci": "ghcr.io/try-hola/gitea:1.4.1"
+            "oci": "ghcr.io/try-hola/gitea:2.0.0"
           }
         }
       ]
