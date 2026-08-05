@@ -2,8 +2,9 @@
 # Traefik-only ingress (no host ports), all persistence bind-mounted under
 # ${HOLA_APP_DATA}.
 #
-# Image tags are pinned to the Immich v2.7.5 release (the upstream
-# docker-compose for that release pins these exact db/redis images by digest).
+# Image tags are pinned to the Immich v3.1.0 release. Upstream's v3.1.0
+# docker-compose pins the exact postgres digest used below; the redis pin is
+# the Alpine variant of the same valkey 9 image upstream ships (see below).
 #
 # SSO is native OIDC (manifest auth: native-oidc), NOT a forward-auth gate —
 # Immich's mobile apps + API authenticate directly, which a proxy gate would

@@ -1,6 +1,6 @@
 {
   "name": "immich",
-  "version": "1.0.6",
+  "version": "2.0.0",
   "title": "Immich",
   "description": "Self-hosted photo and video management solution",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/immich.svg",
@@ -51,5 +51,10 @@
       }
     }
   },
-  "defaultEnv": []
+  "defaultEnv": [],
+  "upgrade": {
+    "breaking": true,
+    "upgradeNotesUrl": "https://immich.app/blog/v3-migration",
+    "preUpgradeBackup": "recommended"
+  }
 }
