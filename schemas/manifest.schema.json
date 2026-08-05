@@ -218,6 +218,55 @@
         "postHook": { "$ref": "#/$defs/backupHook" }
       }
     },
+    "push": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Directories this app accepts bulk data into, pushed with `hola app data push`. For data too big or too structured for the app's own upload (an ebook library, a media tree, a document archive). Omit unless the app has such a directory.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "label", "path"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$",
+            "description": "Stable identifier the CLI takes as an argument (e.g. `library`). Unique within this app."
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Human-friendly name shown by `hola app data push <app> --list`."
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What the operator should point at this target."
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^/\\s][^\\s]*$",
+            "description": "Directory RELATIVE to the app's data root (e.g. `books` for a /books bind under ${HOLA_APP_DATA}). Never absolute, never a container path, and never containing `..` — the server resolves it against the data root and rejects anything that escapes."
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["mirror", "additive"],
+            "default": "additive",
+            "description": "mirror: rsync --delete, so the server copy matches the local one exactly (files only on the server are DELETED). additive (default): copy in without deleting. Declare mirror only when the directory genuinely is a replica of the operator's copy."
+          },
+          "quiesce": {
+            "type": "string",
+            "enum": ["stop", "none"],
+            "default": "none",
+            "description": "stop: stop the app for the duration of the push and start it after — for apps that hold open handles on this data (e.g. a SQLite database read at startup). none (default): leave it running."
+          },
+          "postHook": {
+            "$ref": "#/$defs/backupHook",
+            "description": "Run in one of the app's own services after the push — a reindex/reconnect, for apps that would otherwise need a `quiesce: stop` bounce. Same exec-form shape as a backup hook, and subject to the same ~60s budget."
+          }
+        }
+      }
+    },
     "security": {
       "type": "object",
       "additionalProperties": false,

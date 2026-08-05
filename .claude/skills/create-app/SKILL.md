@@ -4,7 +4,7 @@ description: >-
   Add a new app to the Hola catalog, or edit an existing app's compose.yaml /
   manifest.json. Use when asked to package a new self-hosted app for Hola,
   add typed install-wizard fields to an app's defaultEnv, wire up SSO
-  (native-oidc/forward-auth/native-ldap), or add upgrade/backup metadata.
+  (native-oidc/forward-auth/native-ldap), or add upgrade/backup/push metadata.
   Covers the full authoring loop: scaffold, compose rules, the typed
   manifest schema, validation, and publishing.
 ---
@@ -35,7 +35,7 @@ tribal knowledge.
 Creates `src/<name>/{package.json,src/compose.yaml,src/manifest.json,README.md}`
 in the loose-layer format the server expects (`compose.yaml` + `manifest.json`
 at the bundle root — no tarball). Edit from there; nothing else needs
-touching to register the package (CI publishes on merge, see §8).
+touching to register the package (CI publishes on merge, see §9).
 
 **The scaffolded `compose.yaml` uses a named volume as a placeholder — you
 must change it to a bind mount under `${HOLA_APP_DATA}` (see below) before
@@ -224,8 +224,10 @@ wrong types, typos; **the same schema CI enforces**) plus semantic checks a
 JSON Schema can't express: `enum` default must be one of `options[].value`,
 `min`/`minLength` <= `max`/`maxLength`, `pattern` must compile, `generate`
 requires `isSecret: true`, boolean `trueValue`/`falseValue` must differ and
-the default must match one of them, and `ingress.service` must name a real
-`compose.yaml` service. Treat both files as the source of truth over this
+the default must match one of them, `ingress.service` and every hook service
+(`backup.*.service`, `push[].postHook.service`) must name a real
+`compose.yaml` service, and `push[]` ids must be unique with paths that stay
+inside the app data root. Treat both files as the source of truth over this
 skill if they ever disagree.
 
 ## 6. Auth-mode decision tree
@@ -284,7 +286,53 @@ Both are optional and documented in full in `README.md` — condensed here:
   `preHook` failure is fail-closed only when `upgrade.preUpgradeBackup` is
   `"required"`.
 
-## 8. Verify → publish
+## 8. `push` — letting operators bulk-load data
+
+Optional, and only relevant to apps with a directory an operator would want to
+fill from their own machine: a Calibre library, a media tree, a document
+archive to seed. Those are too big or too structured for the app's own web
+upload, and without a `push` block the only route is raw `scp` into Hola's
+data root. Most apps need nothing here.
+
+```jsonc
+// manifest.json — calibre-web
+"push": [
+  {
+    "id": "library",
+    "label": "Calibre library",
+    "description": "Your Calibre library folder — the one containing metadata.db.",
+    "path": "books",        // RELATIVE to the app data root, never a container path
+    "mode": "mirror",       // rsync --delete; "additive" (default) never deletes
+    "quiesce": "stop"       // stop the app for the push; "none" (default) leaves it up
+  }
+]
+```
+
+Operators then run `hola app data push <deployment> library ~/Calibre\ Library
+--host user@server`, and re-run it after local edits — it's rsync, so only the
+delta transfers.
+
+Getting the fields right:
+
+- **`path` is relative to the app's data root**, matching the host side of a
+  bind under `${HOLA_APP_DATA}`. If the compose file mounts
+  `${HOLA_APP_DATA}/books:/books`, the path is `books` — not `/books`. The
+  server resolves it against the deployment's data root and **drops any target
+  that escapes** (absolute, `..`, or a symlink pointing out), so a wrong path
+  silently disappears from `--list` rather than writing somewhere unexpected.
+- **`mode: mirror` deletes.** It makes the server copy match the operator's
+  exactly. Declare it only when the directory genuinely *is* a replica of
+  something they maintain elsewhere (a Calibre library is; an upload inbox is
+  not). Default to `additive` when unsure — a stray `--delete` destroys data.
+- **`quiesce: stop`** when the app holds an open handle on the data being
+  replaced. Calibre-Web caches its `metadata.db` connection, so replacing that
+  file under a running process leaves it reading a stale inode. A bounce is
+  also the simplest way to make new data visible.
+- **`postHook`** is the alternative to a bounce for apps with a reindex or
+  reconnect endpoint — same `{service, command}` exec-form as a backup hook,
+  and it must finish inside the same ~60s budget.
+
+## 9. Verify → publish
 
 1. `node bin/validate-manifest.mjs src/<name>/src/manifest.json` (§5).
 2. `./bin/build-catalog.sh` — regenerates `catalog.json` locally so you can
