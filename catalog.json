@@ -153,9 +153,9 @@
       "tags": [],
       "versions": [
         {
-          "version": "2.0.3",
+          "version": "2.0.4",
           "refs": {
-            "oci": "ghcr.io/try-hola/paperless-ngx:2.0.3"
+            "oci": "ghcr.io/try-hola/paperless-ngx:2.0.4"
           }
         }
       ]
@@ -169,9 +169,9 @@
       "tags": [],
       "versions": [
         {
-          "version": "2.0.2",
+          "version": "2.0.3",
           "refs": {
-            "oci": "ghcr.io/try-hola/postiz:2.0.2"
+            "oci": "ghcr.io/try-hola/postiz:2.0.3"
           }
         }
       ]
