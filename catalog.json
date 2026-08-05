@@ -105,9 +105,9 @@
       "tags": [],
       "versions": [
         {
-          "version": "1.0.6",
+          "version": "2.0.0",
           "refs": {
-            "oci": "ghcr.io/try-hola/immich:1.0.6"
+            "oci": "ghcr.io/try-hola/immich:2.0.0"
           }
         }
       ]
