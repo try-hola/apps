@@ -57,9 +57,9 @@
       "tags": [],
       "versions": [
         {
-          "version": "2.0.0",
+          "version": "2.0.1",
           "refs": {
-            "oci": "ghcr.io/try-hola/guacamole:2.0.0"
+            "oci": "ghcr.io/try-hola/guacamole:2.0.1"
           }
         }
       ]
@@ -121,9 +121,9 @@
       "tags": [],
       "versions": [
         {
-          "version": "2.0.0",
+          "version": "2.0.1",
           "refs": {
-            "oci": "ghcr.io/try-hola/mealie:2.0.0"
+            "oci": "ghcr.io/try-hola/mealie:2.0.1"
           }
         }
       ]
@@ -153,9 +153,9 @@
       "tags": [],
       "versions": [
         {
-          "version": "2.0.2",
+          "version": "2.0.3",
           "refs": {
-            "oci": "ghcr.io/try-hola/paperless-ngx:2.0.2"
+            "oci": "ghcr.io/try-hola/paperless-ngx:2.0.3"
           }
         }
       ]
@@ -169,9 +169,9 @@
       "tags": [],
       "versions": [
         {
-          "version": "2.0.1",
+          "version": "2.0.2",
           "refs": {
-            "oci": "ghcr.io/try-hola/postiz:2.0.1"
+            "oci": "ghcr.io/try-hola/postiz:2.0.2"
           }
         }
       ]
