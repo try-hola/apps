@@ -11,6 +11,7 @@ at `<app>.<HOLA_BASE_DOMAIN>` — **no host ports**, ingress is Traefik-only).
 | 💰 Actual Budget | Local-first personal finance and budgeting |
 | 🖥️ Apache Guacamole | Clientless remote desktop gateway (RDP/VNC/SSH in the browser) |
 | 💾 Backrest | Backup orchestrator (restic) with a web UI |
+| 📚 Calibre-Web | Browse, read, and download your Calibre ebook library |
 | 🍵 Gitea | Self-hosted Git service |
 | 🛩️ Hangar | Self-hosted fleet control plane — git repo hygiene & remediation across providers |
 | 🏠 Homepage | A highly customizable application dashboard / start page |
