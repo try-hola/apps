@@ -1,6 +1,6 @@
 services:
   n8n:
-    image: n8nio/n8n:2.34.0@sha256:d92b370360f8af2ea8ea344d3fd70853a575a7afb568472930c82cd138fe0757
+    image: n8nio/n8n:2.34.4@sha256:f69bad7a699300702af665b9f13fc67455b93c9fb9174bca6c37f3d4a47b8583
     depends_on:
       n8n-init:
         condition: service_completed_successfully
@@ -30,7 +30,7 @@ services:
   # service_completed_successfully and the n8n service (which depends on that)
   # is stuck Created forever.
   n8n-init:
-    image: n8nio/n8n:2.34.0@sha256:d92b370360f8af2ea8ea344d3fd70853a575a7afb568472930c82cd138fe0757
+    image: n8nio/n8n:2.34.4@sha256:f69bad7a699300702af665b9f13fc67455b93c9fb9174bca6c37f3d4a47b8583
     restart: "no"
     user: "0:0"
     entrypoint: ["/bin/sh", "-c"]
