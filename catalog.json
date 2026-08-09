@@ -206,9 +206,9 @@
       ],
       "versions": [
         {
-          "version": "0.1.0",
+          "version": "0.1.1",
           "refs": {
-            "oci": "ghcr.io/try-hola/running-man:0.1.0"
+            "oci": "ghcr.io/try-hola/running-man:0.1.1"
           }
         }
       ]
