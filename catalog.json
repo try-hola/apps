@@ -193,6 +193,27 @@
       ]
     },
     {
+      "id": "running-man",
+      "name": "Running Man",
+      "description": "Provision and manage pools of self-hosted GitHub Actions runners",
+      "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/running-man.svg",
+      "category": "developer-tools",
+      "tags": [
+        "github",
+        "ci",
+        "actions",
+        "runners"
+      ],
+      "versions": [
+        {
+          "version": "0.1.0",
+          "refs": {
+            "oci": "ghcr.io/try-hola/running-man:0.1.0"
+          }
+        }
+      ]
+    },
+    {
       "id": "uptime-kuma",
       "name": "Uptime Kuma",
       "description": "Self-hosted uptime monitoring and status pages",
