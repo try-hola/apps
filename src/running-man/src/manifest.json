@@ -1,0 +1,42 @@
+{
+  "name": "running-man",
+  "version": "0.1.0",
+  "title": "Running Man",
+  "description": "Provision and manage pools of self-hosted GitHub Actions runners",
+  "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/running-man.svg",
+  "category": "developer-tools",
+  "tags": ["github", "ci", "actions", "runners"],
+  "ingress": {
+    "service": "running-man",
+    "port": 3000
+  },
+  "defaultEnv": [
+    {
+      "key": "GITHUB_TOKEN",
+      "value": "",
+      "isSecret": true,
+      "required": true,
+      "label": "GitHub Personal Access Token",
+      "description": "PAT used to mint runner registration tokens and manage runners. Needs the manage_runners:org scope for org-level pools, or admin rights on the repo for repo-level pools. Also required for forward-auth login to activate."
+    },
+    {
+      "key": "LOG_LEVEL",
+      "value": "info",
+      "isSecret": false,
+      "advanced": true,
+      "label": "Log level",
+      "description": "Application log verbosity."
+    }
+  ],
+  "defaults": {
+    "ports": [
+      { "container": 3000, "protocol": "tcp" }
+    ],
+    "volumes": [
+      { "containerPath": "/app/data" }
+    ]
+  },
+  "auth": {
+    "mode": "forward-auth"
+  }
+}

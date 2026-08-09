@@ -31,6 +31,9 @@ the apps they represent. SVGs were sourced from community icon sets:
   (~14KB): the dashboard draws icons at 34–60px, so 256² still covers 2× DPR
   with room to spare and the two are indistinguishable at every render size.
   Re-do that step if you refresh this file from upstream.
+- `running-man.svg`: upstream's own favicon from
+  [get2knowio/running-man](https://github.com/get2knowio/running-man/blob/main/frontend/public/favicon.svg)
+  (`frontend/public/favicon.svg`), used as-is.
 
 ## Adding / updating an icon
 
