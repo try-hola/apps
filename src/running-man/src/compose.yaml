@@ -1,0 +1,63 @@
+services:
+  running-man:
+    image: ghcr.io/get2knowio/running-man:0.1.4@sha256:0f6ec22802cef4d41a5f51d4aeadd3eefe597fb1a8ce4748ac28ffea0f280eca
+    environment:
+      GITHUB_TOKEN: "${GITHUB_TOKEN}"
+      # Hola gates every app behind Traefik + Authentik's outpost. running-man's
+      # own forward-auth support was built for exactly this (its .env.example
+      # calls out "home lab proxy like Authelia, Authentik, oauth2-proxy") — wire
+      # it to Authentik's identity header instead of the app's own GitHub OAuth
+      # login, so there's no separate OAuth app to register.
+      FORWARD_AUTH_ENABLED: "true"
+      FORWARD_AUTH_HEADER: X-authentik-username
+      PORT: "3000"
+      DATA_DIR: /app/data
+      # Points at the DinD sidecar's socket below, NOT a host socket. running-man
+      # falls back to this path for its default "local" pool (docker_host unset;
+      # see src/docker/client.ts), so pools created without an explicit remote
+      # Docker host transparently land in the sidecar.
+      DOCKER_SOCKET: /var/run/dind/docker.sock
+      LOG_LEVEL: "${LOG_LEVEL:-info}"
+    volumes:
+      - ${HOLA_APP_DATA}/data:/app/data
+      - ${HOLA_APP_DATA}/dind-sock:/var/run/dind
+    depends_on:
+      running-man-dind:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # Docker-in-Docker sidecar. running-man's whole purpose is spawning containers
+  # (GitHub Actions self-hosted runners) via the Docker API, and upstream does
+  # that by mounting the HOST's /var/run/docker.sock — but Hola forbids any bind
+  # mount outside ${HOLA_APP_DATA} (the compose validator rejects a host socket
+  # mount), the same constraint Gitea's Actions runner hit. Same fix here: dind
+  # runs its OWN dockerd, and running-man's DOCKER_SOCKET above points at that
+  # instead of the host's. Runner containers this app provisions are therefore
+  # isolated inside this sidecar's engine, not the real host's — they still
+  # register with GitHub and execute real jobs, they just don't share the host's
+  # Docker state. dind requires `privileged: true`.
+  running-man-dind:
+    image: docker:29.7.1-dind@sha256:e8faad5a8dc5279dff929afc5449f2791736912fff9f99351d742db2fad01b4c
+    privileged: true
+    volumes:
+      # Shared with running-man above: dockerd's default socket path is
+      # /var/run/docker.sock inside ITS OWN container, which lands here on the
+      # host and is remounted into running-man at /var/run/dind/docker.sock.
+      - ${HOLA_APP_DATA}/dind-sock:/var/run
+      # The sidecar's own Docker state (images/containers it manages) — kept
+      # under the app's data root like Gitea's runner does, so it's included in
+      # backups and isn't a bare named volume.
+      - ${HOLA_APP_DATA}/dind-docker:/var/lib/docker
+    healthcheck:
+      test: ["CMD", "docker", "info"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped

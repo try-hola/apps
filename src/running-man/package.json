@@ -1,0 +1,13 @@
+{
+  "name": "running-man",
+  "version": "0.1.0",
+  "description": "Running Man — self-hosted GitHub Actions runner management, Hola app package",
+  "license": "UNLICENSED",
+  "oci": {
+    "annotations": {
+      "org.opencontainers.image.title": "running-man",
+      "org.opencontainers.image.description": "Provision and manage pools of self-hosted GitHub Actions runners",
+      "org.opencontainers.image.version": "${npm_package_version}"
+    }
+  }
+}
