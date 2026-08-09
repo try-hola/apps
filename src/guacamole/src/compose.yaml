@@ -50,7 +50,7 @@ services:
     # detects an older PGDATA and runs `pg_upgrade` in place before starting — so an
     # existing install's data migrates automatically across the Postgres major. A
     # fresh install just initializes a new PG18 cluster (and runs the schema below).
-    image: pgautoupgrade/pgautoupgrade:18-alpine@sha256:19f988b90c8d0ad9c7edd70cf23c83e069abd8a57f0fdce0373588ddaf189894
+    image: pgautoupgrade/pgautoupgrade:18-alpine@sha256:5d287ede0df43f7f448b7e56f8c4f6a79197318b15d90254a9d6a85eb7686fb0
     environment:
       POSTGRES_DB: guacamole_db
       POSTGRES_USER: guacamole_user
