@@ -15,9 +15,9 @@ src/running-man/
 
 - **No host ports** — Traefik routes to `manifest.ingress.port` (3000); the
   validator rejects any `ports:` host publishing.
-- **`GITHUB_TOKEN`** is the only required setting: a PAT with `manage_runners:org`
-  (org pools) or repo admin rights (repo pools). It also gates the app's own
-  forward-auth support (see below) — without it, requests get no session at all.
+- **`APP_SECRET`** is the only required setting — a local secret that encrypts
+  the GitHub App's private key at rest. It is generated for you; it is not a
+  GitHub credential (see below).
 - **SQLite** keeps pool definitions in `${HOLA_APP_DATA}/data`, a single
   container, no external DB dependency.
 
@@ -55,16 +55,38 @@ when you want runners with host-level access on hardware you control.
 ## Authentication
 
 `auth.mode: forward-auth` — running-man's own forward-auth support (built for
-"a home lab proxy like Authelia, Authentik, oauth2-proxy" per its
+"a home lab proxy like Hola, Authelia, Authentik, oauth2-proxy" per its
 `.env.example`) is wired directly to Authentik's outpost identity header
-(`X-authentik-username`), so there's no separate GitHub OAuth app to register.
-Traefik + Authentik gate the request before running-man ever sees it.
+(`X-authentik-username`). Traefik + Authentik gate the request before
+running-man ever sees it.
+
+As of upstream v0.1.5, forward-auth is fully decoupled from GitHub credentials
+(earlier versions required a static `GITHUB_TOKEN` just to activate the
+header-trust path — see the PR discussion). There's no login step of
+running-man's own to configure.
+
+## Connecting GitHub (GitHub App, not a PAT)
+
+v0.1.5 replaced the old PAT/OAuth-app config with a **GitHub App** that
+running-man registers for itself:
+
+1. Log in (via Authentik) and open **Settings** → **Connect GitHub**.
+2. running-man opens GitHub's App-manifest flow using `APP_URL`
+   (`https://${HOLA_APP_HOST}`, filled in by Hola) to build the callback/setup
+   URLs, and creates the App under your account.
+3. You're redirected to install the App on the org/repos you want it to manage.
+
+From then on running-man mints its own short-lived installation tokens — no
+PAT to rotate, and access is scoped to exactly what you installed the App on.
+`GITHUB_APP_PUBLIC` (off by default) controls whether the created App can be
+installed on orgs you don't own; leave it off for a typical single-owner
+home-lab setup.
 
 ## Publish
 
 ```bash
 ./bin/push-oci-package.sh running-man ghcr.io/try-hola apps
-# → ghcr.io/try-hola/running-man:0.1.0 (+ :latest) as loose OCI file layers
+# → ghcr.io/try-hola/running-man:0.1.1 (+ :latest) as loose OCI file layers
 ```
 
 ## Deploy

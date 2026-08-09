@@ -1,13 +1,24 @@
 services:
   running-man:
-    image: ghcr.io/get2knowio/running-man:0.1.4@sha256:0f6ec22802cef4d41a5f51d4aeadd3eefe597fb1a8ce4748ac28ffea0f280eca
+    image: ghcr.io/get2knowio/running-man:0.1.5@sha256:fe840226c3bfd8e7dacd50575f5d9dbc02ee93ff63d38a1cf6165ea4e3914db6
     environment:
-      GITHUB_TOKEN: "${GITHUB_TOKEN}"
+      # v0.1.5+: no more static PAT/OAuth-app config. running-man registers its
+      # own GitHub App (browser-driven manifest flow under /github-app/new,
+      # started from its Settings page) and mints short-lived installation
+      # tokens itself. APP_URL must be the app's real public URL — GitHub
+      # redirects the manifest flow back to it and it seeds the App's webhook/
+      # setup URLs.
+      APP_URL: https://${HOLA_APP_HOST}
+      # Encrypts the GitHub App's private key at rest (AES-256-GCM, derived via
+      # SHA-256) — any random string works, not a specific key format.
+      APP_SECRET: "${APP_SECRET}"
+      GITHUB_APP_PUBLIC: "${GITHUB_APP_PUBLIC:-false}"
       # Hola gates every app behind Traefik + Authentik's outpost. running-man's
       # own forward-auth support was built for exactly this (its .env.example
-      # calls out "home lab proxy like Authelia, Authentik, oauth2-proxy") — wire
-      # it to Authentik's identity header instead of the app's own GitHub OAuth
-      # login, so there's no separate OAuth app to register.
+      # calls out "home lab proxy like Hola, Authelia, Authentik, oauth2-proxy")
+      # — wire it to Authentik's identity header. As of v0.1.5, forward-auth no
+      # longer requires any GitHub credential to activate; the GitHub App is set
+      # up separately, after login, from the Settings page.
       FORWARD_AUTH_ENABLED: "true"
       FORWARD_AUTH_HEADER: X-authentik-username
       PORT: "3000"

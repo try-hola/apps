@@ -1,6 +1,6 @@
 {
   "name": "running-man",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "title": "Running Man",
   "description": "Provision and manage pools of self-hosted GitHub Actions runners",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/running-man.svg",
@@ -12,12 +12,22 @@
   },
   "defaultEnv": [
     {
-      "key": "GITHUB_TOKEN",
+      "key": "APP_SECRET",
       "value": "",
       "isSecret": true,
       "required": true,
-      "label": "GitHub Personal Access Token",
-      "description": "PAT used to mint runner registration tokens and manage runners. Needs the manage_runners:org scope for org-level pools, or admin rights on the repo for repo-level pools. Also required for forward-auth login to activate."
+      "label": "App secret",
+      "description": "Encrypts the GitHub App private key at rest, once you connect GitHub from the Settings page. Not a GitHub credential itself — just a local secret.",
+      "generate": { "kind": "base64" }
+    },
+    {
+      "key": "GITHUB_APP_PUBLIC",
+      "value": "false",
+      "isSecret": false,
+      "type": "boolean",
+      "advanced": true,
+      "label": "Public GitHub App",
+      "description": "Allow the GitHub App running-man creates to be installed on organizations you don't own. Leave off unless you're managing runners across multiple orgs."
     },
     {
       "key": "LOG_LEVEL",
