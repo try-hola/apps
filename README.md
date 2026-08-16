@@ -56,6 +56,7 @@ Per-app metadata the Hola server reads at deploy time. Key fields:
 | `consumes[]` | no | Cross-app capabilities (e.g. `app-registry`, `apps-data`). |
 | `upgrade` | no | Upgrade-safety metadata — `breaking`, version-skip guard rails, pre-upgrade backup policy. See [Upgrade safety](#upgrade-safety-upgrade). |
 | `backup` | no | Per-app pre/post-backup hooks for transaction-consistent snapshots (e.g. `pg_dump`). See [Backup hooks](#backup-hooks-backup). |
+| `push` | no | Directories the app accepts bulk data into via `hola app data push`. See [Push targets](#push-targets-push). |
 
 **`ingress.service` matters for multi-service apps.** Hola attaches exactly one
 service to its routing network and injects auth env into it. If you omit
@@ -136,6 +137,65 @@ Rules that make the hooks useful:
   `postHook` always runs (even if the capture failed) and never fails the upgrade.
 - Multi-DB apps: point the hook at the database service (`postiz-postgres`,
   `immich-postgres`, etc.). One hook per block today.
+
+### Push targets (`push`)
+
+Some apps need data that's too big or too structured to arrive through their own
+web upload: a Calibre library, a media tree, a document archive to seed. Declare
+the directories that accept it and operators can push to them by name:
+
+```jsonc
+// manifest.json
+"push": [
+  {
+    "id": "library",
+    "label": "Calibre library",
+    "description": "Your Calibre library folder — the one containing metadata.db.",
+    "path": "books",
+    "mode": "mirror",
+    "quiesce": "stop"
+  }
+]
+```
+
+```bash
+hola app data push calibre-web-ab12cd34 --list
+hola app data push calibre-web-ab12cd34 library ~/Calibre\ Library --host me@server
+```
+
+| Field | Required | Purpose |
+| --- | --- | --- |
+| `id` | yes | Stable identifier the CLI takes as an argument. Unique within the app. |
+| `label` | yes | Human-friendly name shown by `--list`. |
+| `description` | no | What the operator should point at it. |
+| `path` | yes | Directory **relative to the app's data root** — the host side of a bind under `${HOLA_APP_DATA}`, not a container path. |
+| `mode` | no | `mirror` (rsync `--delete`) or `additive` (default, never deletes). |
+| `quiesce` | no | `stop` (stop the app for the push, start after) or `none` (default). |
+| `postHook` | no | `{service, command[]}`, same shape as a backup hook — a reindex/reconnect instead of a bounce. |
+
+Rules that make a push target correct:
+
+- **`path` is data-root-relative.** If compose mounts
+  `${HOLA_APP_DATA}/books:/books`, declare `books` — not `/books`. The server
+  resolves it against the deployment's data root and **drops any target that
+  escapes** it (absolute, `..`, or a symlink pointing out), so a wrong path
+  silently vanishes from `--list` rather than writing somewhere unexpected. CI
+  rejects the obvious cases at PR time.
+- **`mirror` deletes; declare it deliberately.** It makes the server copy match
+  the operator's exactly, which is right for a directory that genuinely *is* a
+  replica of something they maintain elsewhere (a Calibre library) and wrong for
+  an inbox. Mode is a property of the target, not a flag the operator picks —
+  a stray `--delete` against an additive target would destroy data.
+- **`quiesce: stop` when the app holds the data open.** Calibre-Web caches its
+  `metadata.db` connection, so replacing that file under a running process
+  leaves it reading a stale inode. A bounce also makes the new data visible.
+- **`postHook` is the no-bounce alternative** for apps with a reindex/reconnect
+  endpoint. It runs via `docker compose exec` in the app's own containers,
+  `service` must name a real compose service, and it shares the same ~60s
+  budget as a backup hook.
+
+Pushes are **one-way** — the operator's machine is the source of truth and the
+app's data root is a replica. Nothing merges back.
 
 ## Workflow
 
