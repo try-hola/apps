@@ -47,9 +47,9 @@
       ],
       "versions": [
         {
-          "version": "1.0.0",
+          "version": "1.1.0",
           "refs": {
-            "oci": "ghcr.io/try-hola/calibre-web:1.0.0"
+            "oci": "ghcr.io/try-hola/calibre-web:1.1.0"
           }
         }
       ]
