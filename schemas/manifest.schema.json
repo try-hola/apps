@@ -196,6 +196,20 @@
         { "type": "array", "items": { "type": "string" } }
       ]
     },
+    "provides": {
+      "description": "Capability contract(s) this app PERFORMS for other apps, as `id@version` refs (e.g. 'backup@1'). Reserved for the small number of apps that act on other apps' data; grants privilege, so it is reviewed at publish time and consented to by the operator at install. A bare string or an array of strings.",
+      "anyOf": [
+        { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*@[0-9]+$" },
+        { "type": "array", "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*@[0-9]+$" } }
+      ]
+    },
+    "accepts": {
+      "description": "Capability contract(s) this app is a SUBJECT of, as `id@version` refs (e.g. 'backup@1'). Declare it whenever the app is covered — including when it needs no hooks at all — because silence is reported as 'not covered', not as fine. A bare string or an array of strings.",
+      "anyOf": [
+        { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*@[0-9]+$" },
+        { "type": "array", "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*@[0-9]+$" } }
+      ]
+    },
     "upgrade": {
       "type": "object",
       "additionalProperties": false,
