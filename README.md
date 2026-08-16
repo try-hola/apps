@@ -54,6 +54,8 @@ Per-app metadata the Hola server reads at deploy time. Key fields:
 | `defaults.ports[]` / `defaults.volumes[]` | no | Default port/volume intents shown in the wizard. |
 | `auth` | no | SSO integration (`native-oidc` / `forward-auth` / `native-ldap`); drives per-app auth provisioning. |
 | `consumes[]` | no | Cross-app capabilities (e.g. `app-registry`, `apps-data`). |
+| `provides[]` | no | Capability contracts this app **performs** for others (e.g. `backup@1`). See [Capability contracts](#capability-contracts-provides--accepts). |
+| `accepts[]` | no | Capability contracts this app is a **subject** of (e.g. `backup@1`). See [Capability contracts](#capability-contracts-provides--accepts). |
 | `upgrade` | no | Upgrade-safety metadata — `breaking`, version-skip guard rails, pre-upgrade backup policy. See [Upgrade safety](#upgrade-safety-upgrade). |
 | `backup` | no | Per-app pre/post-backup hooks for transaction-consistent snapshots (e.g. `pg_dump`). See [Backup hooks](#backup-hooks-backup). |
 | `push` | no | Directories the app accepts bulk data into via `hola app data push`. See [Push targets](#push-targets-push). |
@@ -101,6 +103,48 @@ The skip-guard only fires for a real forward upgrade (target newer than installe
 same-version re-promotes and rollbacks pass through. Only set `minFromVersion` /
 `waypoints` when upstream genuinely requires it — they **block** otherwise-valid
 upgrades.
+
+### Capability contracts (`provides` / `accepts`)
+
+Some capabilities have two sides: one app **performs** it, others are **subjects**
+of it. Backup is the case — Backrest runs restic over every app's data, and a
+database-backed app has to dump before those files are read. `consumes` can't
+express that: it says what the *platform* grants an app, not what one app does to
+another.
+
+A contract has an id and a version (`backup@1`) and each side names the contract,
+never the other app — so replacing the provider is a catalog change, not an edit
+to every manifest.
+
+```jsonc
+// backrest/manifest.json — the performing side
+"provides": ["backup@1"]
+
+// paperless-ngx/manifest.json — the subject side
+"accepts": ["backup@1"],
+"backup": { "preHook": { … }, "postHook": { … } }   // *how*, declared as before
+```
+
+- **`accepts` is a claim, not a formality.** It says "I have thought about this
+  capability for this app, and this manifest makes it safe." Declare it even when
+  the app needs no hooks at all — a SQLite or flat-file app is genuinely covered by
+  a plain file copy, and Hola has no way to tell that apart from an app nobody ever
+  reviewed. An app whose data can't be captured safely should stay silent and be
+  reported as uncovered.
+- **The block is separate from the declaration.** `backup` says *how*; `accepts`
+  says *whether*. Adding hooks without `accepts: ["backup@1"]` leaves the app out
+  of the covered set (Hola logs the discrepancy rather than assuming).
+- **The version is required.** `backup` on its own doesn't resolve — an explicit
+  `@1` is what keeps an old manifest from drifting into a contract whose
+  obligations changed.
+- **`provides` is privileged and rare.** Performing a contract means acting on
+  other apps' data, so it is reviewed here at publish time and consented to by the
+  operator at install. Contracts whose provider is Hola itself (`auth@1`, `push@1`)
+  can't be claimed by an app — declare `accepts` for those.
+
+Unknown ids are dropped by the server with a warning rather than failing the
+install, so a manifest naming a contract an older Hola doesn't know still loads —
+it just doesn't participate until the host is upgraded.
 
 ### Backup hooks (`backup`)
 
