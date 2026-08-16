@@ -33,6 +33,28 @@
       ]
     },
     {
+      "id": "calibre-web",
+      "name": "Calibre-Web",
+      "description": "Browse, read, and download your Calibre ebook library",
+      "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/calibre-web.svg",
+      "category": "apps",
+      "tags": [
+        "ebooks",
+        "library",
+        "opds",
+        "kobo",
+        "reading"
+      ],
+      "versions": [
+        {
+          "version": "1.0.0",
+          "refs": {
+            "oci": "ghcr.io/try-hola/calibre-web:1.0.0"
+          }
+        }
+      ]
+    },
+    {
       "id": "gitea",
       "name": "Gitea",
       "description": "Self-hosted Git service",
