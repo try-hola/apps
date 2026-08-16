@@ -46,11 +46,34 @@ VERSION=$(jq -r .version "$PKG_DIR/package.json")
 
 GITHUB_ORG=$(echo "$REGISTRY_PATH" | awk -F'/' '{print $2}')
 
+# Reproducibility: oras stamps org.opencontainers.image.created with the wall
+# clock unless we set it, so pushing byte-identical content twice produces two
+# different manifest digests under the same tag — a re-published tag that looks
+# like a real change to anything comparing digests. (ORAS 1.2.3 does NOT honour
+# SOURCE_DATE_EPOCH; an explicit --annotation is the only override.) Pin it to
+# the commit that last touched the files that actually go into the bundle, so
+# the digest is a pure function of the content. An explicit SOURCE_DATE_EPOCH in
+# the environment still wins, for callers that want a fixed value.
+if [ -n "${SOURCE_DATE_EPOCH:-}" ]; then
+  CREATED=$(date -u -d "@$SOURCE_DATE_EPOCH" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || true)
+else
+  # Needs full history to be accurate — a shallow clone whose HEAD didn't touch
+  # these paths falls back to HEAD, then to the epoch.
+  CREATED=$(TZ=UTC git log -1 --format=%cd --date=format-local:%Y-%m-%dT%H:%M:%SZ \
+    -- "$SRC_DIR" "$PKG_DIR/package.json" 2>/dev/null || true)
+  [ -n "$CREATED" ] || CREATED=$(TZ=UTC git log -1 --format=%cd --date=format-local:%Y-%m-%dT%H:%M:%SZ 2>/dev/null || true)
+fi
+[ -n "$CREATED" ] || CREATED="1970-01-01T00:00:00Z"
+
 # Base + package.json annotations (substituting ${npm_package_version}). The base
-# keys (version, source) are set here; we exclude them from the package.json pass
-# so oras never sees a duplicate annotation key (it errors on duplicates, and
-# package.json templates commonly repeat org.opencontainers.image.version).
-ANNOTATIONS=(--annotation "org.opencontainers.image.version=$VERSION")
+# keys (version, source, created) are set here; we exclude them from the
+# package.json pass so oras never sees a duplicate annotation key (it errors on
+# duplicates, and package.json templates commonly repeat
+# org.opencontainers.image.version).
+ANNOTATIONS=(
+  --annotation "org.opencontainers.image.version=$VERSION"
+  --annotation "org.opencontainers.image.created=$CREATED"
+)
 if [ -n "$REPOSITORY" ] && [ -n "$GITHUB_ORG" ]; then
   ANNOTATIONS+=(--annotation "org.opencontainers.image.source=https://github.com/$GITHUB_ORG/$REPOSITORY")
 fi
@@ -62,7 +85,8 @@ if jq -e '.oci.annotations' "$PKG_DIR/package.json" >/dev/null 2>&1; then
     .oci.annotations
     | to_entries[]
     | select(.key != "org.opencontainers.image.version"
-             and .key != "org.opencontainers.image.source")
+             and .key != "org.opencontainers.image.source"
+             and .key != "org.opencontainers.image.created")
     | "\(.key)=\(.value)"' "$PKG_DIR/package.json")
 fi
 
@@ -89,7 +113,8 @@ done
 [ "${#LAYERS[@]}" -gt 0 ] || die "no files to publish in $SRC_DIR"
 
 echo "Publishing $PACKAGE_NAME v$VERSION to $REGISTRY_PATH/$PACKAGE_NAME"
-echo "  layers: ${LAYERS[*]}"
+echo "  layers:  ${LAYERS[*]}"
+echo "  created: $CREATED (pinned — identical content republishes to the same digest)"
 
 push() { # push <tag>
   oras push "$REGISTRY_PATH/$PACKAGE_NAME:$1" "${LAYERS[@]}" "${ANNOTATIONS[@]}" --disable-path-validation
