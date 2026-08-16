@@ -119,6 +119,13 @@ Upload books through **Admin → Upload** (the `+` button).
 
 ## Pushing your own library
 
+> **Needs Hola 0.10.0 or newer** on the host. `hola app data push` and the server
+> endpoints behind it landed in 0.10.0; against an older host the command fails
+> because those endpoints don't exist. Nothing else in this package depends on
+> it — everything below is the *alternative* to uploading book by book, not a
+> requirement. On an older host, upload through the UI (above) or upgrade with
+> `hola update --host …`.
+
 If you already curate a Calibre library on your own machine, push the whole thing
 instead of uploading book by book — this package declares it as a push target:
 

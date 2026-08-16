@@ -144,6 +144,14 @@ Some apps need data that's too big or too structured to arrive through their own
 web upload: a Calibre library, a media tree, a document archive to seed. Declare
 the directories that accept it and operators can push to them by name:
 
+> **Honoured by Hola 0.10.0 and newer.** An older server parses the manifest
+> keys it knows and ignores the rest, so declaring `push` is safe on any host —
+> it just does nothing until the host is upgraded, and the operator gets no
+> signal about that. Say so in the app's README (see calibre-web) rather than
+> assuming it works. A manifest-level `minHolaVersion` that would let the
+> platform enforce this is proposed in try-hola/hola#417; note there that a
+> floor is for features an app *can't run without*, which `push` is not.
+
 ```jsonc
 // manifest.json
 "push": [
