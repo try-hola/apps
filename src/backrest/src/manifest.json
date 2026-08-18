@@ -8,15 +8,27 @@
     "service": "backrest",
     "port": 9898
   },
-  "consumes": "apps-data",
+  "provides": [
+    "backup@1"
+  ],
+  "accepts": [
+    "backup@1"
+  ],
   "defaultEnv": [],
   "defaults": {
     "ports": [
-      { "container": 9898, "protocol": "tcp" }
+      {
+        "container": 9898,
+        "protocol": "tcp"
+      }
     ],
     "volumes": [
-      { "containerPath": "/config" },
-      { "containerPath": "/data" }
+      {
+        "containerPath": "/config"
+      },
+      {
+        "containerPath": "/data"
+      }
     ]
   },
   "auth": {
