@@ -15,6 +15,9 @@ services:
       - ${HOLA_APP_DATA}/data:/data
       - ${HOLA_APP_DATA}/cache:/cache
     # Read-only access to every app's data (/srv/hola/apps/<id>/...) is INJECTED
-    # by Hola because the manifest declares `consumes: apps-data` — it is not (and
-    # cannot be) declared here. In the Backrest UI, add a repo (off-site
+    # by Hola because the manifest declares `provides: ["backup@1"]` — it is not
+    # (and cannot be) declared here, and the operator consents to it at install.
+    # Hola also injects HOLA_API_URL + HOLA_CONTRACT_TOKEN, which the snapshot
+    # hooks in this package's README use to have Hola quiesce DB-backed apps
+    # before restic reads their files. In the Backrest UI, add a repo (off-site
     # destination + encryption password) and one backup plan over that path.
