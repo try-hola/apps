@@ -15,6 +15,143 @@ services:
       - ${HOLA_APP_DATA}/data:/data
       - ${HOLA_APP_DATA}/cache:/cache
     # Read-only access to every app's data (/srv/hola/apps/<id>/...) is INJECTED
-    # by Hola because the manifest declares `consumes: apps-data` — it is not (and
-    # cannot be) declared here. In the Backrest UI, add a repo (off-site
-    # destination + encryption password) and one backup plan over that path.
+    # by Hola because the manifest declares `provides: ["backup@1"]` and the
+    # operator consented to that contract's grant at install — it is not (and
+    # cannot be) declared here. Hola injects HOLA_API_URL and HOLA_CONTRACT_TOKEN
+    # into this service too; the hook scripts below are what use them.
+    depends_on:
+      backrest-hooks-init:
+        condition: service_completed_successfully
+
+  # Hola backup-contract bolt-on (ADR 0004). Backrest *provides* `backup@1`; the
+  # apps it captures *accept* it, and some need work done around the file copy (a
+  # `pg_dump` before, a cleanup after). Backrest never touches another app to get
+  # that done — it announces the start and end of its run, and Hola runs each
+  # acceptor's hooks in that app's own containers.
+  #
+  # This one-shot installs the two scripts that make the announcement. Shipping
+  # them here rather than documenting a curl command to paste means a bundle
+  # upgrade fixes the script for every install, and the operator only ever
+  # references a path. Stock image (Backrest's own — it already ships curl) plus
+  # an inline script: no custom build, the same pattern as Homepage's registry
+  # renderer.
+  backrest-hooks-init:
+    image: garethgeorge/backrest:v1.14.1@sha256:b852979754281026230cc69fb11428e6d57c9a97784ab4a444ffc7934c53a215
+    # One-shot: write the scripts and exit. `restart: "no"` is REQUIRED — Hola
+    # applies an install-wide default restart policy to services that declare
+    # none, which would restart this after it exits 0, so it never reaches
+    # `service_completed_successfully` and backrest (which depends on that) would
+    # sit in `Created` forever.
+    restart: "no"
+    # The bind-mounted config dir is created root-owned by the Docker daemon.
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-c"]
+    # NOTE for editors: `$$` is how a literal `$` survives Compose's own variable
+    # interpolation, so the scripts written below read `$HOLA_API_URL` and
+    # friends at hook-run time, inside the backrest container. Braces are avoided
+    # around HOLA_* names on purpose — `${HOLA_...}` is a Hola template token and
+    # would be substituted at deploy time instead.
+    command:
+      - |
+        set -e
+        mkdir -p /config/hola
+
+        cat > /config/hola/backup-prepare.sh <<'HOLA_EOF'
+        #!/bin/sh
+        # Hola capability contract `backup@1` — provider side, START of a run.
+        #
+        # Asks Hola to run every accepting app's preHook (a pg_dump, a quiesce)
+        # and waits for them to finish, so restic reads a consistent copy instead
+        # of live database files.
+        #
+        # Wire into Backrest as a Command hook on CONDITION_SNAPSHOT_START with
+        # ON_ERROR_CANCEL. The contract is FAIL-CLOSED: if Hola cannot be reached,
+        # the right outcome is no snapshot at all rather than one that looks fine
+        # and cannot be restored.
+        set -e
+
+        if [ -z "$$HOLA_API_URL" ] || [ -z "$$HOLA_CONTRACT_TOKEN" ]; then
+          echo "[hola] no contract credentials in this container — is this install a consented backup provider?" >&2
+          exit 1
+        fi
+
+        # Backstop only: the server applies its own per-contract timeout and
+        # finalizes regardless, so this exists so a hung server cannot wedge
+        # Backrest indefinitely.
+        limit=1800
+        waited=0
+
+        if ! response=$$(curl -fsS --max-time 30 -X POST \
+          -H "Authorization: Bearer $$HOLA_CONTRACT_TOKEN" \
+          "$$HOLA_API_URL/api/contracts/backup/prepare"); then
+          echo "[hola] could not reach Hola to prepare the backup — cancelling rather than capturing files that may not restore" >&2
+          exit 1
+        fi
+
+        job=$$(printf '%s' "$$response" | sed -n 's/.*"jobId":"\([^"]*\)".*/\1/p')
+        if [ -z "$$job" ]; then
+          echo "[hola] no installed app declares a backup preHook — nothing to prepare"
+          exit 0
+        fi
+        echo "[hola] preparing acceptors (job $$job)"
+
+        while [ "$$waited" -lt "$$limit" ]; do
+          if ! poll=$$(curl -fsS --max-time 30 \
+            -H "Authorization: Bearer $$HOLA_CONTRACT_TOKEN" \
+            "$$HOLA_API_URL/api/contracts/backup/status/$$job"); then
+            echo "[hola] lost contact with Hola while waiting on job $$job — cancelling the backup" >&2
+            exit 1
+          fi
+          status=$$(printf '%s' "$$poll" | sed -n 's/.*"status":"\([^"]*\)".*/\1/p')
+          case "$$status" in
+            completed)
+              echo "[hola] acceptor preHooks completed — safe to capture"
+              exit 0
+              ;;
+            queued|running)
+              ;;
+            *)
+              echo "[hola] prepare job $$job ended as '$$status' — cancelling the backup" >&2
+              exit 1
+              ;;
+          esac
+          sleep 5
+          waited=$$((waited + 5))
+        done
+
+        echo "[hola] timed out waiting for acceptor preHooks — cancelling the backup" >&2
+        exit 1
+        HOLA_EOF
+
+        cat > /config/hola/backup-finalize.sh <<'HOLA_EOF'
+        #!/bin/sh
+        # Hola capability contract `backup@1` — provider side, END of a run.
+        #
+        # Runs every accepting app's postHook: removing the dump the preHook
+        # wrote, releasing a quiesce. Wire into Backrest as a Command hook on
+        # CONDITION_SNAPSHOT_END with ON_ERROR_IGNORE — the capture has already
+        # happened by the time this runs, so a failed cleanup is something to
+        # report, never a reason to fail the backup. SNAPSHOT_END fires on both
+        # success and failure, which is what makes this a reliable release of
+        # whatever prepare took.
+        set -e
+
+        if [ -z "$$HOLA_API_URL" ] || [ -z "$$HOLA_CONTRACT_TOKEN" ]; then
+          echo "[hola] no contract credentials in this container — skipping finalize" >&2
+          exit 0
+        fi
+
+        if curl -fsS --max-time 120 -X POST \
+          -H "Authorization: Bearer $$HOLA_CONTRACT_TOKEN" \
+          "$$HOLA_API_URL/api/contracts/backup/finalize" >/dev/null; then
+          echo "[hola] acceptor postHooks finalized"
+        else
+          echo "[hola] finalize call failed — an app may still be holding a dump on disk" >&2
+        fi
+        exit 0
+        HOLA_EOF
+
+        chmod +x /config/hola/backup-prepare.sh /config/hola/backup-finalize.sh
+        echo "[hola] backup contract hooks installed in /config/hola"
+    volumes:
+      - ${HOLA_APP_DATA}/config:/config

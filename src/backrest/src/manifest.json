@@ -1,6 +1,6 @@
 {
   "name": "backrest",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "title": "Backrest",
   "description": "Backup orchestrator (restic) with a web UI",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/backrest.svg",
@@ -8,7 +8,8 @@
     "service": "backrest",
     "port": 9898
   },
-  "consumes": "apps-data",
+  "provides": ["backup@1"],
+  "accepts": ["backup@1"],
   "defaultEnv": [],
   "defaults": {
     "ports": [
@@ -21,5 +22,10 @@
   },
   "auth": {
     "mode": "forward-auth"
+  },
+  "upgrade": {
+    "breaking": true,
+    "preUpgradeBackup": "recommended",
+    "upgradeNotesUrl": "https://github.com/try-hola/apps/blob/main/src/backrest/README.md#upgrading-from-1x"
   }
 }
