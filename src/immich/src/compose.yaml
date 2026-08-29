@@ -140,6 +140,11 @@ services:
     shm_size: 128mb
     volumes:
       - ${HOLA_APP_DATA}/postgres:/var/lib/postgresql/data
+      # Where the manifest's backup preHook writes its pg_dump. A file-level
+      # snapshot of a live Postgres data dir is crash-consistent at best, so the
+      # dump is the restorable copy — and it has to land under ${HOLA_APP_DATA},
+      # because that data root is the only thing the snapshot captures.
+      - ${HOLA_APP_DATA}/backups:/backups
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U immich -d immich"]
       interval: 10s

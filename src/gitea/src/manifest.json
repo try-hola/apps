@@ -1,6 +1,6 @@
 {
   "name": "gitea",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "title": "Gitea",
   "description": "Self-hosted Git service",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/gitea.svg",
@@ -55,5 +55,6 @@
     "breaking": true,
     "upgradeNotesUrl": "https://github.com/go-gitea/gitea/releases/tag/v1.27.0",
     "preUpgradeBackup": "recommended"
-  }
+  },
+  "accepts": ["backup@1"]
 }

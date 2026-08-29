@@ -1,6 +1,6 @@
 {
   "name": "hangar",
-  "version": "1.4.9",
+  "version": "1.4.10",
   "title": "Hangar",
   "description": "Self-hosted fleet control plane — aggregate your git repos across providers, score each against a best-practice policy, and remediate hygiene drift via pull requests",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/hangar.svg",
@@ -51,5 +51,6 @@
   "upgrade": {
     "preUpgradeBackup": "recommended",
     "upgradeNotesUrl": "https://github.com/get2knowio/hangar/releases"
-  }
+  },
+  "accepts": ["backup@1"]
 }
