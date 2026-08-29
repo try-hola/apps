@@ -29,36 +29,50 @@ jobs:
         with:
           fetch-depth: 0  # Full git history needed for PR creation
       
-      # Step 2: Make sure the specified package exists
+      # Step 2: Make sure the specified package exists.
+      # Apps live in src/<name>/, NOT packages/<name>/ — see README "Layout".
       - name: Verify package exists
         run: |
-          # Check if the package.json file exists for the specified package
-          if [ ! -f "packages/${{ github.event.inputs.package }}/package.json" ]; then
-            echo "Error: Package ${{ github.event.inputs.package }} not found"
+          PKG="src/${{ github.event.inputs.package }}"
+          if [ ! -f "$PKG/package.json" ]; then
+            echo "Error: package $PKG/package.json not found"
             exit 1  # Fail the workflow if the package doesn't exist
           fi
-      
-      # Step 3: Set up Node.js (needed for jq command)
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-      
-      # Step 4: Calculate the new version number based on the bump type
+          # The bundle's own version lives here too, and the two must agree:
+          # build-catalog.sh publishes the tag from package.json while the Hola
+          # server shows manifest.json's, so bumping one alone ships a bundle
+          # whose advertised version isn't the one it was published under.
+          if [ ! -f "$PKG/src/manifest.json" ]; then
+            echo "Error: $PKG/src/manifest.json not found"
+            exit 1
+          fi
+
+      # Step 3: Calculate the new version number based on the bump type.
+      # jq is preinstalled on ubuntu-latest, so nothing to set up first.
       - name: Bump version
         id: bump  # ID used to reference outputs from this step
         run: |
-          # Path to the package.json file
-          PACKAGE_PATH="packages/${{ github.event.inputs.package }}/package.json"
-          
-          # Get the current version from package.json
+          set -euo pipefail
+          PKG="src/${{ github.event.inputs.package }}"
+          PACKAGE_PATH="$PKG/package.json"
+          MANIFEST_PATH="$PKG/src/manifest.json"
+
           CURRENT_VERSION=$(jq -r .version "$PACKAGE_PATH")
-          
+          MANIFEST_VERSION=$(jq -r .version "$MANIFEST_PATH")
+
+          # Refuse to bump a package that is already inconsistent — guessing
+          # which of the two is authoritative would silently pick a winner.
+          if [ "$CURRENT_VERSION" != "$MANIFEST_VERSION" ]; then
+            echo "Error: version mismatch — package.json is $CURRENT_VERSION but manifest.json is $MANIFEST_VERSION."
+            echo "Reconcile them by hand, then re-run this workflow."
+            exit 1
+          fi
+
           # Extract major.minor.patch components from the version
-          MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
-          MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
-          PATCH=$(echo $CURRENT_VERSION | cut -d. -f3)
-          
+          MAJOR=$(echo "$CURRENT_VERSION" | cut -d. -f1)
+          MINOR=$(echo "$CURRENT_VERSION" | cut -d. -f2)
+          PATCH=$(echo "$CURRENT_VERSION" | cut -d. -f3)
+
           # Calculate the new version based on the bump type
           if [[ "${{ github.event.inputs.bump }}" == "major" ]]; then
             # Major bump: increment major, reset minor and patch to 0
@@ -70,15 +84,17 @@ jobs:
             # Patch bump: keep major and minor, increment patch
             NEW_VERSION="${MAJOR}.${MINOR}.$((PATCH+1))"
           fi
-          
-          # Update the version in package.json
-          jq ".version = \"$NEW_VERSION\"" "$PACKAGE_PATH" > tmp.json && mv tmp.json "$PACKAGE_PATH"
-          
+
+          # Update both files, keeping them in lockstep.
+          for FILE in "$PACKAGE_PATH" "$MANIFEST_PATH"; do
+            jq ".version = \"$NEW_VERSION\"" "$FILE" > tmp.json && mv tmp.json "$FILE"
+          done
+
           # Set the new version as an output variable for later steps
           echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
-          echo "Bumped version from $CURRENT_VERSION to $NEW_VERSION"
-      
-      # Step 5: Create a pull request with the version change
+          echo "Bumped $PKG from $CURRENT_VERSION to $NEW_VERSION (package.json + manifest.json)"
+
+      # Step 4: Create a pull request with the version change
       - name: Create version bump PR
         uses: peter-evans/create-pull-request@v8
         with:
