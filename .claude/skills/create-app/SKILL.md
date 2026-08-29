@@ -264,9 +264,22 @@ or `src/homepage/src/manifest.json` for `forward-auth`).
 - Any mode can add a sibling `"fallback": "forward-auth"` to *also* gate the
   app behind a proxy login in front of its native auth — rarely needed.
 
-## 7. `upgrade` / `backup` blocks
+## 7. `upgrade` / `backup` blocks and capability contracts
 
-Both are optional and documented in full in `README.md` — condensed here:
+All optional and documented in full in `README.md` — condensed here:
+
+- **`accepts`** — the capability contracts this app opts in to being a subject
+  of. In practice: **every app declares `"accepts": ["backup@1"]`**. Acceptance
+  is *declared*, not inferred from the `backup` block — an app that needs no
+  hooks at all (SQLite, flat-file) still declares it, with no `backup` block,
+  because that is the only way Hola can tell a genuinely-covered app from one
+  nobody ever considered. Omit it and the dashboard reports the app as
+  **uncovered**. Declaring a `backup` block *without* `accepts` is a CI error.
+- **`provides`** — the contracts this app *performs for others*. Only a backup
+  engine declares this (`["backup@1"]`), and it is almost certainly not the app
+  you are packaging. It causes Hola to inject a read-only mount of **every**
+  app's data, which the operator must consent to at install; never mount that
+  path in `compose.yaml` yourself.
 
 - **`upgrade`** (declare on the version being upgraded *to*): `breaking`
   (operator must confirm before promoting), `minFromVersion` (server-enforced

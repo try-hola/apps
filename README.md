@@ -53,7 +53,9 @@ Per-app metadata the Hola server reads at deploy time. Key fields:
 | `defaultEnv[]` | no | Env vars surfaced in the install wizard (`key`, `value`, `isSecret`, `description`). |
 | `defaults.ports[]` / `defaults.volumes[]` | no | Default port/volume intents shown in the wizard. |
 | `auth` | no | SSO integration (`native-oidc` / `forward-auth` / `native-ldap`); drives per-app auth provisioning. |
-| `consumes[]` | no | Cross-app capabilities (e.g. `app-registry`, `apps-data`). |
+| `consumes[]` | no | Cross-app capabilities (e.g. `app-registry`). |
+| `provides[]` | no | Capability contracts this app **performs for others** (`backup@1`). See [Capability contracts](#capability-contracts-provides--accepts). |
+| `accepts[]` | no | Capability contracts this app **opts in to being a subject of** (`backup@1`). See [Capability contracts](#capability-contracts-provides--accepts). |
 | `upgrade` | no | Upgrade-safety metadata — `breaking`, version-skip guard rails, pre-upgrade backup policy. See [Upgrade safety](#upgrade-safety-upgrade). |
 | `backup` | no | Per-app pre/post-backup hooks for transaction-consistent snapshots (e.g. `pg_dump`). See [Backup hooks](#backup-hooks-backup). |
 | `push` | no | Directories the app accepts bulk data into via `hola app data push`. See [Push targets](#push-targets-push). |
@@ -102,6 +104,51 @@ same-version re-promotes and rollbacks pass through. Only set `minFromVersion` /
 `waypoints` when upstream genuinely requires it — they **block** otherwise-valid
 upgrades.
 
+### Capability contracts (`provides` / `accepts`)
+
+A **capability contract** is a named, versioned relationship where one app performs
+a capability *on* another — `backup@1` being the case that forced the model. It has
+two roles, and both are declared in the manifest:
+
+| Field | Role | Meaning |
+| --- | --- | --- |
+| `provides[]` | **provider** | This app *performs* the capability. `backup@1` ⇒ it is a backup engine (Backrest). |
+| `accepts[]` | **acceptor** | This app *opts in* to being a subject of it. `backup@1` ⇒ "back me up". |
+
+```jsonc
+// manifest.json — a Postgres-backed app being backed up
+"accepts": ["backup@1"],
+"backup": { "preHook": { … }, "postHook": { … } }
+```
+
+The **contract**, not the app, is the coupling point: an acceptor never names
+Backrest, so replacing the backup engine is a catalog change rather than an edit to
+every manifest in the catalog.
+
+Contract ids are a **closed set** defined by the server
+([`packages/shared/src/contracts.ts`](https://github.com/try-hola/hola/blob/main/packages/shared/src/contracts.ts)),
+mirrored as an enum in `schemas/manifest.schema.json` — a contract has to exist
+there before it can be declared here. Today: `backup@1` (app-provided),
+plus `auth@1` and `push@1`, which the **platform** provides and no app may claim in
+`provides`.
+
+Two rules do most of the work:
+
+- **Acceptance is declared, never inferred from the block.** The typed block
+  (`backup`) says *how* an app participates; `accepts` says *whether* it does. An app
+  that needs no hooks at all — SQLite, flat-file — **still declares
+  `accepts: ["backup@1"]`**, with no `backup` block. Without the declaration Hola
+  cannot tell a genuinely-covered app from one nobody ever considered, and the
+  dashboard's coverage view reads it as *uncovered* rather than fine. Declaring the
+  block and forgetting `accepts` is a CI error.
+- **Privilege attaches to the provider role, and the operator consents to it.**
+  `backup@1`'s provider grant is a read-only, identity-mapped mount of *every* app's
+  data root. Hola injects it because the app declares the role — the bundle cannot
+  and must not mount it in `compose.yaml` — and the install wizard shows the operator
+  what they're agreeing to before it does. This replaces the old
+  `consumes: apps-data` line, which disclosed the same privilege only to whoever
+  reviewed the bundle.
+
 ### Backup hooks (`backup`)
 
 A file-level snapshot of a running app (Hola's backup + the pre-upgrade snapshot)
@@ -125,6 +172,9 @@ the snapshot.
 
 Rules that make the hooks useful:
 
+- **Declare `accepts: ["backup@1"]` alongside the block.** The block alone doesn't
+  opt the app in — see [Capability contracts](#capability-contracts-provides--accepts).
+  CI rejects hooks without the declaration.
 - **Write the dump where the snapshot can see it.** The snapshot captures the app's
   on-disk data root, so the dump must land **inside a path bind-mounted under the
   app's data root** — e.g. mount `${HOLA_APP_DATA}/backups:/backups` and
