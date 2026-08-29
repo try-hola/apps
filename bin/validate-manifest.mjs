@@ -173,6 +173,119 @@ function checkBackupHooks(app, manifest, manifestPath, issues) {
   }
 }
 
+// --- Capability contracts (ADR 0004) ---
+
+/**
+ * The contract table, mirroring CONTRACTS in try-hola/hola
+ * packages/shared/src/contracts.ts. `schemas/manifest.schema.json` enumerates the
+ * same refs; this copy adds what a JSON Schema enum can't express — which block
+ * an acceptor's details live in, and whether acceptance means anything without it.
+ */
+const CONTRACTS = {
+  // Acceptance IS the auth block: `accepts: ["auth@1"]` with no mode declared
+  // asks Hola to provision nothing, and a manifest carrying an `auth` block is
+  // unambiguously participating. auth@1 and push@1 are pre-existing integrations
+  // that ADR 0004 §8 re-labelled as contracts without changing their behavior,
+  // so their blocks stay self-declaring and the catalog needs no churn.
+  'auth@1': { block: 'auth', blockRequired: true, appProvided: false, impliedByBlock: true },
+  // backup@1 is the one where the block can't carry the fact. `blockRequired` is
+  // deliberately false: a hook-free app (SQLite, flat-file) accepting backup@1
+  // with no block is the positive claim "safe to copy as it sits", which has to
+  // be distinguishable from an app nobody considered. That third state is why
+  // acceptance must be declared here and can't be derived (ADR 0004 §2).
+  'backup@1': { block: 'backup', blockRequired: false, appProvided: true, impliedByBlock: false },
+  // Same as auth: the declared targets are the participation.
+  'push@1': { block: 'push', blockRequired: true, appProvided: false, impliedByBlock: true },
+};
+
+/** Manifest fields that take a bare string or an array of them. */
+function refList(raw) {
+  if (typeof raw === 'string') return [raw];
+  return Array.isArray(raw) ? raw.filter((r) => typeof r === 'string') : [];
+}
+
+/**
+ * Images that mean "this app runs a database server" — the case where a
+ * file-level copy is crash-consistent at best and hooks are usually wanted.
+ * Caches (redis/valkey) are deliberately absent: every app here uses them as
+ * rebuildable state, so warning on them would be noise.
+ */
+const DATABASE_IMAGE = /image:\s*\S*(postgres|pgautoupgrade|timescale|mysql|mariadb|percona|mongo|cockroach|mssql|sql-server)/i;
+
+/**
+ * The two halves of a contract have to agree, and neither the JSON Schema nor the
+ * server can enforce that here: the server's coercion is deliberately
+ * forward-compatible (it drops what it doesn't recognize and reports a block
+ * declared without its `accepts`, rather than failing), which is right at runtime
+ * and useless as an authoring gate. This is the gate.
+ */
+function checkContracts(app, manifest, manifestPath, issues, warnings) {
+  const accepts = refList(manifest?.accepts);
+  const provides = refList(manifest?.provides);
+
+  for (const ref of accepts) {
+    const def = CONTRACTS[ref];
+    if (!def) {
+      issues.push(
+        `${app}/accepts: "${ref}" is not a known capability contract (${Object.keys(CONTRACTS).join(', ')})`
+      );
+      continue;
+    }
+    if (def.blockRequired && manifest?.[def.block] === undefined) {
+      issues.push(
+        `${app}/accepts: "${ref}" requires a "${def.block}" block — accepting it without one declares participation the app can't deliver`
+      );
+    }
+  }
+
+  for (const ref of provides) {
+    const def = CONTRACTS[ref];
+    if (!def) {
+      issues.push(
+        `${app}/provides: "${ref}" is not a known capability contract (${Object.keys(CONTRACTS).join(', ')})`
+      );
+      continue;
+    }
+    if (!def.appProvided) {
+      issues.push(
+        `${app}/provides: "${ref}" is provided by the Hola platform itself, not by a catalog app — remove it`
+      );
+    }
+  }
+
+  // A typed block without the declaration, for the contracts where the block
+  // can't stand in for it. Reported rather than repaired: inferring acceptance
+  // from the block is exactly the derivation ADR 0004 §2 rejects, and opting an
+  // app into a contract on its author's behalf is the opposite of what the
+  // declaration is for.
+  for (const [ref, def] of Object.entries(CONTRACTS)) {
+    if (def.impliedByBlock) continue;
+    if (manifest?.[def.block] !== undefined && !accepts.includes(ref)) {
+      issues.push(
+        `${app}/accepts: a "${def.block}" block is declared but "${ref}" is missing from accepts[] — the block says HOW the app participates, accepts[] says WHETHER it does`
+      );
+    }
+  }
+
+  // Coverage warnings. Not errors: whether an app is backed up is the bundle
+  // author's call to make, and a new app shouldn't be blocked from merging over
+  // it. But it should never be an accident, so say so out loud.
+  const composePath = join(dirname(manifestPath), 'compose.yaml');
+  if (!existsSync(composePath)) return;
+  const composeText = readFileSync(composePath, 'utf8');
+  if (!DATABASE_IMAGE.test(composeText)) return;
+
+  if (!accepts.includes('backup@1')) {
+    warnings.push(
+      `${app}/accepts: runs a database server but accepts nothing — Hola will report it as UNCOVERED. Declare "backup@1" (with hooks) or say why not.`
+    );
+  } else if (manifest?.backup === undefined) {
+    warnings.push(
+      `${app}/backup: accepts "backup@1" and runs a database server, but declares no hooks — the snapshot will copy live database files, which is crash-consistent at best.`
+    );
+  }
+}
+
 /**
  * Push targets (#409). The schema already enforces the shape; these are the
  * semantic rules it can't express — unique ids, a path that stays inside the
@@ -229,6 +342,7 @@ function checkPush(app, manifest, manifestPath, issues) {
 function validateManifest(manifestPath) {
   const app = appLabel(manifestPath);
   const issues = [];
+  const warnings = [];
 
   const { ok, output } = runAjv(manifestPath);
   if (!ok) {
@@ -240,7 +354,7 @@ function validateManifest(manifestPath) {
     manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
   } catch (err) {
     issues.push(`${app}: failed to parse JSON (${err.message})`);
-    return issues;
+    return { issues, warnings };
   }
 
   // `defaultEnv` should be an array; a non-array (e.g. `{}`) is already an ajv
@@ -255,8 +369,9 @@ function validateManifest(manifestPath) {
   checkIngressService(app, manifest, manifestPath, issues);
   checkBackupHooks(app, manifest, manifestPath, issues);
   checkPush(app, manifest, manifestPath, issues);
+  checkContracts(app, manifest, manifestPath, issues, warnings);
 
-  return issues;
+  return { issues, warnings };
 }
 
 function main() {
@@ -277,7 +392,7 @@ function main() {
       continue;
     }
 
-    const issues = validateManifest(manifestPath);
+    const { issues, warnings } = validateManifest(manifestPath);
     const app = appLabel(manifestPath);
 
     if (issues.length > 0) {
@@ -288,6 +403,14 @@ function main() {
       }
     } else {
       console.log(`OK   ${app} (${relative(REPO_ROOT, manifestPath)})`);
+    }
+
+    // Warnings never set the exit code — they flag a judgement call the author
+    // should confirm, not a broken manifest. Printed after the verdict so they
+    // read as advice on it either way.
+    for (const warning of warnings) {
+      console.error(`WARN ${app}`);
+      console.error(`  - ${warning}`);
     }
   }
 

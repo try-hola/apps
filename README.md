@@ -132,6 +132,19 @@ there before it can be declared here. Today: `backup@1` (app-provided),
 plus `auth@1` and `push@1`, which the **platform** provides and no app may claim in
 `provides`.
 
+CI (`bin/validate-manifest.mjs`) enforces the parts a schema can't:
+
+| | Rule |
+| --- | --- |
+| **error** | A `backup` block with no `backup@1` in `accepts[]` — the app filled in *how* and never said *whether*. |
+| **error** | `accepts` naming `auth@1`/`push@1` without the matching block, which declares participation the app can't deliver. |
+| **error** | `provides` naming a contract the platform provides, or either field naming a contract that doesn't exist. |
+| **warn** | The app runs a database server and accepts nothing — it will show up as *uncovered*. |
+| **warn** | The app runs a database server, accepts `backup@1`, and declares no hooks — the snapshot will copy live database files. |
+
+Warnings don't fail the build; whether an app is backed up is the author's call to
+make, but it shouldn't be made by accident.
+
 Two rules do most of the work:
 
 - **Acceptance is declared, never inferred from the block.** The typed block
