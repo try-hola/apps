@@ -11,12 +11,14 @@ on:
     paths:
       - 'src/**'
       - 'bin/**'
+      - 'schemas/**'
       - '.github/workflows/build-and-publish.yml'
   pull_request:
     branches: [main]
     paths:
       - 'src/**'
       - 'bin/**'
+      - 'schemas/**'
       - '.github/workflows/build-and-publish.yml'
   workflow_dispatch:
     inputs:
@@ -131,6 +133,31 @@ jobs:
           git add catalog.json
           git commit -m "chore(catalog): regenerate catalog.json [skip ci]"
           git push
+
+  # Validate EVERY manifest, not just the changed packages.
+  #
+  # `verify-packages` below runs per changed package, which leaves the shared
+  # inputs unguarded: schemas/manifest.schema.json and bin/validate-manifest.mjs
+  # apply to all 17 apps, and a change to either can break apps its diff never
+  # touches. Worse, a schema-only PR changes no package at all, so the matrix is
+  # empty, `verify-packages` is skipped, and nothing is validated — a schema edit
+  # could reject every manifest in the catalog and still show green.
+  #
+  # Cheap enough to run on every PR that reaches this workflow (17 manifests),
+  # and it is the only job that can fail on a schema/validator regression.
+  validate-catalog:
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      # No arguments: validate-manifest.mjs discovers every src/*/src/manifest.json.
+      - name: Validate every manifest against the schema
+        run: node bin/validate-manifest.mjs
 
   # Verify package structure on PRs (loose-layer contract).
   verify-packages:

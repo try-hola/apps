@@ -210,9 +210,15 @@ app's data root is a replica. Nothing merges back.
 1. **Scaffold:** `./bin/create-package.sh <name>` creates `src/<name>/` in the loose format.
 2. **Edit** `src/<name>/src/compose.yaml` + `manifest.json` (use a prebuilt image; declare named
    volumes; no `ports:` host publishing).
-3. **Open a PR.** CI (`verify-packages`) checks the package has `package.json`, `src/compose.yaml`,
-   and `src/manifest.json`, and that `manifest.json` declares an `ingress.service` that names a
-   real service in `compose.yaml`.
+3. **Open a PR.** Two CI jobs run:
+   - `verify-packages`, per changed package — checks it has `package.json`, `src/compose.yaml`
+     and `src/manifest.json`, and that `manifest.json` declares an `ingress.service` naming a
+     real service in `compose.yaml`.
+   - `validate-catalog`, over **every** manifest — the shared inputs
+     (`schemas/manifest.schema.json`, `bin/validate-manifest.mjs`) apply to all apps, so a change
+     to either is checked against the whole catalog rather than only the packages it touched.
+     A schema-only PR changes no package at all, which is exactly the case the per-package job
+     can't cover.
 4. **Merge to `main`.** CI publishes `ghcr.io/try-hola/<name>:<version>` (+ `:latest`) as loose
    layers and regenerates the root [`catalog.json`](./catalog.json) index.
 
