@@ -1,6 +1,6 @@
 {
   "name": "calibre-web",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "title": "Calibre-Web",
   "description": "Browse, read, and download your Calibre ebook library",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/calibre-web.svg",
@@ -78,5 +78,6 @@
     "forwardAuth": {
       "bypassPaths": ["/opds", "/kobo/"]
     }
-  }
+  },
+  "accepts": ["backup@1"]
 }

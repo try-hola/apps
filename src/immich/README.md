@@ -40,6 +40,23 @@ Immich is a multi-container stack:
 - **`immich-redis`** — a Valkey (Redis-compatible) cache/queue, data in
   `${HOLA_APP_DATA}/redis`.
 
+## Backup
+
+The manifest declares `accepts: ["backup@1"]` plus pre/post hooks, so Hola dumps
+the database before any snapshot of this app — its own pre-upgrade snapshot, and a
+scheduled run by an installed backup provider (Backrest). The `preHook` runs
+upstream's recommended dump inside `immich-postgres`:
+
+```
+pg_dump --clean --if-exists --dbname=immich --username=immich -f /backups/immich.sql
+```
+
+`/backups` is `${HOLA_APP_DATA}/backups`, so the dump lands inside the data root the
+snapshot captures; the `postHook` removes it afterwards. Copying
+`${HOLA_APP_DATA}/postgres` while Postgres is running is crash-consistent at best,
+so **`immich.sql` is the restorable copy of the database** — the library files
+under `${HOLA_APP_DATA}/library` restore directly.
+
 ## Required configuration
 
 | Env | Required | Notes |

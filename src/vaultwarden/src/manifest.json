@@ -1,6 +1,6 @@
 {
   "name": "vaultwarden",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "title": "Vaultwarden",
   "description": "Self-hosted, Bitwarden-compatible password manager",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/vaultwarden.svg",
@@ -43,5 +43,6 @@
   },
   "auth": {
     "mode": "none"
-  }
+  },
+  "accepts": ["backup@1"]
 }

@@ -1,6 +1,6 @@
 {
   "name": "running-man",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Running Man — self-hosted GitHub Actions runner management, Hola app package",
   "license": "UNLICENSED",
   "oci": {

@@ -1,6 +1,6 @@
 {
   "name": "running-man",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "title": "Running Man",
   "description": "Provision and manage pools of self-hosted GitHub Actions runners",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/running-man.svg",
@@ -48,5 +48,6 @@
   },
   "auth": {
     "mode": "forward-auth"
-  }
+  },
+  "accepts": ["backup@1"]
 }

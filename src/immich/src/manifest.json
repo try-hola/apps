@@ -1,6 +1,6 @@
 {
   "name": "immich",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "title": "Immich",
   "description": "Self-hosted photo and video management solution",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/immich.svg",
@@ -56,5 +56,24 @@
     "breaking": true,
     "upgradeNotesUrl": "https://immich.app/blog/v3-migration",
     "preUpgradeBackup": "recommended"
+  },
+  "accepts": ["backup@1"],
+  "backup": {
+    "preHook": {
+      "service": "immich-postgres",
+      "command": [
+        "sh",
+        "-c",
+        "pg_dump --clean --if-exists --dbname=immich --username=immich -f /backups/immich.sql"
+      ]
+    },
+    "postHook": {
+      "service": "immich-postgres",
+      "command": [
+        "sh",
+        "-c",
+        "rm -f /backups/immich.sql"
+      ]
+    }
   }
 }
