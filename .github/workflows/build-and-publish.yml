@@ -5,6 +5,12 @@ name: Build and Publish Changed Packages
 # (compose.yaml, manifest.json, …) becomes its own layer, so the Hola server's
 # `oras pull -o <dir>` gets the files directly. On merge to main we also
 # regenerate the root catalog.json index the server consumes via HOLA_CATALOG_URL.
+#
+# Two publish paths, decided by the package's own version (docs/release-channels.md):
+# a release version publishes on merge to main and moves `:latest`; a pre-release
+# version (0.11.0-rc.1) publishes straight from its pull request, moves nothing,
+# and reaches the catalog as a `versions[]` entry with a `channel` marker on the
+# next regeneration from main.
 on:
   push:
     branches: [main]
@@ -12,6 +18,7 @@ on:
       - 'src/**'
       - 'bin/**'
       - 'schemas/**'
+      - 'catalog.json'
       - '.github/workflows/build-and-publish.yml'
   pull_request:
     branches: [main]
@@ -19,6 +26,7 @@ on:
       - 'src/**'
       - 'bin/**'
       - 'schemas/**'
+      - 'catalog.json'
       - '.github/workflows/build-and-publish.yml'
   workflow_dispatch:
     inputs:
@@ -68,10 +76,27 @@ jobs:
           echo "changes=${CHANGED}" >> $GITHUB_OUTPUT
           echo "Changed packages: ${CHANGED}"
 
-  # Publish changed packages as loose OCI layers (push to main only).
+  # Publish changed packages as loose OCI layers.
+  #
+  # Release versions publish on merge to main, as they always have. A
+  # PRE-RELEASE version (semver: the version contains a `-`, e.g. 0.11.0-rc.1)
+  # also publishes FROM THE PULL REQUEST that introduces it — otherwise getting
+  # an rc bundle into the world would mean merging it to main first, which is
+  # the production catalog change the rc exists to avoid (try-hola/apps#149).
+  # The trigger is mechanical, decided from the package's own version rather
+  # than a label or an input: on a PR, publish exactly the changed packages
+  # whose version is a pre-release and nothing else.
+  #
+  # A PR publish can never move a moving tag: it passes moving-tag `none`, and
+  # push-oci-package.sh refuses to move `:latest` for a pre-release anyway.
+  # Fork PRs are skipped — GITHUB_TOKEN is read-only there, so the push would
+  # fail rather than be denied.
   build-and-publish:
     needs: detect-changes
-    if: ${{ needs.detect-changes.outputs.changed_packages != '[]' && github.event_name != 'pull_request' }}
+    if: >-
+      ${{ needs.detect-changes.outputs.changed_packages != '[]'
+          && (github.event_name != 'pull_request'
+              || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -100,27 +125,86 @@ jobs:
       # The matrix is built from the diff, which includes deletions — skip a
       # package that was removed in this push.
       - name: Publish loose-layer package
+        env:
+          PACKAGE: ${{ matrix.package }}
+          IS_PULL_REQUEST: ${{ github.event_name == 'pull_request' }}
+          REGISTRY_PATH: ghcr.io/${{ github.repository_owner }}
+          REPOSITORY: ${{ github.event.repository.name }}
         run: |
-          if [ ! -d "src/${{ matrix.package }}/src" ]; then
-            echo "src/${{ matrix.package }} no longer present (deleted) — skipping publish"
+          if [ ! -d "src/$PACKAGE/src" ]; then
+            echo "src/$PACKAGE no longer present (deleted) — skipping publish"
             exit 0
           fi
-          ./bin/push-oci-package.sh "${{ matrix.package }}" ghcr.io/${{ github.repository_owner }} "${{ github.event.repository.name }}"
+
+          VERSION=$(jq -r .version "src/$PACKAGE/package.json")
+
+          # Pre-releases are the only thing a PR may publish, and it publishes
+          # them without touching a moving tag.
+          MOVING_TAG=latest
+          if [ "$IS_PULL_REQUEST" = "true" ]; then
+            case "$VERSION" in
+              *-*) MOVING_TAG=none ;;
+              *)
+                echo "::notice title=Not published::$PACKAGE $VERSION is a release version — it publishes on merge to main, not from a pull request."
+                exit 0
+                ;;
+            esac
+          fi
+
+          ./bin/push-oci-package.sh "$PACKAGE" "$REGISTRY_PATH" "$REPOSITORY" "$MOVING_TAG"
+
+          if [ "$IS_PULL_REQUEST" = "true" ]; then
+            echo "::notice title=Pre-release published::$REGISTRY_PATH/$PACKAGE:$VERSION is published. It joins catalog.json (with its channel marker) on the next regeneration from main; see docs/release-channels.md."
+          fi
 
   # Regenerate + commit catalog.json on merge to main so the hosted index
   # (raw.githubusercontent.com/<owner>/<repo>/main/catalog.json) stays in sync.
+  #
+  # Stable entries come from each package.json; PRE-RELEASE entries come from the
+  # app's GHCR tags, which is where a PR-published rc lives (it is never merged
+  # into main's package.json). That is why this job needs a registry login and
+  # ORAS, and why it runs with CATALOG_PRERELEASES=require: a registry hiccup
+  # must fail the workflow, not quietly publish a catalog with every pre-release
+  # retired. `workflow_dispatch` on main is the button for pulling a freshly
+  # PR-published rc into the index without waiting for the next merge.
   build-catalog:
     needs: build-and-publish
     # Run on any push to main, even when no package qualified for publish.
-    if: ${{ always() && github.event_name == 'push' }}
+    if: >-
+      ${{ always()
+          && (github.event_name == 'push'
+              || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')) }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      packages: read
     steps:
       - uses: actions/checkout@v7
 
+      # `oras repo tags` reads the credentials docker/login-action writes to
+      # ~/.docker/config.json (public packages list anonymously, but a package
+      # left private after publish would otherwise fail the job).
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install ORAS
+        uses: oras-project/setup-oras@v2
+
       - name: Generate catalog.json
+        env:
+          CATALOG_PRERELEASES: require
         run: ./bin/build-catalog.sh "${{ github.repository_owner }}"
+
+      # The generator asserts the channel grammar as it emits; this re-checks the
+      # finished file against schemas/catalog.schema.json before it is committed,
+      # so a malformed marker can't reach the hosted index by way of a bot commit
+      # that no pull request reviewed.
+      - name: Validate catalog.json
+        run: node bin/validate-catalog.mjs
 
       - name: Commit catalog.json if changed
         run: |
@@ -158,6 +242,14 @@ jobs:
       # No arguments: validate-manifest.mjs discovers every src/*/src/manifest.json.
       - name: Validate every manifest against the schema
         run: node bin/validate-manifest.mjs
+
+      # The committed index, against schemas/catalog.schema.json: shape, plus the
+      # release-channel rules the server resolves silently (a channel outside
+      # ^[a-z][a-z0-9-]{0,31}$ is DROPPED rather than defaulted to stable, a
+      # repeated version keeps only its first entry). Failing here beats being
+      # dropped by every server.
+      - name: Validate catalog.json
+        run: node bin/validate-catalog.mjs
 
   # Verify package structure on PRs (loose-layer contract).
   verify-packages:

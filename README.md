@@ -277,20 +277,30 @@ app's data root is a replica. Nothing merges back.
    - `verify-packages`, per changed package — checks it has `package.json`, `src/compose.yaml`
      and `src/manifest.json`, and that `manifest.json` declares an `ingress.service` naming a
      real service in `compose.yaml`.
-   - `validate-catalog`, over **every** manifest — the shared inputs
+   - `validate-catalog`, over **every** manifest plus `catalog.json` — the shared inputs
      (`schemas/manifest.schema.json`, `bin/validate-manifest.mjs`) apply to all apps, so a change
      to either is checked against the whole catalog rather than only the packages it touched.
      A schema-only PR changes no package at all, which is exactly the case the per-package job
-     can't cover.
+     can't cover. `bin/validate-catalog.mjs` then checks the index itself against
+     `schemas/catalog.schema.json`, including the release-channel grammar — which the server
+     enforces by *dropping* a malformed entry rather than erroring, so it has to fail here.
 4. **Merge to `main`.** CI publishes `ghcr.io/try-hola/<name>:<version>` (+ `:latest`) as loose
    layers and regenerates the root [`catalog.json`](./catalog.json) index.
+
+A **pre-release** version (`0.11.0-rc.1`) takes a different path — published from the pull
+request, `:latest` untouched, listed on its own channel. See
+[Release channels](#release-channels-pre-releases).
 
 ### Publishing manually
 
 ```bash
-./bin/push-oci-package.sh <name> ghcr.io/try-hola apps   # needs `oras login ghcr.io`
-./bin/build-catalog.sh                                    # regenerate catalog.json
+./bin/push-oci-package.sh <name> ghcr.io/try-hola apps         # needs `oras login ghcr.io`
+./bin/push-oci-package.sh <name> ghcr.io/try-hola apps none    # …publish :<version> only
+./bin/build-catalog.sh                                         # regenerate catalog.json
 ```
+
+The fourth argument is the **moving tag**: `latest` (the default) also moves `:latest`; `none`
+publishes only the immutable `:<version>`. A pre-release version never moves `:latest` either way.
 
 ## catalog.json
 
@@ -302,6 +312,35 @@ https://raw.githubusercontent.com/try-hola/apps/main/catalog.json
 ```
 
 A fresh Hola install points at this URL by default, so published apps appear in the web catalog.
+
+### Release channels (pre-releases)
+
+An app can be listed at more than one version, each tagged with a **channel**, so an operator can
+run `hola install <app> --channel rc --as <name>` without the rc becoming anyone else's default
+([try-hola/hola ADR 0005](https://github.com/try-hola/hola/blob/main/docs/adr/0005-release-channels.md)):
+
+```jsonc
+"versions": [
+  { "version": "0.10.1",      "channel": "stable", "refs": { "oci": "ghcr.io/try-hola/remo:0.10.1" } },
+  { "version": "0.11.0-rc.1", "channel": "rc",     "refs": { "oci": "ghcr.io/try-hola/remo:0.11.0-rc.1" } }
+]
+```
+
+The short version of how that gets published:
+
+- **Stable comes from `src/<name>/package.json`; pre-releases come from the app's GHCR tags.** A
+  pre-release bundle is published **from its pull request** and its version is never merged into
+  main's `package.json`, so the registry is the only place it exists. `bin/build-catalog.sh` lists
+  the tags with `oras repo tags`.
+- **Retention: the newest stable, plus every pre-release newer than it.** An rc retires itself the
+  moment it graduates. To abandon one, delete that version of the GHCR package.
+- **The channel name is derived** from the version: the alphabetic prefix of the first prerelease
+  identifier, lower-cased (`0.11.0-rc.1` → `rc`, `2.0.0-beta.3` → `beta`). It is emitted explicitly
+  on every entry, `stable` included.
+- **`:latest` is never moved for a pre-release** (`bin/push-oci-package.sh`), because `:latest` is
+  what an unpinned pull resolves to.
+
+Full flow, retention rules and the `CATALOG_PRERELEASES` modes: [`docs/release-channels.md`](./docs/release-channels.md).
 
 ## Keeping upstream images current (Renovate)
 
