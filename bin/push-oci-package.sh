@@ -10,12 +10,39 @@ set -euo pipefail
 # (compose.yaml + manifest.json at the bundle root).
 #
 # Usage:
-#   ./bin/push-oci-package.sh <package-name> <registry-path> [repository] [tag]
+#   ./bin/push-oci-package.sh <package-name> <registry-path> [repository] [moving-tag]
 # Example:
 #   ./bin/push-oci-package.sh gitea ghcr.io/try-hola apps latest
+#
+# Arguments:
+#   package-name   Directory under src/ to publish (src/<package-name>/).
+#   registry-path  Registry + namespace the package is pushed under, without the
+#                  package name — e.g. `ghcr.io/try-hola` publishes
+#                  `ghcr.io/try-hola/<package-name>`. Required.
+#   repository     GitHub repository name, used only for the
+#                  org.opencontainers.image.source annotation. Optional; when
+#                  empty the annotation is omitted.
+#   moving-tag     `latest` (default) or `none`. See "Tags" below.
+#
+# Tags:
+#   The immutable `:<version>` tag (version from src/<package>/package.json) is
+#   ALWAYS pushed. The moving `:latest` tag is pushed IN ADDITION when
+#   moving-tag=latest AND <version> is a release version.
+#
+#   A PRE-RELEASE version (semver: the version contains a `-`, e.g.
+#   `0.11.0-rc.1`) NEVER moves `:latest`, whatever moving-tag says. `:latest` is
+#   what an unpinned `oras pull` resolves to, so moving it to an rc would make a
+#   pre-release the default bundle for every install. Release channels
+#   (try-hola/hola ADR 0005) express "this rc exists" through a catalog.json
+#   `versions[]` entry with a `channel` marker instead — see
+#   docs/release-channels.md. Mirrors the guard in try-hola/hola's
+#   cli-release.yml.
+#
+#   Pass `none` to publish only `:<version>` (CI uses it for pull-request
+#   publishes, so a PR can never move a moving tag even by accident).
 
 if [ $# -lt 2 ]; then
-  echo "Usage: $0 <package-name> <registry-path> [repository] [tag]" >&2
+  echo "Usage: $0 <package-name> <registry-path> [repository] [moving-tag]" >&2
   echo "Example: $0 gitea ghcr.io/try-hola apps latest" >&2
   exit 1
 fi
@@ -23,9 +50,14 @@ fi
 PACKAGE_NAME=$1
 REGISTRY_PATH=$2
 REPOSITORY=${3:-}
-TAG=${4:-latest}
+MOVING_TAG=${4:-latest}
 
 die() { echo "Error: $1" >&2; exit 1; }
+
+case "$MOVING_TAG" in
+  latest | none) ;;
+  *) die "unknown moving tag '$MOVING_TAG' (expected 'latest' or 'none')" ;;
+esac
 
 command -v oras >/dev/null 2>&1 || die "ORAS CLI not installed — https://oras.land/docs/installation"
 command -v jq >/dev/null 2>&1 || die "jq is required"
@@ -121,8 +153,16 @@ push() { # push <tag>
 }
 
 push "$VERSION"
-if [ "$TAG" = "latest" ]; then
-  push latest
-fi
 
-echo "Done: $REGISTRY_PATH/$PACKAGE_NAME:$VERSION (+ latest)"
+# The immutable version tag is always pushed; `:latest` moves only for a release
+# version. A pre-release (`0.11.0-rc.1`) is offered through a catalog.json
+# `versions[]` entry with a `channel` marker, never by becoming the default
+# bundle every unpinned pull resolves to.
+if [[ "$VERSION" == *-* ]]; then
+  echo "Done: $REGISTRY_PATH/$PACKAGE_NAME:$VERSION (pre-release — :latest left untouched)"
+elif [ "$MOVING_TAG" = "latest" ]; then
+  push latest
+  echo "Done: $REGISTRY_PATH/$PACKAGE_NAME:$VERSION (+ :latest)"
+else
+  echo "Done: $REGISTRY_PATH/$PACKAGE_NAME:$VERSION (moving-tag=none — :latest left untouched)"
+fi
