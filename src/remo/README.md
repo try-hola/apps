@@ -85,3 +85,21 @@ hola bundle deploy -p src/remo/src --app-id remo --port 8080
 ```
 
 Or install it from the Hola web catalog once published.
+
+## Beta channel
+
+Remo pre-releases are published on the catalog's `beta` channel as bundle
+pre-releases (for example `remo 0.11.0-beta.1`, which pins upstream
+`remo-web:4.4.0rc1`). Install one beside your stable copy without the
+allow-multiple override:
+
+```bash
+hola install remo --channel beta --as remo-beta
+```
+
+A beta copy starts with empty data (it tests boot, routing and SSO, not a data
+migration) and follows the `beta` channel for upgrades until you change it. The
+4.4 pre-release adds two dormant-by-default console surfaces you can enable at
+install or later from the deployment's configuration: **Host maintenance from
+the console** (`REMO_WEB_HOST_ADMIN`) and **Host registry management from the
+console** (`REMO_WEB_REGISTRY_ADMIN`). Both sit behind Hola's forward-auth.
