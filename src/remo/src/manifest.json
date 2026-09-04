@@ -1,6 +1,6 @@
 {
   "name": "remo",
-  "version": "0.10.1",
+  "version": "0.11.0-beta.1",
   "title": "Remo",
   "description": "Browser terminal for your Remo-managed remote development instances",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/remo.svg",
@@ -27,7 +27,11 @@
       "isSecret": false,
       "type": "enum",
       "options": [
-        { "value": "forward", "label": "Forward auth (Authentik / Traefik)", "description": "Trust the proxy-injected identity header named by REMO_WEB_FORWARD_AUTH_HEADER." }
+        {
+          "value": "forward",
+          "label": "Forward auth (Authentik / Traefik)",
+          "description": "Trust the proxy-injected identity header named by REMO_WEB_FORWARD_AUTH_HEADER."
+        }
       ],
       "description": "How remo-web authenticates the operator who mints adoption/pairing codes. Behind Hola's Authentik forward-auth, `forward` trusts the proxy-injected identity header named by REMO_WEB_FORWARD_AUTH_HEADER.",
       "label": "Operator auth mode"
@@ -38,25 +42,75 @@
       "isSecret": false,
       "description": "The trusted request header carrying the authenticated user, injected by Hola's Traefik forward-auth from Authentik's outpost. Default matches Authentik (X-authentik-username) — Authentik's equivalent of X-Forwarded-User. Only read when REMO_WEB_OPERATOR_AUTH=forward.",
       "label": "Forward-auth identity header"
+    },
+    {
+      "key": "REMO_WEB_HOST_ADMIN",
+      "value": "",
+      "isSecret": false,
+      "type": "enum",
+      "options": [
+        {
+          "value": "",
+          "label": "Dormant (default)",
+          "description": "Host maintenance from the console is off; every gated route answers 404."
+        },
+        {
+          "value": "enabled",
+          "label": "Enabled",
+          "description": "Turn on host maintenance from the browser: clone/delete/rebuild projects and open a host shell. Gated by the forward-auth operator identity."
+        }
+      ],
+      "description": "New in 4.4: gates the mutating host-maintenance surface (project clone/delete/rebuild, host shell). Leave dormant unless you want console-driven maintenance; it is protected by Hola's forward-auth either way.",
+      "label": "Host maintenance from the console"
+    },
+    {
+      "key": "REMO_WEB_REGISTRY_ADMIN",
+      "value": "",
+      "isSecret": false,
+      "type": "enum",
+      "options": [
+        {
+          "value": "",
+          "label": "Dormant (default)",
+          "description": "Host registry management from the console is off; every gated route answers 404."
+        },
+        {
+          "value": "enabled",
+          "label": "Enabled",
+          "description": "Let the console add, remove and configure SSH hosts (no workstation CLI needed). Larger blast radius than host maintenance: it changes which machines the service will SSH into."
+        }
+      ],
+      "description": "New in 4.4: gates the registry-management surface (add/remove/configure hosts from the console via the embedded CLI). Separate from host maintenance because registry mutation changes which machines the service SSHes into. Protected by Hola's forward-auth either way.",
+      "label": "Host registry management from the console"
     }
   ],
   "defaults": {
     "ports": [
-      { "container": 8080, "protocol": "tcp" }
+      {
+        "container": 8080,
+        "protocol": "tcp"
+      }
     ],
     "volumes": [
-      { "containerPath": "/home/remo/.config/remo" }
+      {
+        "containerPath": "/home/remo/.config/remo"
+      }
     ]
   },
   "auth": {
     "mode": "forward-auth",
     "forwardAuth": {
-      "bypassPaths": ["/api/v1/setup/"]
+      "bypassPaths": [
+        "/api/v1/setup/"
+      ]
     }
   },
   "upgrade": {
     "breaking": true,
-    "upgradeNotesUrl": "https://github.com/get2knowio/remo/blob/main/CHANGELOG.md"
+    "preUpgradeBackup": "recommended",
+    "upgradeNotesUrl": "https://github.com/get2knowio/remo/releases/tag/rc-4.4.0rc1"
   },
-  "accepts": ["backup@1"]
+  "accepts": [
+    "backup@1"
+  ]
 }
