@@ -30,34 +30,74 @@ KyBook, FBReader, KOReader) and Kobo devices authenticate with a credential they
 directly — they cannot follow an SSO redirect to a login page. Behind an unqualified
 forward-auth gate they just fail.
 
-So the manifest exempts the two reader paths:
+So the manifest exempts the two reader paths — but as `protectedBypassPaths`, not the
+plain `bypassPaths` other packages use for a path an app already guards with its own
+credential:
 
 ```jsonc
 "auth": {
   "mode": "forward-auth",
-  "forwardAuth": { "bypassPaths": ["/opds", "/kobo/"] }
+  "forwardAuth": {
+    "protectedBypassPaths": ["/opds", "/kobo/"],
+    "bypassAuthPasswordEnv": "OPDS_BYPASS_PASSWORD"
+  }
 }
 ```
 
-Hola emits a higher-priority Traefik router for each prefix that routes straight to
-the app with no forward-auth middleware (try-hola/hola#356).
+The difference matters here. Kobo's per-device sync token identifies *a* user, but
+it's not something an operator can hand to a device out of band before that user's
+account even exists, and Calibre-Web's own OPDS auth becomes optional the moment
+anonymous browsing is on (see below) — so neither one is a credential Hola can rely on
+to keep these two paths from being reachable by anyone on the internet. `bypassPaths`
+would leave them wide open; `protectedBypassPaths` instead puts a shared credential in
+front of them at Traefik, via one `basicAuth` middleware Hola emits for the deployment.
+Same higher-priority router mechanism as plain `bypassPaths` (try-hola/hola#356), just
+gated instead of open.
 
-**These paths are not left open.** Both are authenticated by Calibre-Web itself, which
-is why exempting them is safe:
+That credential is an ordinary generated secret, not something Hola invents just for
+this — `bypassAuthPasswordEnv` names the `OPDS_BYPASS_PASSWORD` entry declared below in
+this package's own `defaultEnv` (`isSecret: true` + a `generate` recipe, auto-filled at
+install time exactly like a database password would be). Hola resolves its value at
+deploy time and feeds it to Traefik; nothing new is generated or stored on its own.
 
-| Path | Credential | Verified behavior |
+**Retrieving the credential.** Same as any other generated secret on this app: open its
+**Configuration** tab in the Hola web UI and reveal `OPDS_BYPASS_PASSWORD` (masked by
+default, click the eye icon), or `hola config <deploymentId> --json` from the CLI.
+
+The fixed username is `hola`; that value is the password. Configure your OPDS reader or
+`Kobo eReader.conf` with `https://hola:<the password>@calibre-web.<HOLA_BASE_DOMAIN>/...`
+— most OPDS clients and Kobo's firmware both accept credentials embedded in the URL
+this way.
+
+**What's still per-user underneath that gate:**
+
+| Path | Once past the Traefik credential | Verified upstream behavior |
 | --- | --- | --- |
-| `/opds` | HTTP Basic, against the Calibre-Web user | `401` with no credentials, `200` with valid ones |
-| `/kobo/<token>/` | Per-user secret sync token in the URL path | `401` for an invalid token |
+| `/opds` | Optional HTTP Basic against a real Calibre-Web account — send it for that user's own library view/permissions, omit it for the Guest role's | Basic auth is optional (not required) once anonymous browsing is on — `requires_basic_auth_if_no_ano` |
+| `/kobo/<token>/` | Per-user secret sync token in the URL path, checked independently of anonymous browsing | `401` for an invalid token, regardless of the anonymous-browsing setting |
 
-Two caveats worth knowing:
+So the Traefik credential is the thing standing between these paths and the open
+internet; Calibre-Web's own per-user auth underneath it is unaffected and still
+personalizes access for anyone who supplies their own account credentials.
 
-- **Don't enable "Anonymous browsing"** in Calibre-Web's admin settings. It drops the
-  authentication requirement on OPDS, and with `/opds` exempted from the SSO gate that
-  would publish your library to the internet unauthenticated.
-- Every Authentik user who can reach the app still gets whatever Calibre-Web account
-  they log into. Forward-auth gates the door; it doesn't map identities into
-  Calibre-Web's user table.
+One caveat worth knowing: every Authentik user who can reach the app still gets
+whatever Calibre-Web account they log into (or the shared Guest role, with anonymous
+browsing on). Forward-auth gates the door; it doesn't map identities into Calibre-Web's
+user table.
+
+### Anonymous browsing (no more double login)
+
+This package sets `config_anonbrowse = 1` by default — Calibre-Web's own login screen
+is skipped for browser users, who already passed Authentik's SSO gate to get here.
+Anyone wanting their own account (uploads, personal shelves, admin) still logs in via
+the link in the UI; unauthenticated visitors get the Guest role's permissions instead
+(configurable under **Admin → User Management → Guest**).
+
+This is only safe *because* `/opds` and `/kobo/` are `protectedBypassPaths`, not plain
+`bypassPaths` — see above. If you ever change that (or remove Traefik from in front of
+this app), turn anonymous browsing back off first: it also makes Basic auth on `/opds`
+optional, and without the Traefik credential in front of it, an open `/opds` would be
+one unauthenticated request away from serving your whole library to anyone.
 
 ### Kobo sync
 
