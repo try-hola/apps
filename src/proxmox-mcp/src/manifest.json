@@ -5,7 +5,12 @@
   "description": "MCP server for Proxmox VE — let AI agents manage nodes, VMs, containers, snapshots and backups over one authenticated endpoint",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/proxmox-mcp.svg",
   "category": "developer-tools",
-  "tags": ["mcp", "proxmox", "ai", "virtualization"],
+  "tags": [
+    "mcp",
+    "proxmox",
+    "ai",
+    "virtualization"
+  ],
   "ingress": {
     "service": "proxmox-mcp",
     "port": 8000
@@ -58,7 +63,10 @@
       "label": "MCP bearer key",
       "description": "The credential every MCP client must send as `Authorization: Bearer <key>` to https://<this app's address>/mcp. Generated automatically; copy it from this deployment's configuration into your client. Anyone holding it can drive Proxmox through the tools you expose.",
       "required": true,
-      "generate": { "kind": "hex", "length": 32 }
+      "generate": {
+        "kind": "hex",
+        "length": 32
+      }
     },
     {
       "key": "MCP_TOOL_DENYLIST",
@@ -67,6 +75,42 @@
       "type": "string",
       "label": "Hidden tools",
       "description": "Comma-separated MCP tool names that are never exposed to clients. Defaults to the destructive ones; clear it to expose every tool. Guest command execution (execute_vm_command / execute_container_command) is additionally gated by the server's own command policy, which defaults to deny-all.",
+      "advanced": true
+    },
+    {
+      "key": "COMMAND_POLICY_MODE",
+      "value": "deny_all",
+      "isSecret": false,
+      "type": "enum",
+      "options": [
+        {
+          "value": "deny_all",
+          "label": "Deny all",
+          "description": "execute_vm_command / execute_container_command never run anything."
+        },
+        {
+          "value": "allowlist",
+          "label": "Allowlist",
+          "description": "Only commands matching one of the allow patterns run."
+        },
+        {
+          "value": "audit_only",
+          "label": "Audit only",
+          "description": "Everything runs; each command is logged. Only for a trusted, private endpoint."
+        }
+      ],
+      "label": "Guest command policy",
+      "description": "Governs the guest-agent command tools. Leave at Deny all unless an agent must run commands inside guests (e.g. injecting an SSH key into a freshly cloned VM); then use Allowlist with narrow patterns.",
+      "advanced": true
+    },
+    {
+      "key": "COMMAND_POLICY_ALLOW_PATTERNS",
+      "value": "",
+      "isSecret": false,
+      "type": "string",
+      "label": "Allowed command patterns",
+      "description": "Comma-separated regular expressions a guest command must match when the policy is Allowlist. Keep them narrow — e.g. ^mkdir -p /home/hola/\\.ssh$,^tee -a /home/hola/\\.ssh/authorized_keys$.",
+      "placeholder": "^tee -a /home/hola/\\.ssh/authorized_keys$",
       "advanced": true
     },
     {
@@ -90,14 +134,19 @@
   ],
   "defaults": {
     "ports": [
-      { "container": 8000, "protocol": "tcp" }
+      {
+        "container": 8000,
+        "protocol": "tcp"
+      }
     ],
     "volumes": []
   },
   "auth": {
     "mode": "forward-auth",
     "forwardAuth": {
-      "bypassPaths": ["/mcp"]
+      "bypassPaths": [
+        "/mcp"
+      ]
     }
   },
   "upgrade": {

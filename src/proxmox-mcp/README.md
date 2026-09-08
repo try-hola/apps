@@ -36,6 +36,12 @@ defensively:
 - Guest command execution (`execute_vm_command`, `execute_container_command`) is gated
   by the server's command policy, which defaults to deny-all
   ([upstream docs](https://github.com/RekklesNA/ProxmoxMCP-Plus/blob/main/docs/container-command-execution.md)).
+  Two advanced wizard fields expose it: `COMMAND_POLICY_MODE` (`deny_all` | `allowlist` |
+  `audit_only`) and `COMMAND_POLICY_ALLOW_PATTERNS` (comma-separated regexes). An
+  agent that provisions VMs typically needs exactly one allowlisted command — appending
+  an SSH key to a freshly cloned guest's `authorized_keys` — since the MCP tool set can
+  clone, start, stop, snapshot and delete VMs but has no tool to write cloud-init
+  settings (`sshkeys`, `ciuser`, `ipconfig0`) on the clone.
 - Use a **dedicated Proxmox user + API token** with only the ACLs the exposed tools need
   (`PVEAuditor` for read-only use; add `PVEVMAdmin` on the pools you want managed).
   Do not point it at `root@pam`.

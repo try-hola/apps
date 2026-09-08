@@ -26,6 +26,10 @@ services:
       # Tools hidden from every client (comma-separated). Defaults to the
       # destructive ones; clear it in the wizard to expose everything.
       MCP_TOOL_DENYLIST: "${MCP_TOOL_DENYLIST}"
+      # Guest-agent command execution policy (deny_all | allowlist | audit_only)
+      # and the allowlist patterns; both from the wizard's advanced fields.
+      COMMAND_POLICY_MODE: "${COMMAND_POLICY_MODE}"
+      COMMAND_POLICY_ALLOW_PATTERNS: "${COMMAND_POLICY_ALLOW_PATTERNS}"
       # DNS-rebinding protection: only the public host Traefik serves, plus
       # loopback for the container healthcheck below. Each host is listed both
       # bare and with `:*` — the MCP SDK matches a `host:*` pattern only when
