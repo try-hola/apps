@@ -1,0 +1,106 @@
+{
+  "name": "proxmox-mcp",
+  "version": "0.1.0",
+  "title": "Proxmox MCP",
+  "description": "MCP server for Proxmox VE — let AI agents manage nodes, VMs, containers, snapshots and backups over one authenticated endpoint",
+  "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/proxmox-mcp.svg",
+  "category": "developer-tools",
+  "tags": ["mcp", "proxmox", "ai", "virtualization"],
+  "ingress": {
+    "service": "proxmox-mcp",
+    "port": 8000
+  },
+  "defaultEnv": [
+    {
+      "key": "PROXMOX_HOST",
+      "value": "",
+      "isSecret": false,
+      "type": "string",
+      "label": "Proxmox host",
+      "placeholder": "pve.example.internal",
+      "description": "Hostname or IP of the Proxmox VE API this server talks to. Must be reachable from the Hola host's Docker network.",
+      "required": true
+    },
+    {
+      "key": "PROXMOX_USER",
+      "value": "",
+      "isSecret": false,
+      "type": "string",
+      "label": "Proxmox API user",
+      "placeholder": "mcp@pve",
+      "description": "The user the API token belongs to, in Proxmox's user@realm form (e.g. mcp@pve). Prefer a dedicated user with only the privileges the tools you expose need, not root@pam.",
+      "required": true
+    },
+    {
+      "key": "PROXMOX_TOKEN_NAME",
+      "value": "",
+      "isSecret": false,
+      "type": "string",
+      "label": "API token name",
+      "placeholder": "hola-mcp",
+      "description": "Name of the API token created for that user (Datacenter → Permissions → API Tokens). With 'Privilege Separation' on, grant the token's own ACLs.",
+      "required": true
+    },
+    {
+      "key": "PROXMOX_TOKEN_VALUE",
+      "value": "",
+      "isSecret": true,
+      "type": "string",
+      "label": "API token secret",
+      "description": "The token's secret value (the UUID shown once when the token is created). Stored as a secret; never returned by the API.",
+      "required": true
+    },
+    {
+      "key": "MCP_API_KEY",
+      "value": "",
+      "isSecret": true,
+      "type": "string",
+      "label": "MCP bearer key",
+      "description": "The credential every MCP client must send as `Authorization: Bearer <key>` to https://<this app's address>/mcp. Generated automatically; copy it from this deployment's configuration into your client. Anyone holding it can drive Proxmox through the tools you expose.",
+      "required": true,
+      "generate": { "kind": "hex", "length": 32 }
+    },
+    {
+      "key": "MCP_TOOL_DENYLIST",
+      "value": "delete_vm,delete_container,delete_snapshot,rollback_snapshot",
+      "isSecret": false,
+      "type": "string",
+      "label": "Hidden tools",
+      "description": "Comma-separated MCP tool names that are never exposed to clients. Defaults to the destructive ones; clear it to expose every tool. Guest command execution (execute_vm_command / execute_container_command) is additionally gated by the server's own command policy, which defaults to deny-all.",
+      "advanced": true
+    },
+    {
+      "key": "PROXMOX_PORT",
+      "value": "8006",
+      "isSecret": false,
+      "type": "port",
+      "label": "Proxmox API port",
+      "description": "Port of the Proxmox VE API (8006 by default).",
+      "advanced": true
+    },
+    {
+      "key": "PROXMOX_VERIFY_SSL",
+      "value": "true",
+      "isSecret": false,
+      "type": "boolean",
+      "label": "Verify Proxmox TLS certificate",
+      "description": "Turn off only for a Proxmox host that still uses its self-signed certificate; the connection is then encrypted but not authenticated.",
+      "advanced": true
+    }
+  ],
+  "defaults": {
+    "ports": [
+      { "container": 8000, "protocol": "tcp" }
+    ],
+    "volumes": []
+  },
+  "auth": {
+    "mode": "forward-auth",
+    "forwardAuth": {
+      "bypassPaths": ["/mcp"]
+    }
+  },
+  "upgrade": {
+    "upgradeNotesUrl": "https://github.com/RekklesNA/ProxmoxMCP-Plus/releases"
+  }
+}
