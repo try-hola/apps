@@ -4,17 +4,25 @@
 #
 # Reader connectivity is the reason this package exists in the shape it does.
 # E-reader apps (OPDS) and Kobo devices can't follow an SSO redirect, so the
-# manifest exempts /opds and /kobo/ from Hola's Authentik forward-auth gate.
-# Those paths are NOT left open: Calibre-Web authenticates them itself — HTTP
-# Basic for OPDS, and a per-user secret sync token embedded in the URL path for
-# Kobo. See README.md for the verification of that.
+# manifest exempts /opds and /kobo/ from Hola's Authentik forward-auth gate via
+# `protectedBypassPaths` (not the plain, unauthenticated `bypassPaths`) — Hola
+# puts its own generated shared credential in front of those two paths at
+# Traefik instead. That's what makes it safe to also enable Calibre-Web's own
+# "Anonymous browsing" below: with Traefik guarding the exempted paths, nothing
+# is reachable unauthenticated, so Calibre-Web's own per-request login stops
+# being the only thing standing between /opds and the open internet. See
+# README.md for the full picture, including how e-reader apps and Kobo devices
+# authenticate on top of the Traefik credential.
 services:
   # First-run seeder. Calibre-Web can only *read* an existing Calibre library —
   # it never creates one (cps/db.py's check_valid_db and setup_db both bail out
   # when metadata.db is absent), so on a fresh Hola install the app would come
   # up permanently stuck on its /admin/dbconfig setup page with nothing the
   # user could point it at. This sidecar puts an empty Calibre library in place
-  # and pre-answers the first-run config, so the app boots straight to a login.
+  # and pre-answers the first-run config, so the app boots straight to the
+  # library with no Calibre-Web login prompt (config_anonbrowse — see the
+  # header comment above for why that's safe here). Anyone wanting their own
+  # account (uploads, personal shelves) still logs in via the link in the UI.
   #
   # Runs the app's own image (already pulled — no second image to fetch) with
   # the s6 entrypoint overridden, so it seeds and exits instead of starting a
@@ -82,7 +90,8 @@ services:
 
         c.execute(
             'update settings set config_calibre_dir = ?, config_kobo_sync = 1,'
-            ' config_external_port = 443, config_kobo_proxy = 0',
+            ' config_external_port = 443, config_kobo_proxy = 0,'
+            ' config_anonbrowse = 1',
             ('/books',),
         )
         c.commit()
