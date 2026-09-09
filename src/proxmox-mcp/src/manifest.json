@@ -128,7 +128,16 @@
       "isSecret": false,
       "type": "boolean",
       "label": "Verify Proxmox TLS certificate",
-      "description": "Turn off only for a Proxmox host that still uses its self-signed certificate; the connection is then encrypted but not authenticated.",
+      "description": "Turn off only for a Proxmox host that still uses its self-signed certificate. Upstream refuses to start with verification off unless 'Allow unverified TLS (dev mode)' below is also on — flip both together.",
+      "advanced": true
+    },
+    {
+      "key": "PROXMOX_DEV_MODE",
+      "value": "false",
+      "isSecret": false,
+      "type": "boolean",
+      "label": "Allow unverified TLS (dev mode)",
+      "description": "Must be on whenever 'Verify Proxmox TLS certificate' is off: the server's config check blocks unverified TLS otherwise and the container exits at startup. It has no other effect. Leave off when verification is on.",
       "advanced": true
     }
   ],

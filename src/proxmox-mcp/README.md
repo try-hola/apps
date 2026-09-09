@@ -49,6 +49,11 @@ defensively:
 
 ## Configuration
 
+**Self-signed Proxmox certificate?** Turn *Verify Proxmox TLS certificate* off **and**
+*Allow unverified TLS (dev mode)* on. The upstream server refuses to start with
+verification off unless its dev-mode flag is set (verified: the container exits with
+"Insecure TLS configuration blocked" otherwise). Dev mode gates only that check.
+
 All settings are wizard fields (`manifest.defaultEnv`): the Proxmox host, API user,
 token name and secret are required; the MCP key is generated; port, TLS verification
 and the tool denylist are advanced. The image's `PROXMOX_MCP_CONFIG` file is never
