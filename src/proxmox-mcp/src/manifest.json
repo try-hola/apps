@@ -1,6 +1,6 @@
 {
   "name": "proxmox-mcp",
-  "version": "0.1.0",
+  "version": "0.1.0-beta.1",
   "title": "Proxmox MCP",
   "description": "MCP server for Proxmox VE — let AI agents manage nodes, VMs, containers, snapshots and backups over one authenticated endpoint",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/proxmox-mcp.svg",

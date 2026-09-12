@@ -2,7 +2,12 @@ services:
   proxmox-mcp:
     # ProxmoxMCP-Plus (MIT) — https://github.com/RekklesNA/ProxmoxMCP-Plus
     # Multi-arch (linux/amd64, linux/arm64); runs as the unprivileged `proxmoxmcp` user.
-    image: ghcr.io/rekklesna/proxmoxmcp-plus:v0.5.15@sha256:eb932ff5c83096f9cdb86b6118e59a658a6a4dd5057013a484d32d62e15cac46
+    #
+    # PRE-RELEASE (channel `beta`): built from the pofallon/ProxmoxMCP-Plus fork at
+    # v0.5.15-hola.1 = upstream v0.5.15 + the VM provisioning tools proposed in
+    # RekklesNA/ProxmoxMCP-Plus#127 (update_vm_config, get_vm_ip_addresses,
+    # get_next_vmid). Switch back to the upstream image once a release includes them.
+    image: ghcr.io/pofallon/proxmoxmcp-plus:v0.5.15-hola.1@sha256:d36d2fdba3e7dd5f503ef869f85197f9fea97e442b0c5ed17d7826c5623a7aff
     environment:
       # Native MCP Streamable HTTP mode (the image defaults to its OpenAPI/REST
       # bridge on 8811, which Hola does not expose). The MCP endpoint is /mcp.

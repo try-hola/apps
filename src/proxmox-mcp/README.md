@@ -65,6 +65,16 @@ None worth keeping: the optional job store is an SQLite file inside the containe
 own working directory and is recreated on restart. No data volume, so nothing to back
 up (`accepts` is intentionally empty).
 
+## Pre-release: fork image
+
+Version `0.1.0-beta.1` (channel `beta`) runs the image built from the
+[pofallon/ProxmoxMCP-Plus](https://github.com/pofallon/ProxmoxMCP-Plus) fork at
+`v0.5.15-hola.1`: upstream v0.5.15 plus the VM provisioning tools proposed upstream in
+[RekklesNA/ProxmoxMCP-Plus#127](https://github.com/RekklesNA/ProxmoxMCP-Plus/pull/127)
+(`update_vm_config`, `get_vm_ip_addresses`, `get_next_vmid`), which an agent needs to take a
+cloud-init template clone to a reachable guest. The stable version returns to the upstream
+image once a release includes them.
+
 ## Aggregation (later)
 
 Hola's planned aggregated MCP gateway (try-hola/hola spec 002) will front every
