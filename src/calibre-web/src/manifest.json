@@ -1,6 +1,6 @@
 {
   "name": "calibre-web",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "title": "Calibre-Web",
   "description": "Browse, read, and download your Calibre ebook library",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/calibre-web.svg",

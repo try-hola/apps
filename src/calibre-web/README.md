@@ -102,7 +102,9 @@ user table.
 ### Anonymous browsing (no more double login)
 
 This package sets `config_anonbrowse = 1` by default — Calibre-Web's own login screen
-is skipped for browser users, who already passed Authentik's SSO gate to get here.
+is skipped for browser users, who already passed Authentik's SSO gate to get here. With
+the credential stripped at the gate (see above), it is also what makes `/opds` work at
+all: Calibre-Web receives an anonymous request and has to be willing to serve one.
 Anyone wanting their own account (uploads, personal shelves, admin) still logs in via
 the link in the UI; unauthenticated visitors get the Guest role's permissions instead
 (configurable under **Admin → User Management → Guest**).
@@ -112,6 +114,27 @@ This is only safe *because* `/opds` and `/kobo/` are `protectedBypassPaths`, not
 this app), turn anonymous browsing back off first: it also makes Basic auth on `/opds`
 optional, and without the Traefik credential in front of it, an open `/opds` would be
 one unauthenticated request away from serving your whole library to anyone.
+
+
+### Upgrading from 1.1.x
+
+The reader model above (anonymous browsing, Kobo sync, the Guest grant) is applied
+**once**, by a script the `calibre-web-init` sidecar runs on every deploy and, on a
+brand-new install where `app.db` does not exist yet, from LinuxServer's custom-init
+hook. A stamp file (`/config/.hola-reader-model-v1`) makes it a no-op from then on, so
+anything you change afterwards in **Admin → Edit UI Configuration** or **User
+Management** stands.
+
+Applying it on an upgrade matters because 1.1.x left `/opds` and `/kobo/` exempt with
+no gate and Calibre-Web's own Basic auth in front of them, while 1.2.x moves that gate
+to Traefik. An install that got the new gate without anonymous browsing would answer
+`401` to every reader — the credential is verified and stripped at the edge, and then
+Calibre-Web asks for an account the reader cannot supply.
+
+**Your readers need reconfiguring after this upgrade.** Under 1.1.x they authenticated
+with a Calibre-Web account; from 1.2.x they use `https://hola:<OPDS_BYPASS_PASSWORD>@<app
+host>/opds` instead. Retrieve the password from the Configuration tab or
+`hola config <deploymentId> --json`.
 
 ### Kobo sync
 
