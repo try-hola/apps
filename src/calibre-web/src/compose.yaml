@@ -72,8 +72,10 @@ services:
         # init creates it — so this can't be done from here. Instead drop a
         # script in LinuxServer's custom-init hook: s6 runs it after
         # init-calibre-web-config (which creates app.db) and before the app
-        # starts. It's idempotent — it only writes when the library path is
-        # still unset, so anything changed later in the UI is never clobbered.
+        # starts. Both steps below are guarded so anything changed later in the
+        # UI is never clobbered: the settings write only fires while the library
+        # path is still unset, and the Guest grant only while the role is still
+        # exactly Calibre-Web's untouched default.
         cat > /custom-cont-init.d/10-hola-first-run <<'INIT'
         #!/usr/bin/with-contenv bash
         python3 -c "
@@ -96,6 +98,40 @@ services:
         )
         c.commit()
         print('[hola] first-run defaults written to app.db')
+        "
+
+        # Anonymous browsing (above) makes every reader the Guest user, and
+        # Calibre-Web creates Guest with ROLE_ANONYMOUS (32) and nothing else —
+        # no ROLE_DOWNLOAD (2), no ROLE_VIEWER (256). Guest can then LIST the
+        # library over OPDS but every book download answers 401, which is the
+        # whole point of an OPDS feed. Hola's Traefik credential already gates
+        # /opds and /kobo/ (and it is stripped before it reaches here, so a
+        # reader cannot present a Calibre-Web account of its own on that path),
+        # so the callers that get this far are exactly the ones the operator
+        # authorized. Grant Guest the two read-only rights that make the app do
+        # what it says: download a book, and read one in the browser. Runs on
+        # every boot but only while the role is still the untouched default, so
+        # an operator who edits Guest in the UI keeps their choice.
+        python3 -c "
+        import sqlite3, os
+
+        db = '/config/app.db'
+        if not os.path.exists(db):
+            raise SystemExit(0)
+
+        ROLE_DOWNLOAD, ROLE_ANONYMOUS, ROLE_VIEWER = 2, 32, 256
+
+        c = sqlite3.connect(db)
+        row = c.execute('select role from user where name = ?', ('Guest',)).fetchone()
+        if not row or row[0] != ROLE_ANONYMOUS:
+            raise SystemExit(0)
+
+        c.execute(
+            'update user set role = ? where name = ?',
+            (ROLE_ANONYMOUS | ROLE_DOWNLOAD | ROLE_VIEWER, 'Guest'),
+        )
+        c.commit()
+        print('[hola] granted Guest download + viewer rights')
         "
         INIT
         chmod +x /custom-cont-init.d/10-hola-first-run
