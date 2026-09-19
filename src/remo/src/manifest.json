@@ -1,6 +1,6 @@
 {
   "name": "remo",
-  "version": "0.11.0-beta.1",
+  "version": "0.11.0-beta.2",
   "title": "Remo",
   "description": "Browser terminal for your Remo-managed remote development instances",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/remo.svg",
@@ -108,7 +108,7 @@
   "upgrade": {
     "breaking": true,
     "preUpgradeBackup": "recommended",
-    "upgradeNotesUrl": "https://github.com/get2knowio/remo/releases/tag/rc-4.4.0rc1"
+    "upgradeNotesUrl": "https://github.com/get2knowio/remo/releases/tag/rc-4.4.0rc2"
   },
   "accepts": [
     "backup@1"

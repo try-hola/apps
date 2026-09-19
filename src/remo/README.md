@@ -89,8 +89,8 @@ Or install it from the Hola web catalog once published.
 ## Beta channel
 
 Remo pre-releases are published on the catalog's `beta` channel as bundle
-pre-releases (for example `remo 0.11.0-beta.1`, which pins upstream
-`remo-web:4.4.0rc1`). Install one beside your stable copy without the
+pre-releases (for example `remo 0.11.0-beta.2`, which pins upstream
+`remo-web:4.4.0rc2`). Install one beside your stable copy without the
 allow-multiple override:
 
 ```bash
