@@ -73,12 +73,26 @@ this way.
 
 | Path | Once past the Traefik credential | Verified upstream behavior |
 | --- | --- | --- |
-| `/opds` | Optional HTTP Basic against a real Calibre-Web account — send it for that user's own library view/permissions, omit it for the Guest role's | Basic auth is optional (not required) once anonymous browsing is on — `requires_basic_auth_if_no_ano` |
+| `/opds` | The **Guest** role — Hola strips the credential it verified, so the request reaches Calibre-Web anonymous and anonymous browsing serves it | Basic auth is optional (not required) once anonymous browsing is on — `requires_basic_auth_if_no_ano` |
 | `/kobo/<token>/` | Per-user secret sync token in the URL path, checked independently of anonymous browsing | `401` for an invalid token, regardless of the anonymous-browsing setting |
 
 So the Traefik credential is the thing standing between these paths and the open
-internet; Calibre-Web's own per-user auth underneath it is unaffected and still
-personalizes access for anyone who supplies their own account credentials.
+internet, and behind it `/opds` is a single shared view.
+
+**Why `/opds` can't be per-user.** A request carries one `Authorization` header, and
+on this path it belongs to Hola's gate — so there is no room for a second, personal
+Calibre-Web credential underneath. Hola strips the header after verifying it
+(try-hola/hola#455); before that fix Calibre-Web received the platform credential,
+looked for a user named `hola`, found none and answered `401` to every reader that had
+just passed the gate. Kobo is unaffected because its per-user token rides in the URL
+path, not in a header.
+
+That makes the Guest role the identity every OPDS reader gets, which is why the
+first-run seeder grants Guest `ROLE_DOWNLOAD` and `ROLE_VIEWER` on top of
+`ROLE_ANONYMOUS`. Without them Guest can list the library but every book download
+answers `401` — an OPDS feed you cannot download from. The grant only fires while the
+role is still Calibre-Web's untouched default, so if you edit Guest's permissions in
+the UI your choice stands.
 
 One caveat worth knowing: every Authentik user who can reach the app still gets
 whatever Calibre-Web account they log into (or the shared Guest role, with anonymous
