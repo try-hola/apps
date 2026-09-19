@@ -226,6 +226,13 @@
           }
         },
         {
+          "version": "0.11.0-beta.2",
+          "channel": "beta",
+          "refs": {
+            "oci": "ghcr.io/try-hola/remo:0.11.0-beta.2"
+          }
+        },
+        {
           "version": "0.11.0-beta.1",
           "channel": "beta",
           "refs": {
