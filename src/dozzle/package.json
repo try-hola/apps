@@ -1,6 +1,6 @@
 {
   "name": "dozzle",
-  "version": "0.1.0",
+  "version": "0.1.0-beta.1",
   "description": "Dozzle — live log viewer for every app on the host (Hola app package)",
   "license": "MIT",
   "oci": {

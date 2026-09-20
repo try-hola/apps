@@ -1,6 +1,6 @@
 {
   "name": "dozzle",
-  "version": "0.1.0",
+  "version": "0.1.0-beta.1",
   "title": "Dozzle",
   "description": "Live log viewer for every app on the host",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/dozzle.svg",
