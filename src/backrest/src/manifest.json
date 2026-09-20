@@ -1,6 +1,6 @@
 {
   "name": "backrest",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "title": "Backrest",
   "description": "Backup orchestrator (restic) with a web UI",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/backrest.svg",
@@ -8,16 +8,45 @@
     "service": "backrest",
     "port": 9898
   },
-  "provides": ["backup@1"],
-  "accepts": ["backup@1"],
-  "defaultEnv": [],
+  "provides": [
+    "backup@1"
+  ],
+  "accepts": [
+    "backup@1"
+  ],
+  "defaultEnv": [
+    {
+      "key": "BACKREST_HOLA_AUTOWIRE",
+      "value": "true",
+      "isSecret": false,
+      "label": "Wire the Hola backup hooks automatically",
+      "type": "enum",
+      "options": [
+        {
+          "value": "true"
+        },
+        {
+          "value": "false"
+        }
+      ],
+      "advanced": true,
+      "description": "Keep every Backrest repository wired to Hola’s backup-contract hooks, so a snapshot quiesces the apps that need it. Set to false to manage the two Command hooks yourself in the Backrest UI — Hola will then no longer add them back, and an unwired repository captures live database files."
+    }
+  ],
   "defaults": {
     "ports": [
-      { "container": 9898, "protocol": "tcp" }
+      {
+        "container": 9898,
+        "protocol": "tcp"
+      }
     ],
     "volumes": [
-      { "containerPath": "/config" },
-      { "containerPath": "/data" }
+      {
+        "containerPath": "/config"
+      },
+      {
+        "containerPath": "/data"
+      }
     ]
   },
   "auth": {
