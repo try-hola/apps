@@ -155,3 +155,121 @@ services:
         echo "[hola] backup contract hooks installed in /config/hola"
     volumes:
       - ${HOLA_APP_DATA}/config:/config
+
+  # Hola backup-contract bolt-on, part two: KEEPING the hooks wired.
+  #
+  # Part one (above) writes the scripts. On its own that is not enough, and the
+  # gap was silent: Backrest has no global hooks — `Hook` hangs off `Repo` and
+  # `Plan` only — so a script sitting in /config/hola is never called until it is
+  # attached to a repository. At install time there is no repository to attach it
+  # to; the operator creates one later, in the UI. Until #159 this bundle stopped
+  # after writing the files, so unless the operator hand-wired two Command hooks
+  # every snapshot was a live-file copy — while Hola's dashboard, which only
+  # knows that this app *declares* `provides: backup@1`, reported the accepting
+  # apps as quiesced. Both facts the operator saw were wrong in the reassuring
+  # direction.
+  #
+  # So this reconciler keeps every repository wired, for as long as the app runs.
+  # It attaches the hooks at REPO level, not plan level: Backrest fires a repo's
+  # hooks for every plan that backs onto it (internal/hook/hook.go,
+  # TasksTriggeredByEvent), so one wiring covers every plan the operator ever
+  # adds to that repository.
+  #
+  # It goes through Backrest's own API rather than editing config.json, and that
+  # is not a style preference — ConfigManager caches the parsed config in memory
+  # and only invalidates on its own writes, so a file edit under a running
+  # Backrest is read back only after a restart, and the next UI save silently
+  # overwrites it. SetConfig takes the read-modify-write through the same path
+  # the UI uses: `modno` gives optimistic concurrency (a mismatch is refused, and
+  # the next pass re-reads), and GetConfig does not redact repository passwords,
+  # so a round-trip preserves them.
+  #
+  # Backrest's own auth is disabled by default (config.NewDefaultConfig sets
+  # auth.disabled), and Hola gates the app at Traefik with forward-auth, so this
+  # call needs no credential. If an operator turns Backrest's login on, this
+  # reconciler starts getting 401s — it says so once per failure and keeps
+  # trying, and Hola's Backups page reports the provider as never having
+  # announced a backup.
+  #
+  # `mikefarah/yq` is the same image Homepage's bolt-on uses. It carries `yq`
+  # (which reads and writes JSON natively), BusyBox `wget` (which does POST with
+  # headers) and a shell — the three things this needs, on a pinned digest, with
+  # no custom build.
+  backrest-hola-autowire:
+    image: mikefarah/yq:4.53.3@sha256:11a1f0b604b13dbbdc662260d8db6f644b22d8553122a25c1b5b2e8713ca6977
+    user: "0:0"
+    depends_on:
+      - backrest
+    environment:
+      # `false` hands the two hooks back to the operator: nothing is added, and
+      # nothing already there is removed.
+      BACKREST_HOLA_AUTOWIRE: ${BACKREST_HOLA_AUTOWIRE:-true}
+    entrypoint: ["/bin/sh", "-c"]
+    # NOTE for editors: `$$` is a literal `$` after Compose interpolation, and
+    # `${HOLA_...}` is a Hola deploy-time token — neither survives being written
+    # the other way round.
+    command:
+      - |
+        set -u
+        api=http://backrest:9898
+        prepare=/config/hola/backup-prepare.sh
+        finalize=/config/hola/backup-finalize.sh
+        interval=30
+        warned=
+
+        call() { # call <procedure> <json-body-file|->
+          wget -q -O - --header 'Content-Type: application/json' \
+            --post-file "$$2" "$$api/v1.Backrest/$$1"
+        }
+
+        if [ "$${BACKREST_HOLA_AUTOWIRE:-true}" != "true" ]; then
+          echo "[hola] BACKREST_HOLA_AUTOWIRE=false — leaving Backrest's hooks to you."
+          echo "[hola] Wire /config/hola/backup-prepare.sh on SNAPSHOT_START (ON_ERROR_CANCEL)"
+          echo "[hola] and /config/hola/backup-finalize.sh on SNAPSHOT_END (ON_ERROR_IGNORE),"
+          echo "[hola] or every snapshot copies live database files."
+          # Stay up rather than exit: a one-shot that completes looks identical
+          # to one that was never asked to run, and Compose would restart it.
+          while :; do sleep 3600; done
+        fi
+
+        echo "[hola] keeping Backrest's repositories wired to the backup contract (every $${interval}s)"
+
+        while :; do
+          if ! printf '{}' > /tmp/req.json || ! cur=$$(call GetConfig /tmp/req.json); then
+            if [ "$$warned" != "unreachable" ]; then
+              echo "[hola] cannot read Backrest's config — is its own login enabled? retrying" >&2
+              warned=unreachable
+            fi
+            sleep "$$interval"; continue
+          fi
+          warned=
+
+          next=$$(printf '%s' "$$cur" | yq -p json -o json -I 0 "
+            with(.repos[] | select([.hooks[].actionCommand.command] | contains([\"$$prepare\"]) | not);
+                 .hooks = ((.hooks // []) + [{
+                   \"conditions\": [\"CONDITION_SNAPSHOT_START\"],
+                   \"onError\": \"ON_ERROR_CANCEL\",
+                   \"actionCommand\": {\"command\": \"$$prepare\"}
+                 }])) |
+            with(.repos[] | select([.hooks[].actionCommand.command] | contains([\"$$finalize\"]) | not);
+                 .hooks = ((.hooks // []) + [{
+                   \"conditions\": [\"CONDITION_SNAPSHOT_END\"],
+                   \"onError\": \"ON_ERROR_IGNORE\",
+                   \"actionCommand\": {\"command\": \"$$finalize\"}
+                 }]))
+          " 2>/dev/null)
+
+          if [ -z "$$next" ]; then
+            echo "[hola] could not read Backrest's config as JSON — leaving it untouched" >&2
+          elif [ "$$next" != "$$cur" ]; then
+            printf '%s' "$$next" > /tmp/next.json
+            if call SetConfig /tmp/next.json >/dev/null; then
+              echo "[hola] wired the backup-contract hooks into Backrest"
+            else
+              # Almost always a modno race with someone saving in the UI. The
+              # next pass re-reads and reapplies, so this is noted, not retried.
+              echo "[hola] could not write Backrest's config (config changed under us?) — retrying" >&2
+            fi
+          fi
+          sleep "$$interval"
+        done
