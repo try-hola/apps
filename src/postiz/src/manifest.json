@@ -115,6 +115,37 @@
     "upgradeNotesUrl": "https://github.com/pgautoupgrade/docker-pgautoupgrade"
   },
   "accepts": [
-    "backup@1"
+    "backup@1",
+    "restore@1"
+  ],
+  "restore": [
+    {
+      "id": "app-db",
+      "discard": [
+        "postgres"
+      ],
+      "hook": {
+        "service": "postiz-postgres",
+        "command": [
+          "sh",
+          "-c",
+          "psql -v ON_ERROR_STOP=1 -U postiz-user -d postiz-db-local -f /backups/postiz.sql"
+        ]
+      }
+    },
+    {
+      "id": "temporal-db",
+      "discard": [
+        "temporal-postgres"
+      ],
+      "hook": {
+        "service": "temporal-postgres",
+        "command": [
+          "sh",
+          "-c",
+          "psql -v ON_ERROR_STOP=1 -U temporal -d postgres -f /backups/temporal.sql"
+        ]
+      }
+    }
   ]
 }
