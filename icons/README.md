@@ -41,3 +41,6 @@ the apps they represent. SVGs were sourced from community icon sets:
 2. Set `"icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/<name>.svg"`
    in `src/<name>/src/manifest.json`.
 3. Regenerate the index: `./bin/build-catalog.sh`.
+- `proxmox-mcp.svg`: upstream's own logo from
+  [RekklesNA/ProxmoxMCP-Plus](https://github.com/RekklesNA/ProxmoxMCP-Plus/blob/main/docs/assets/logo-proxmoxmcp-plus-400.png)
+  (MIT). A 400² PNG in an SVG wrapper (~75KB), the same approach as `remo.svg`.
