@@ -1,0 +1,13 @@
+{
+  "name": "dozzle",
+  "version": "0.1.0",
+  "description": "Dozzle — live log viewer for every app on the host (Hola app package)",
+  "license": "MIT",
+  "oci": {
+    "annotations": {
+      "org.opencontainers.image.title": "dozzle",
+      "org.opencontainers.image.description": "Live log viewer for every app on the host",
+      "org.opencontainers.image.version": "${npm_package_version}"
+    }
+  }
+}

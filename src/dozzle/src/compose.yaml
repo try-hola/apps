@@ -1,0 +1,62 @@
+# Dozzle — a live log viewer for every app on the host. Packaged for Hola:
+# Traefik-only ingress (no host ports), all persistence bind-mounted under
+# ${HOLA_APP_DATA}.
+#
+# The interesting thing about this file is what ISN'T in it. Dozzle reads the
+# Docker API, and normally that means `- /var/run/docker.sock:/var/run/docker.sock`
+# — handing one container the ability to read every other container's
+# environment, mounts and networking, and to start, stop or exec into anything
+# on the host. Hola's compose validator rejects that mount outright, and this
+# package does not want it.
+#
+# Instead the manifest declares `provides: ["container-logs@1"]`. When the
+# operator consents to that grant at install, the server injects a
+# `hola-docker-proxy` sidecar of its own — running Hola's image, not this one —
+# which holds the socket read-only and answers a deliberately narrow slice of
+# the Docker API: GET only, and only the container list, container logs, the
+# event stream, a redacted inspect (no env, no mounts, no networking) and the
+# ping/version probes. Everything else answers 403. The server then points
+# DOCKER_HOST at that proxy on every service here, unconditionally — the wiring
+# belongs to the grant, not to the app.
+#
+# So Dozzle talks to DOCKER_HOST exactly as it would anywhere else and needs no
+# knowledge of Hola whatsoever; what changes is only what is on the other end of
+# it. See `Container logs` in README.md.
+services:
+  dozzle:
+    image: ghcr.io/amir20/dozzle:v11.1.0@sha256:7c4fb7f8124f5dea15ade881535cc19cc9a03e66639fd28154ff43a93b78944b
+    environment:
+      # Identity, from Hola's Authentik gate. Dozzle's `forward-proxy` provider
+      # trusts identity headers set by the proxy in front of it, which is exactly
+      # what forward-auth gives us — so the person Authentik authenticated is the
+      # person Dozzle shows, rather than every visitor sharing one anonymous view.
+      # The header names are Authentik's; Dozzle's defaults are Authelia's.
+      DOZZLE_AUTH_PROVIDER: forward-proxy
+      DOZZLE_AUTH_HEADER_USER: X-authentik-username
+      DOZZLE_AUTH_HEADER_EMAIL: X-authentik-email
+      DOZZLE_AUTH_HEADER_NAME: X-authentik-name
+      # Off by phoning-home policy: a self-hosted log viewer has no business
+      # reporting usage to anyone.
+      DOZZLE_NO_ANALYTICS: "true"
+      # Both of these need Docker API writes (POST /containers/{id}/{start,stop,
+      # restart}, POST /exec). The container-logs grant is read-only, so they
+      # would 403 on use — disabled explicitly rather than left to fail in the UI.
+      DOZZLE_ENABLE_ACTIONS: "false"
+      DOZZLE_ENABLE_SHELL: "false"
+      DOZZLE_FILTER: ${DOZZLE_FILTER}
+      DOZZLE_LEVEL: ${DOZZLE_LEVEL}
+    volumes:
+      # User settings (pinned containers, display preferences). Dozzle stores no
+      # log data of its own — it streams from the Docker API and keeps nothing,
+      # which is why this package is a viewer rather than a log store.
+      - ${HOLA_APP_DATA}/data:/data
+    # Web UI. Hola routes ingress through Traefik to this container port
+    # (manifest.ingress.port) — no host ports.
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD", "/dozzle", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

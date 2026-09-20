@@ -1,0 +1,77 @@
+{
+  "name": "dozzle",
+  "version": "0.1.0",
+  "title": "Dozzle",
+  "description": "Live log viewer for every app on the host",
+  "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/dozzle.svg",
+  "category": "tools",
+  "tags": [
+    "logs",
+    "monitoring",
+    "observability",
+    "containers"
+  ],
+  "provides": [
+    "container-logs@1"
+  ],
+  "accepts": [
+    "backup@1"
+  ],
+  "ingress": {
+    "service": "dozzle",
+    "port": 8080
+  },
+  "defaultEnv": [
+    {
+      "key": "DOZZLE_FILTER",
+      "value": "",
+      "isSecret": false,
+      "label": "Container filter",
+      "type": "string",
+      "advanced": true,
+      "description": "Limit which containers are shown, e.g. label=sh.hola.app=calibre-web to watch one app. Empty shows every container Hola's log grant exposes."
+    },
+    {
+      "key": "DOZZLE_LEVEL",
+      "value": "info",
+      "isSecret": false,
+      "label": "Dozzle's own log level",
+      "type": "enum",
+      "options": [
+        {
+          "value": "error"
+        },
+        {
+          "value": "warn"
+        },
+        {
+          "value": "info"
+        },
+        {
+          "value": "debug"
+        },
+        {
+          "value": "trace"
+        }
+      ],
+      "advanced": true,
+      "description": "Verbosity of Dozzle's own logs. Raise to debug when diagnosing what it can and cannot read through the log grant."
+    }
+  ],
+  "defaults": {
+    "ports": [
+      {
+        "container": 8080,
+        "protocol": "tcp"
+      }
+    ],
+    "volumes": [
+      {
+        "containerPath": "/data"
+      }
+    ]
+  },
+  "auth": {
+    "mode": "forward-auth"
+  }
+}

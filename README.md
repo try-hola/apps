@@ -12,6 +12,7 @@ at `<app>.<HOLA_BASE_DOMAIN>` — **no host ports**, ingress is Traefik-only).
 | 🖥️ Apache Guacamole | Clientless remote desktop gateway (RDP/VNC/SSH in the browser) |
 | 💾 Backrest | Backup orchestrator (restic) with a web UI |
 | 📚 Calibre-Web | Browse, read, and download your Calibre ebook library |
+| 📜 Dozzle | Live log viewer for every app on the host |
 | 🍵 Gitea | Self-hosted Git service |
 | 🛩️ Hangar | Self-hosted fleet control plane — git repo hygiene & remediation across providers |
 | 🏠 Homepage | A highly customizable application dashboard / start page |
@@ -128,9 +129,33 @@ every manifest in the catalog.
 Contract ids are a **closed set** defined by the server
 ([`packages/shared/src/contracts.ts`](https://github.com/try-hola/hola/blob/main/packages/shared/src/contracts.ts)),
 mirrored as an enum in `schemas/manifest.schema.json` — a contract has to exist
-there before it can be declared here. Today: `backup@1` (app-provided),
-plus `auth@1` and `push@1`, which the **platform** provides and no app may claim in
-`provides`.
+there before it can be declared here. Today: `backup@1` and
+`container-logs@1` (app-provided), plus `auth@1` and `push@1`, which the
+**platform** provides and no app may claim in `provides`.
+
+Two properties of a contract decide what a manifest has to say about it.
+
+**Participation — `declared` or `implicit`.** Most contracts are `declared`: being a
+subject means doing something (running a pre-hook, exposing an identity), so the app
+opts in via `accepts`. `container-logs@1` is `implicit`: a log collector reads from
+*underneath* every app through the Docker API, so every install is already a subject
+by virtue of running and there is nothing to opt into. An `accepts` naming it is a CI
+error — Hola would drop it with a warning anyway.
+
+**Shape — `brokered` or `provisioned`.** A `brokered` contract (`backup@1`) is an
+*operation*: the provider asks Hola to do something and Hola acts on the acceptors,
+so the provider's bundle has real work to do — calling the broker endpoints. A
+`provisioned` contract (`container-logs@1`, `auth@1`) is a *connection*: Hola wires
+up a scoped channel and steps out, and the provider needs no knowledge of Hola at
+all. That is why the Dozzle package is almost entirely comment — the integration is
+one line of manifest, and everything else is injected.
+
+| Contract | Provider | Participation | Shape | Provider grant |
+| --- | --- | --- | --- | --- |
+| `auth@1` | platform | declared | provisioned | — |
+| `backup@1` | app | declared | brokered | read-only mount of every app's data |
+| `push@1` | platform | declared | brokered | — |
+| `container-logs@1` | app | **implicit** | provisioned | a redacting, read-only Docker API façade |
 
 CI (`bin/validate-manifest.mjs`) enforces the parts a schema can't:
 
@@ -139,6 +164,7 @@ CI (`bin/validate-manifest.mjs`) enforces the parts a schema can't:
 | **error** | A `backup` block with no `backup@1` in `accepts[]` — the app filled in *how* and never said *whether*. |
 | **error** | `accepts` naming `auth@1`/`push@1` without the matching block, which declares participation the app can't deliver. |
 | **error** | `provides` naming a contract the platform provides, or either field naming a contract that doesn't exist. |
+| **error** | `accepts` naming an `implicit` contract (`container-logs@1`) — there is no acceptor side to opt into. |
 | **warn** | The app runs a database server and accepts nothing — it will show up as *uncovered*. |
 | **warn** | The app runs a database server, accepts `backup@1`, and declares no hooks — the snapshot will copy live database files. |
 

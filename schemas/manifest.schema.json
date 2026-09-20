@@ -206,8 +206,8 @@
     "accepts": {
       "description": "Capability contract(s) this app OPTS IN to being a subject of (ADR 0004) -- 'backup@1' means \"back me up\". Acceptance is DECLARED, never inferred from the typed block: the block ('backup') says HOW an app participates, 'accepts' says WHETHER it does, and they are different facts. An app that needs no hooks at all (SQLite, flat-file) must still declare `accepts` -- without it Hola cannot tell a genuinely-covered app from one nobody ever considered, and the coverage view reads it as uncovered rather than fine.",
       "anyOf": [
-        { "$ref": "#/$defs/contractRef" },
-        { "type": "array", "items": { "$ref": "#/$defs/contractRef" } }
+        { "$ref": "#/$defs/acceptableContractRef" },
+        { "type": "array", "items": { "$ref": "#/$defs/acceptableContractRef" } }
       ]
     },
     "upgrade": {
@@ -314,12 +314,17 @@
     "contractRef": {
       "type": "string",
       "description": "A capability contract reference, `<id>@<version>`. CLOSED SET: a contract is a promise about *server* behavior, so matching two strings does nothing unless Hola implements the middle. Mirrors CONTRACTS in try-hola/hola packages/shared/src/contracts.ts -- adding a contract there is what makes it declarable here. Enumerated rather than left open because the server drops an unrecognized ref with a warning (ADR 0003 forward-compat), which would make a typo'd `backups@1` a silent no-op instead of a CI failure.",
+      "enum": ["auth@1", "backup@1", "container-logs@1", "push@1"]
+    },
+    "acceptableContractRef": {
+      "type": "string",
+      "description": "The subset of #/$defs/contractRef an app can OPT IN to, i.e. those whose participation is `declared`. An `implicit` contract (container-logs@1) has no acceptor side: every install is a subject by virtue of running, and the server drops an `accepts` naming one with a warning, so declaring it here is a manifest error rather than a silent no-op.",
       "enum": ["auth@1", "backup@1", "push@1"]
     },
     "appProvidedContractRef": {
       "type": "string",
       "description": "The subset of #/$defs/contractRef whose provider is a catalog app rather than the platform, and which may therefore appear in `provides`.",
-      "enum": ["backup@1"]
+      "enum": ["backup@1", "container-logs@1"]
     },
     "backupHook": {
       "type": "object",

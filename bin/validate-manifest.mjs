@@ -196,6 +196,12 @@ const CONTRACTS = {
   'backup@1': { block: 'backup', blockRequired: false, appProvided: true, impliedByBlock: false },
   // Same as auth: the declared targets are the participation.
   'push@1': { block: 'push', blockRequired: true, appProvided: false, impliedByBlock: true },
+  // The one contract with no acceptor side at all (ADR 0004 §11): a log
+  // collector reads from underneath every app via the platform-injected Docker
+  // façade, so there is nothing for a subject to opt into or implement. The
+  // server drops an `accepts` naming it with a warning; here it is an error, so
+  // a manifest saying something meaningless fails CI rather than deploying.
+  'container-logs@1': { block: null, blockRequired: false, appProvided: true, impliedByBlock: false, acceptable: false },
 };
 
 /** Manifest fields that take a bare string or an array of them. */
@@ -231,6 +237,12 @@ function checkContracts(app, manifest, manifestPath, issues, warnings) {
       );
       continue;
     }
+    if (def.acceptable === false) {
+      issues.push(
+        `${app}/accepts: "${ref}" has no acceptor side — every install is already a subject by virtue of running, so Hola drops this declaration. Remove it.`
+      );
+      continue;
+    }
     if (def.blockRequired && manifest?.[def.block] === undefined) {
       issues.push(
         `${app}/accepts: "${ref}" requires a "${def.block}" block — accepting it without one declares participation the app can't deliver`
@@ -259,7 +271,7 @@ function checkContracts(app, manifest, manifestPath, issues, warnings) {
   // app into a contract on its author's behalf is the opposite of what the
   // declaration is for.
   for (const [ref, def] of Object.entries(CONTRACTS)) {
-    if (def.impliedByBlock) continue;
+    if (def.impliedByBlock || !def.block) continue;
     if (manifest?.[def.block] !== undefined && !accepts.includes(ref)) {
       issues.push(
         `${app}/accepts: a "${def.block}" block is declared but "${ref}" is missing from accepts[] — the block says HOW the app participates, accepts[] says WHETHER it does`
