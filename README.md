@@ -119,7 +119,7 @@ two roles, and both are declared in the manifest:
 ```jsonc
 // manifest.json — a Postgres-backed app being backed up
 "accepts": ["backup@1"],
-"backup": { "preHook": { … }, "postHook": { … } }
+"backup": { "preHook": { … }, "postHook": { … } }   // or a list of participations
 ```
 
 The **contract**, not the app, is the coupling point: an acceptor never names
@@ -167,6 +167,8 @@ CI (`bin/validate-manifest.mjs`) enforces the parts a schema can't:
 | **error** | `accepts` naming an `implicit` contract (`container-logs@1`) — there is no acceptor side to opt into. |
 | **warn** | The app runs a database server and accepts nothing — it will show up as *uncovered*. |
 | **warn** | The app runs a database server, accepts `backup@1`, and declares no hooks — the snapshot will copy live database files. |
+| **warn** | A database service no participation's `preHook` names — that one database is copied live while the rest of the app is quiesced. |
+| **error** | A plural `backup` participation with a missing, empty or duplicate `id`. |
 
 Warnings don't fail the build; whether an app is backed up is the author's call to
 make, but it shouldn't be made by accident.
@@ -209,6 +211,30 @@ the snapshot.
 | `preHook` | `{ service, command[] }` | Run **before** the file capture — quiesce or dump (e.g. `pg_dump`). `service` must name a compose service; `command` is **exec-form** (argv), not a shell string. |
 | `postHook` | `{ service, command[] }` | Run **after** the capture — clean up (e.g. remove the dump). Same shape. |
 
+**An app with two stateful services declares two participations.** The block is
+either the single object above or a **list**, each entry with its own `id` and
+hooks. The single object is shorthand for one participation named `default`;
+neither form is more correct, and no existing bundle has to change.
+
+```jsonc
+// manifest.json — postiz, which runs its own Postgres and Temporal's
+"accepts": ["backup@1"],
+"backup": [
+  { "id": "app-db",
+    "preHook":  { "service": "postiz-postgres",   "command": ["sh", "-c", "pg_dump -U postiz-user -d postiz-db-local -f /backups/postiz.sql"] },
+    "postHook": { "service": "postiz-postgres",   "command": ["sh", "-c", "rm -f /backups/postiz.sql"] } },
+  { "id": "temporal-db",
+    "preHook":  { "service": "temporal-postgres", "command": ["sh", "-c", "pg_dumpall -U temporal -f /backups/temporal.sql"] },
+    "postHook": { "service": "temporal-postgres", "command": ["sh", "-c", "rm -f /backups/temporal.sql"] } }
+]
+```
+
+`id` is required in the list form, non-empty, and unique within the list — Hola
+orders hooks and reports failures by it, so a duplicate makes two databases
+indistinguishable in the one message you get when a dump fails. Pre-hooks run in
+declaration order and are **fail-closed**: the first failure stops the run, and
+only the participations that started are cleaned up.
+
 Rules that make the hooks useful:
 
 - **Declare `accepts: ["backup@1"]` alongside the block.** The block alone doesn't
@@ -224,8 +250,11 @@ Rules that make the hooks useful:
   release declares `upgrade.preUpgradeBackup: "required"` (the upgrade aborts rather
   than snapshot a useless dump), and best-effort (warn + continue) otherwise. The
   `postHook` always runs (even if the capture failed) and never fails the upgrade.
-- Multi-DB apps: point the hook at the database service (`postiz-postgres`,
-  `immich-postgres`, etc.). One hook per block today.
+- **Every database service needs its own participation.** CI warns per database
+  service, not per app: one hook no longer makes a two-database app look done. A
+  database with no participation naming it in a `preHook` is copied live while
+  the rest of the app is quiesced, and Hola renders the app as *partially
+  covered*.
 
 ### Push targets (`push`)
 

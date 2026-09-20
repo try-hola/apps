@@ -152,15 +152,67 @@ function checkIngressService(app, manifest, manifestPath, issues) {
 }
 
 /**
+ * The `backup` block, normalised to a list of participations — the catalog-side
+ * twin of `backupParticipations()` in try-hola/hola @hola/shared/contracts.
+ *
+ * Acceptor participation is plural (spec 004, FR-001/005): an app with two
+ * stateful services declares two participations, each with its own `id` and
+ * hooks. The singular object stays valid and normalises to one participation
+ * named `default`, exactly as the server does it, so no existing bundle has to
+ * change.
+ *
+ * Returns `[{ id, index, preHook, postHook }]`; `index` is the array position
+ * (or `undefined` for the singular form) so an error can point at the entry.
+ */
+function backupParticipations(block) {
+  if (block === undefined || block === null) return [];
+  if (Array.isArray(block)) {
+    return block
+      .filter((entry) => entry && typeof entry === 'object')
+      .map((entry, index) => ({ id: entry.id, index, preHook: entry.preHook, postHook: entry.postHook }));
+  }
+  if (typeof block !== 'object') return [];
+  return [{ id: 'default', index: undefined, preHook: block.preHook, postHook: block.postHook }];
+}
+
+/** `backup` / `backup[2]` — how to name a participation in an error message. */
+function participationField(part, suffix) {
+  const base = part.index === undefined ? 'backup' : `backup[${part.index}]`;
+  return suffix ? `${base}.${suffix}` : base;
+}
+
+/**
  * Backup hooks (#121) run via `docker compose exec <service>`, so a hook naming
  * a service that doesn't exist fails at snapshot time — the least convenient
  * moment. Same cross-check `ingress.service` already gets.
+ *
+ * Also enforces what the JSON Schema can't about the plural form: every
+ * participation needs a non-empty `id`, and no two may share one. The server
+ * keys hook ordering and reporting on that id, so a duplicate makes two
+ * different databases indistinguishable in a failure message.
  */
 function checkBackupHooks(app, manifest, manifestPath, issues) {
-  const hooks = [
-    ['backup.preHook.service', manifest?.backup?.preHook?.service],
-    ['backup.postHook.service', manifest?.backup?.postHook?.service],
-  ].filter(([, service]) => typeof service === 'string' && service);
+  const parts = backupParticipations(manifest?.backup);
+  if (parts.length === 0) return;
+
+  if (Array.isArray(manifest?.backup)) {
+    const seen = new Set();
+    for (const part of parts) {
+      if (typeof part.id !== 'string' || part.id.trim() === '') {
+        issues.push(`${app}/${participationField(part, 'id')}: a plural backup participation needs a non-empty id`);
+        continue;
+      }
+      if (seen.has(part.id)) {
+        issues.push(`${app}/${participationField(part, 'id')}: duplicate participation id "${part.id}" — ids identify which database a hook failure was about`);
+      }
+      seen.add(part.id);
+    }
+  }
+
+  const hooks = parts.flatMap((part) => [
+    [participationField(part, 'preHook.service'), part.preHook?.service],
+    [participationField(part, 'postHook.service'), part.postHook?.service],
+  ]).filter(([, service]) => typeof service === 'string' && service);
   if (hooks.length === 0) return;
 
   const composeText = readCompose(app, manifestPath, 'backup', issues);
@@ -211,12 +263,93 @@ function refList(raw) {
 }
 
 /**
- * Images that mean "this app runs a database server" — the case where a
+ * Images that mean "this service IS a database server" — the case where a
  * file-level copy is crash-consistent at best and hooks are usually wanted.
  * Caches (redis/valkey) are deliberately absent: every app here uses them as
  * rebuildable state, so warning on them would be noise.
+ *
+ * This is the twin of DATABASE_IMAGE_FAMILIES in try-hola/hola
+ * packages/shared/src/contracts.ts, and the two MUST name the same families:
+ * this one decides whether an author is warned, that one decides whether the
+ * operator's dashboard judges the app's coverage at all. A family only this
+ * side knows means a needless warning; a family only that side knows means an
+ * app ships with no hooks and no warning. (A family NEITHER side knew is how
+ * `pgautoupgrade` — the Postgres image four catalog apps run — ended up
+ * rendering as fully quiesced on the dashboard; see try-hola/hola#470.)
+ *
+ * Matching mirrors `isDatabaseImage`: the last path segment of the image ref,
+ * minus tag and digest, matched exactly or as `family-*` / `*-family`, unless
+ * the remaining words name a companion role. It used to be a substring regex
+ * over the whole `image:` line, which could not tell WHICH service was the
+ * database — and per-service is exactly what the plural-participation warning
+ * below needs.
  */
-const DATABASE_IMAGE = /image:\s*\S*(postgres|pgautoupgrade|timescale|mysql|mariadb|percona|mongo|cockroach|mssql|sql-server)/i;
+const DATABASE_IMAGE_FAMILIES = [
+  'postgres', 'postgresql', 'pgautoupgrade', 'pgvector', 'postgis', 'timescaledb',
+  'mysql', 'mariadb', 'percona', 'mongo', 'mongodb', 'mssql', 'cockroachdb', 'couchdb',
+];
+
+/** Words that make a family name something that TALKS to a database, not one. */
+const COMPANION_ROLE_WORDS = new Set([
+  'adminer', 'admin', 'agent', 'backup', 'backups', 'cli', 'client', 'dump',
+  'exporter', 'express', 'init', 'operator', 'proxy', 'restore', 'ui', 'web',
+]);
+
+function namesACompanionRole(remainder) {
+  return remainder.split('-').some((word) => COMPANION_ROLE_WORDS.has(word));
+}
+
+function isDatabaseImage(imageRef) {
+  if (typeof imageRef !== 'string' || imageRef.trim().length === 0) return false;
+  const withoutDigest = imageRef.split('@')[0] ?? '';
+  const lastSlash = withoutDigest.lastIndexOf('/');
+  const afterSlash = lastSlash >= 0 ? withoutDigest.slice(lastSlash + 1) : withoutDigest;
+  const segment = (withoutTagOf(afterSlash) ?? '').toLowerCase().trim();
+  if (!segment) return false;
+  return DATABASE_IMAGE_FAMILIES.some((family) => {
+    if (segment === family) return true;
+    if (segment.startsWith(`${family}-`)) return !namesACompanionRole(segment.slice(family.length + 1));
+    if (segment.endsWith(`-${family}`)) return !namesACompanionRole(segment.slice(0, -(family.length + 1)));
+    return false;
+  });
+}
+
+function withoutTagOf(segment) {
+  return segment.split(':')[0];
+}
+
+/**
+ * Service name -> image, for every top-level service in compose.yaml.
+ *
+ * Line-based rather than a YAML parse, for the same reason `serviceExists` is:
+ * this script has no dependencies beyond the ajv it spawns, and every compose
+ * in this catalog is uniformly two-space indented under a single top-level
+ * `services:` key. A service whose image is set some other way (build:, an
+ * anchor) simply doesn't appear, which costs a warning, never a false one.
+ */
+function composeServiceImages(composeText) {
+  const out = new Map();
+  let inServices = false;
+  let current;
+  for (const line of composeText.split('\n')) {
+    if (/^services:\s*$/.test(line)) { inServices = true; continue; }
+    if (/^\S/.test(line)) { inServices = false; current = undefined; continue; }
+    if (!inServices) continue;
+    const service = line.match(/^ {2}([A-Za-z0-9][A-Za-z0-9._-]*):\s*$/);
+    if (service) { current = service[1]; continue; }
+    if (!current) continue;
+    const image = line.match(/^ {4}image:\s*["']?([^"'\s]+)["']?\s*$/);
+    if (image) { out.set(current, image[1]); current = undefined; }
+  }
+  return out;
+}
+
+/** Every compose service whose image names a recognised database family. */
+function databaseServices(composeText) {
+  return [...composeServiceImages(composeText)]
+    .filter(([, image]) => isDatabaseImage(image))
+    .map(([service]) => service);
+}
 
 /**
  * The two halves of a contract have to agree, and neither the JSON Schema nor the
@@ -285,15 +418,35 @@ function checkContracts(app, manifest, manifestPath, issues, warnings) {
   const composePath = join(dirname(manifestPath), 'compose.yaml');
   if (!existsSync(composePath)) return;
   const composeText = readFileSync(composePath, 'utf8');
-  if (!DATABASE_IMAGE.test(composeText)) return;
+  const databases = databaseServices(composeText);
+  if (databases.length === 0) return;
 
   if (!accepts.includes('backup@1')) {
     warnings.push(
-      `${app}/accepts: runs a database server but accepts nothing — Hola will report it as UNCOVERED. Declare "backup@1" (with hooks) or say why not.`
+      `${app}/accepts: runs a database server (${databases.join(', ')}) but accepts nothing — Hola will report it as UNCOVERED. Declare "backup@1" (with hooks) or say why not.`
     );
-  } else if (manifest?.backup === undefined) {
+    return;
+  }
+
+  // Per DATABASE SERVICE, not per app. An app-level check passes the moment ONE
+  // hook exists, which is how postiz shipped with its second Postgres
+  // (temporal-postgres) never quiesced — the one case plural participations
+  // exist for. The pre-hook is the quiesce, so that is what has to name it.
+  const quiesced = new Set(
+    backupParticipations(manifest?.backup)
+      .map((part) => part.preHook?.service)
+      .filter((service) => typeof service === 'string' && service)
+  );
+  const unquiesced = databases.filter((service) => !quiesced.has(service));
+  if (unquiesced.length === 0) return;
+
+  if (quiesced.size === 0) {
     warnings.push(
-      `${app}/backup: accepts "backup@1" and runs a database server, but declares no hooks — the snapshot will copy live database files, which is crash-consistent at best.`
+      `${app}/backup: accepts "backup@1" and runs a database server (${unquiesced.join(', ')}), but declares no pre-hook for it — the snapshot will copy live database files, which is crash-consistent at best.`
+    );
+  } else {
+    warnings.push(
+      `${app}/backup: no participation's preHook names ${unquiesced.map((s) => `"${s}"`).join(', ')} — that database is copied live while the rest of the app is quiesced. Hola renders this app as PARTIALLY covered. Add a participation for it.`
     );
   }
 }

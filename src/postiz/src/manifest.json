@@ -1,6 +1,6 @@
 {
   "name": "postiz",
-  "version": "2.0.4",
+  "version": "2.1.0",
   "title": "Postiz",
   "description": "Open-source social media scheduling tool with AI features",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/postiz.svg",
@@ -16,7 +16,10 @@
       "description": "Unique random string used to sign sessions. Generate one, e.g. `openssl rand -hex 32`.",
       "label": "Session Signing Key",
       "required": true,
-      "generate": { "kind": "hex", "length": 32 }
+      "generate": {
+        "kind": "hex",
+        "length": 32
+      }
     },
     {
       "key": "DISABLE_REGISTRATION",
@@ -66,28 +69,52 @@
       }
     }
   },
-  "backup": {
-    "preHook": {
-      "service": "postiz-postgres",
-      "command": [
-        "sh",
-        "-c",
-        "pg_dump -U postiz-user -d postiz-db-local -f /backups/postiz.sql"
-      ]
+  "backup": [
+    {
+      "id": "app-db",
+      "preHook": {
+        "service": "postiz-postgres",
+        "command": [
+          "sh",
+          "-c",
+          "pg_dump -U postiz-user -d postiz-db-local -f /backups/postiz.sql"
+        ]
+      },
+      "postHook": {
+        "service": "postiz-postgres",
+        "command": [
+          "sh",
+          "-c",
+          "rm -f /backups/postiz.sql"
+        ]
+      }
     },
-    "postHook": {
-      "service": "postiz-postgres",
-      "command": [
-        "sh",
-        "-c",
-        "rm -f /backups/postiz.sql"
-      ]
+    {
+      "id": "temporal-db",
+      "preHook": {
+        "service": "temporal-postgres",
+        "command": [
+          "sh",
+          "-c",
+          "pg_dumpall -U temporal -f /backups/temporal.sql"
+        ]
+      },
+      "postHook": {
+        "service": "temporal-postgres",
+        "command": [
+          "sh",
+          "-c",
+          "rm -f /backups/temporal.sql"
+        ]
+      }
     }
-  },
+  ],
   "upgrade": {
     "breaking": true,
     "preUpgradeBackup": "required",
     "upgradeNotesUrl": "https://github.com/pgautoupgrade/docker-pgautoupgrade"
   },
-  "accepts": ["backup@1"]
+  "accepts": [
+    "backup@1"
+  ]
 }

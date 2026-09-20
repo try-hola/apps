@@ -5,7 +5,13 @@
   "description": "Shape of src/<name>/src/manifest.json, the per-app metadata the Hola server reads at deploy time. See README.md for full field docs. additionalProperties:false is used at the top level and for defaultEnv entries because the Hola server's manifest coercion silently drops unknown/malformed fields instead of erroring -- a typo'd field name is otherwise a silent no-op, not a CI failure.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["name", "version", "title", "description", "ingress"],
+  "required": [
+    "name",
+    "version",
+    "title",
+    "description",
+    "ingress"
+  ],
   "properties": {
     "name": {
       "type": "string",
@@ -17,21 +23,34 @@
       "minLength": 1,
       "description": "Hola bundle version (describes impact on the Hola user, not upstream's version)."
     },
-    "title": { "type": "string", "minLength": 1 },
-    "description": { "type": "string", "minLength": 1 },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
     "icon": {
       "type": "string",
       "description": "Emoji or an icon URL."
     },
-    "category": { "type": "string" },
+    "category": {
+      "type": "string"
+    },
     "tags": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
     "ingress": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["service", "port"],
+      "required": [
+        "service",
+        "port"
+      ],
       "properties": {
         "service": {
           "type": "string",
@@ -48,7 +67,9 @@
     },
     "defaultEnv": {
       "type": "array",
-      "items": { "$ref": "#/$defs/appEnvVar" }
+      "items": {
+        "$ref": "#/$defs/appEnvVar"
+      }
     },
     "defaults": {
       "type": "object",
@@ -59,11 +80,23 @@
           "items": {
             "type": "object",
             "additionalProperties": true,
-            "required": ["container"],
+            "required": [
+              "container"
+            ],
             "properties": {
-              "host": { "type": "integer" },
-              "container": { "type": "integer" },
-              "protocol": { "type": "string", "enum": ["tcp", "udp"] }
+              "host": {
+                "type": "integer"
+              },
+              "container": {
+                "type": "integer"
+              },
+              "protocol": {
+                "type": "string",
+                "enum": [
+                  "tcp",
+                  "udp"
+                ]
+              }
             }
           }
         },
@@ -72,11 +105,19 @@
           "items": {
             "type": "object",
             "additionalProperties": true,
-            "required": ["containerPath"],
+            "required": [
+              "containerPath"
+            ],
             "properties": {
-              "hostPath": { "type": "string" },
-              "containerPath": { "type": "string" },
-              "readOnly": { "type": "boolean" }
+              "hostPath": {
+                "type": "string"
+              },
+              "containerPath": {
+                "type": "string"
+              },
+              "readOnly": {
+                "type": "boolean"
+              }
             }
           }
         }
@@ -86,74 +127,144 @@
       "type": "object",
       "description": "SSO integration. Permissive on nested shapes -- this block is not part of the typed-defaultEnv contract and the server's coercion is deliberately forward-compatible about extra fields.",
       "additionalProperties": true,
-      "required": ["mode"],
+      "required": [
+        "mode"
+      ],
       "properties": {
         "mode": {
           "type": "string",
-          "enum": ["none", "native-oidc", "forward-auth", "native-ldap"]
+          "enum": [
+            "none",
+            "native-oidc",
+            "forward-auth",
+            "native-ldap"
+          ]
         },
         "fallback": {
           "type": "string",
-          "enum": ["forward-auth"],
+          "enum": [
+            "forward-auth"
+          ],
           "description": "Gates a native-oidc/none app behind proxy login too; can coexist with any mode."
         },
         "oidc": {
           "type": "object",
           "additionalProperties": true,
           "properties": {
-            "redirectPath": { "type": "string" },
-            "scopes": { "type": "array", "items": { "type": "string" } },
+            "redirectPath": {
+              "type": "string"
+            },
+            "scopes": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
             "env": {
               "type": "object",
-              "additionalProperties": { "type": "string" },
+              "additionalProperties": {
+                "type": "string"
+              },
               "properties": {
-                "issuer": { "type": "string" },
-                "clientId": { "type": "string" },
-                "clientSecret": { "type": "string" },
-                "redirectUri": { "type": "string" },
-                "authUrl": { "type": "string" },
-                "tokenUrl": { "type": "string" },
-                "userinfoUrl": { "type": "string" }
+                "issuer": {
+                  "type": "string"
+                },
+                "clientId": {
+                  "type": "string"
+                },
+                "clientSecret": {
+                  "type": "string"
+                },
+                "redirectUri": {
+                  "type": "string"
+                },
+                "authUrl": {
+                  "type": "string"
+                },
+                "tokenUrl": {
+                  "type": "string"
+                },
+                "userinfoUrl": {
+                  "type": "string"
+                }
               }
             },
             "staticEnv": {
               "type": "object",
-              "additionalProperties": { "type": "string" }
+              "additionalProperties": {
+                "type": "string"
+              }
             },
             "setup": {
               "type": "object",
               "additionalProperties": true,
-              "required": ["command"],
+              "required": [
+                "command"
+              ],
               "properties": {
-                "service": { "type": "string" },
-                "user": { "type": "string" },
-                "check": { "type": "array", "items": { "type": "string" } },
-                "checkMatch": { "type": "string" },
-                "command": { "type": "array", "items": { "type": "string" } }
+                "service": {
+                  "type": "string"
+                },
+                "user": {
+                  "type": "string"
+                },
+                "check": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "checkMatch": {
+                  "type": "string"
+                },
+                "command": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
               }
             },
             "extraRedirectUris": {
               "type": "array",
-              "items": { "type": "string" }
+              "items": {
+                "type": "string"
+              }
             },
             "credentialsFile": {
               "type": "object",
               "additionalProperties": true,
-              "required": ["path"],
+              "required": [
+                "path"
+              ],
               "properties": {
-                "path": { "type": "string" }
+                "path": {
+                  "type": "string"
+                }
               }
             },
             "roleClaim": {
               "type": "object",
               "additionalProperties": true,
-              "required": ["claim"],
+              "required": [
+                "claim"
+              ],
               "properties": {
-                "claim": { "type": "string" },
-                "adminGroup": { "type": "string" },
-                "adminValue": { "type": "string" },
-                "memberValue": { "type": "string" },
-                "scope": { "type": "string" }
+                "claim": {
+                  "type": "string"
+                },
+                "adminGroup": {
+                  "type": "string"
+                },
+                "adminValue": {
+                  "type": "string"
+                },
+                "memberValue": {
+                  "type": "string"
+                },
+                "scope": {
+                  "type": "string"
+                }
               }
             }
           }
@@ -161,18 +272,38 @@
         "ldap": {
           "type": "object",
           "additionalProperties": true,
-          "required": ["env"],
+          "required": [
+            "env"
+          ],
           "properties": {
             "env": {
               "type": "object",
-              "additionalProperties": { "type": "string" },
-              "required": ["host", "port", "bindDn", "bindPassword", "baseDn"],
+              "additionalProperties": {
+                "type": "string"
+              },
+              "required": [
+                "host",
+                "port",
+                "bindDn",
+                "bindPassword",
+                "baseDn"
+              ],
               "properties": {
-                "host": { "type": "string" },
-                "port": { "type": "string" },
-                "bindDn": { "type": "string" },
-                "bindPassword": { "type": "string" },
-                "baseDn": { "type": "string" }
+                "host": {
+                  "type": "string"
+                },
+                "port": {
+                  "type": "string"
+                },
+                "bindDn": {
+                  "type": "string"
+                },
+                "bindPassword": {
+                  "type": "string"
+                },
+                "baseDn": {
+                  "type": "string"
+                }
               }
             }
           }
@@ -183,7 +314,9 @@
           "properties": {
             "allowedGroups": {
               "type": "array",
-              "items": { "type": "string" }
+              "items": {
+                "type": "string"
+              }
             }
           }
         }
@@ -192,45 +325,97 @@
     "consumes": {
       "description": "Cross-app capability(ies) this app consumes, e.g. 'app-registry'. A bare string or an array of strings. NOTE: 'apps-data' is deprecated here -- it is now the provider grant of the 'backup@1' contract, so a backup engine declares `provides: [\"backup@1\"]` instead and the operator consents to the grant at install. See ADR 0004.",
       "anyOf": [
-        { "type": "string" },
-        { "type": "array", "items": { "type": "string" } }
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       ]
     },
     "provides": {
       "description": "Capability contract(s) this app PERFORMS for other apps (ADR 0004) -- e.g. 'backup@1' for a backup engine. A contract's provider grant is elevated access the server injects because of the role, disclosed to the operator for consent at install: 'backup@1' grants a read-only mount of every app's data. Only contracts with an app-side provider may be declared; 'auth@1' and 'push@1' are provided by the platform itself, and an app claiming them is a manifest error. See Capability contracts in README.md.",
       "anyOf": [
-        { "$ref": "#/$defs/appProvidedContractRef" },
-        { "type": "array", "items": { "$ref": "#/$defs/appProvidedContractRef" } }
+        {
+          "$ref": "#/$defs/appProvidedContractRef"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/appProvidedContractRef"
+          }
+        }
       ]
     },
     "accepts": {
       "description": "Capability contract(s) this app OPTS IN to being a subject of (ADR 0004) -- 'backup@1' means \"back me up\". Acceptance is DECLARED, never inferred from the typed block: the block ('backup') says HOW an app participates, 'accepts' says WHETHER it does, and they are different facts. An app that needs no hooks at all (SQLite, flat-file) must still declare `accepts` -- without it Hola cannot tell a genuinely-covered app from one nobody ever considered, and the coverage view reads it as uncovered rather than fine.",
       "anyOf": [
-        { "$ref": "#/$defs/acceptableContractRef" },
-        { "type": "array", "items": { "$ref": "#/$defs/acceptableContractRef" } }
+        {
+          "$ref": "#/$defs/acceptableContractRef"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/acceptableContractRef"
+          }
+        }
       ]
     },
     "upgrade": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "breaking": { "type": "boolean" },
-        "minFromVersion": { "type": "string" },
-        "waypoints": { "type": "array", "items": { "type": "string" } },
-        "upgradeNotesUrl": { "type": "string" },
+        "breaking": {
+          "type": "boolean"
+        },
+        "minFromVersion": {
+          "type": "string"
+        },
+        "waypoints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "upgradeNotesUrl": {
+          "type": "string"
+        },
         "preUpgradeBackup": {
           "type": "string",
-          "enum": ["required", "recommended", "none"]
+          "enum": [
+            "required",
+            "recommended",
+            "none"
+          ]
         }
       }
     },
     "backup": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "preHook": { "$ref": "#/$defs/backupHook" },
-        "postHook": { "$ref": "#/$defs/backupHook" }
-      }
+      "description": "How this app participates in backup@1. Either a single participation (the object form, normalised server-side to one participation named \"default\") or a list of them — an app with two stateful services declares two, each with its own id and hooks. Requires \"backup@1\" in accepts[].",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "preHook": {
+              "$ref": "#/$defs/backupHook"
+            },
+            "postHook": {
+              "$ref": "#/$defs/backupHook"
+            }
+          }
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/backupParticipation"
+          }
+        }
+      ]
     },
     "push": {
       "type": "array",
@@ -239,7 +424,11 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "label", "path"],
+        "required": [
+          "id",
+          "label",
+          "path"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -264,13 +453,19 @@
           },
           "mode": {
             "type": "string",
-            "enum": ["mirror", "additive"],
+            "enum": [
+              "mirror",
+              "additive"
+            ],
             "default": "additive",
             "description": "mirror: rsync --delete, so the server copy matches the local one exactly (files only on the server are DELETED). additive (default): copy in without deleting. Declare mirror only when the directory genuinely is a replica of the operator's copy."
           },
           "quiesce": {
             "type": "string",
-            "enum": ["stop", "none"],
+            "enum": [
+              "stop",
+              "none"
+            ],
             "default": "none",
             "description": "stop: stop the app for the duration of the push and start it after — for apps that hold open handles on this data (e.g. a SQLite database read at startup). none (default): leave it running."
           },
@@ -292,11 +487,16 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["type", "reason"],
+            "required": [
+              "type",
+              "reason"
+            ],
             "properties": {
               "type": {
                 "type": "string",
-                "enum": ["allow-privilege-escalation"],
+                "enum": [
+                  "allow-privilege-escalation"
+                ],
                 "description": "allow-privilege-escalation: drop no-new-privileges on the ingress service so setuid escalation (sudo) works. Needed by browser-desktop apps."
               },
               "reason": {
@@ -314,22 +514,37 @@
     "contractRef": {
       "type": "string",
       "description": "A capability contract reference, `<id>@<version>`. CLOSED SET: a contract is a promise about *server* behavior, so matching two strings does nothing unless Hola implements the middle. Mirrors CONTRACTS in try-hola/hola packages/shared/src/contracts.ts -- adding a contract there is what makes it declarable here. Enumerated rather than left open because the server drops an unrecognized ref with a warning (ADR 0003 forward-compat), which would make a typo'd `backups@1` a silent no-op instead of a CI failure.",
-      "enum": ["auth@1", "backup@1", "container-logs@1", "push@1"]
+      "enum": [
+        "auth@1",
+        "backup@1",
+        "container-logs@1",
+        "push@1"
+      ]
     },
     "acceptableContractRef": {
       "type": "string",
       "description": "The subset of #/$defs/contractRef an app can OPT IN to, i.e. those whose participation is `declared`. An `implicit` contract (container-logs@1) has no acceptor side: every install is a subject by virtue of running, and the server drops an `accepts` naming one with a warning, so declaring it here is a manifest error rather than a silent no-op.",
-      "enum": ["auth@1", "backup@1", "push@1"]
+      "enum": [
+        "auth@1",
+        "backup@1",
+        "push@1"
+      ]
     },
     "appProvidedContractRef": {
       "type": "string",
       "description": "The subset of #/$defs/contractRef whose provider is a catalog app rather than the platform, and which may therefore appear in `provides`.",
-      "enum": ["backup@1", "container-logs@1"]
+      "enum": [
+        "backup@1",
+        "container-logs@1"
+      ]
     },
     "backupHook": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["service", "command"],
+      "required": [
+        "service",
+        "command"
+      ],
       "properties": {
         "service": {
           "type": "string",
@@ -339,23 +554,40 @@
         "command": {
           "type": "array",
           "minItems": 1,
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Exec-form argv, not a shell string."
         }
       }
     },
     "paramType": {
       "type": "string",
-      "enum": ["string", "integer", "port", "boolean", "enum", "url", "email", "timezone"]
+      "enum": [
+        "string",
+        "integer",
+        "port",
+        "boolean",
+        "enum",
+        "url",
+        "email",
+        "timezone"
+      ]
     },
     "paramGenerate": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind"],
+      "required": [
+        "kind"
+      ],
       "properties": {
         "kind": {
           "type": "string",
-          "enum": ["hex", "base64", "fernet"]
+          "enum": [
+            "hex",
+            "base64",
+            "fernet"
+          ]
         },
         "length": {
           "type": "integer",
@@ -367,36 +599,71 @@
     "paramEnumOption": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["value"],
+      "required": [
+        "value"
+      ],
       "properties": {
-        "value": { "type": "string" },
-        "label": { "type": "string" },
-        "description": { "type": "string" }
+        "value": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
       }
     },
     "appEnvVar": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["key", "value", "isSecret"],
+      "required": [
+        "key",
+        "value",
+        "isSecret"
+      ],
       "properties": {
-        "key": { "type": "string", "minLength": 1 },
-        "value": { "type": "string" },
-        "isSecret": { "type": "boolean" },
-        "description": { "type": "string" },
-        "label": { "type": "string" },
-        "type": { "$ref": "#/$defs/paramType" },
+        "key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "string"
+        },
+        "isSecret": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/paramType"
+        },
         "required": {
           "type": "boolean",
           "description": "Tri-state: true/false/absent. Absent means legacy \"isSecret implies required\"."
         },
-        "advanced": { "type": "boolean" },
-        "placeholder": { "type": "string" },
+        "advanced": {
+          "type": "boolean"
+        },
+        "placeholder": {
+          "type": "string"
+        },
         "pattern": {
           "type": "string",
           "description": "string type: regex the value must match."
         },
-        "minLength": { "type": "integer", "minimum": 0 },
-        "maxLength": { "type": "integer", "minimum": 0 },
+        "minLength": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 0
+        },
         "min": {
           "type": "integer",
           "description": "integer/port type."
@@ -408,14 +675,45 @@
         "options": {
           "type": "array",
           "description": "enum type.",
-          "items": { "$ref": "#/$defs/paramEnumOption" }
+          "items": {
+            "$ref": "#/$defs/paramEnumOption"
+          }
         },
-        "trueValue": { "type": "string", "description": "boolean type." },
-        "falseValue": { "type": "string", "description": "boolean type." },
-        "httpsOnly": { "type": "boolean", "description": "url type." },
+        "trueValue": {
+          "type": "string",
+          "description": "boolean type."
+        },
+        "falseValue": {
+          "type": "string",
+          "description": "boolean type."
+        },
+        "httpsOnly": {
+          "type": "boolean",
+          "description": "url type."
+        },
         "generate": {
           "$ref": "#/$defs/paramGenerate",
           "description": "Only meaningful when isSecret is true."
+        }
+      }
+    },
+    "backupParticipation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Identifies this participation in hook ordering and failure reports. Unique within the array (bin/validate-manifest.mjs enforces uniqueness). Name the thing it quiesces, e.g. 'app-db', 'temporal-db'."
+        },
+        "preHook": {
+          "$ref": "#/$defs/backupHook"
+        },
+        "postHook": {
+          "$ref": "#/$defs/backupHook"
         }
       }
     }

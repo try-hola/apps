@@ -125,8 +125,9 @@ services:
 
   temporal-postgres:
     # pgautoupgrade: migrates this DB across the Postgres major in place on boot (see
-    # postiz-postgres). Temporal's own DB; the app-data snapshot covers it at file level
-    # (the manifest backup hook dumps the primary postiz DB).
+    # postiz-postgres). Temporal's own databases (`temporal` and, from auto-setup,
+    # `temporal_visibility`) — quiesced by its own backup@1 participation, same as
+    # the primary Postiz database.
     image: pgautoupgrade/pgautoupgrade:18-alpine@sha256:19f988b90c8d0ad9c7edd70cf23c83e069abd8a57f0fdce0373588ddaf189894
     environment:
       POSTGRES_USER: temporal
@@ -135,6 +136,10 @@ services:
       PGDATA: /var/lib/postgresql/data
     volumes:
       - ${HOLA_APP_DATA}/temporal-postgres:/var/lib/postgresql/data
+      # Same bind the primary database uses: the pre-hook's dump has to land
+      # INSIDE the app data root, because the root is what the backup provider
+      # captures. A dump written anywhere else is never in a snapshot.
+      - ${HOLA_APP_DATA}/backups:/backups
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U temporal"]
       interval: 10s
