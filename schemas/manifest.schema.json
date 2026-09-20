@@ -417,6 +417,37 @@
         }
       ]
     },
+    "restore": {
+      "type": "array",
+      "description": "Per-backup-participation restore declarations (Hola spec 007: restore-on-install). Each entry names the BACKUP participation id it restores (\"default\" for the legacy singular `backup` block above, which every app in this catalog currently uses), the data-root-relative paths to discard after the restored files land and before any container starts, and an optional hook -- reusing the exact `#/$defs/backupHook` shape, run after discards against the started-and-healthy service. An app that declares `accepts: [\"restore@1\"]` with NO entry here is restored by plain file copy (nothing discarded, no hook) -- meaningfully distinct from an app that doesn't declare `restore@1` at all, which isn't offered as restorable. `restore@1` here is a participation marker this feature's app declares, not a brokered capability contract.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The backup participation id this restores (\"default\" for the legacy singular `backup` block)."
+          },
+          "discard": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "minLength": 1 },
+            "description": "Data-root-relative paths removed after the restored files land, before any container starts. A file-level tar of a LIVE Postgres data dir is only crash-consistent (a smear across the capture window); discarding it and loading the pg_dump the restore hook applies is what makes the restored data correct rather than merely present."
+          },
+          "hook": {
+            "$ref": "#/$defs/backupHook",
+            "description": "Run after discards, against the started-and-healthy service (Hola waits on the service's OWN declared healthcheck, not a bespoke poll)."
+          },
+          "requiresEnv": {
+            "type": "boolean",
+            "description": "true turns a restore candidate's missing captured configuration from a warning into a REFUSAL -- for an app that cannot sensibly restore without it. Default false."
+          }
+        }
+      }
+    },
     "push": {
       "type": "array",
       "minItems": 1,
@@ -513,21 +544,23 @@
   "$defs": {
     "contractRef": {
       "type": "string",
-      "description": "A capability contract reference, `<id>@<version>`. CLOSED SET: a contract is a promise about *server* behavior, so matching two strings does nothing unless Hola implements the middle. Mirrors CONTRACTS in try-hola/hola packages/shared/src/contracts.ts -- adding a contract there is what makes it declarable here. Enumerated rather than left open because the server drops an unrecognized ref with a warning (ADR 0003 forward-compat), which would make a typo'd `backups@1` a silent no-op instead of a CI failure.",
+      "description": "A value an app may declare in a contract list. Most are capability contract refs (`<id>@<version>`) the server BROKERS -- a promise about *server* behavior, so matching two strings does nothing unless Hola implements the middle; those mirror CONTRACTS in try-hola/hola packages/shared/src/contracts.ts, and adding a contract there is what makes one declarable here. `restore@1` is the one exception: a participation MARKER for Hola spec 007 (restore-on-install), NOT a brokered contract -- CONTRACTS gains no entry for it and the server never brokers it between two parties; it only says \"this app has considered being restored\" (see the top-level `restore` block). Enumerated rather than left open because the server drops an unrecognized ref with a warning (ADR 0003 forward-compat), which would make a typo'd `backups@1` a silent no-op instead of a CI failure.",
       "enum": [
         "auth@1",
         "backup@1",
         "container-logs@1",
-        "push@1"
+        "push@1",
+        "restore@1"
       ]
     },
     "acceptableContractRef": {
       "type": "string",
-      "description": "The subset of #/$defs/contractRef an app can OPT IN to, i.e. those whose participation is `declared`. An `implicit` contract (container-logs@1) has no acceptor side: every install is a subject by virtue of running, and the server drops an `accepts` naming one with a warning, so declaring it here is a manifest error rather than a silent no-op.",
+      "description": "The subset of #/$defs/contractRef an app can OPT IN to, i.e. those whose participation is `declared`, plus the `restore@1` participation marker. An `implicit` contract (container-logs@1) has no acceptor side: every install is a subject by virtue of running, and the server drops an `accepts` naming one with a warning, so declaring it here is a manifest error rather than a silent no-op.",
       "enum": [
         "auth@1",
         "backup@1",
-        "push@1"
+        "push@1",
+        "restore@1"
       ]
     },
     "appProvidedContractRef": {

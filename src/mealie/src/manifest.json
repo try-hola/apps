@@ -65,10 +65,24 @@
       ]
     }
   },
+  "restore": [
+    {
+      "id": "default",
+      "discard": ["postgres"],
+      "hook": {
+        "service": "mealie-postgres",
+        "command": [
+          "sh",
+          "-c",
+          "psql -v ON_ERROR_STOP=1 -U mealie -d mealie -f /backups/mealie.sql"
+        ]
+      }
+    }
+  ],
   "upgrade": {
     "breaking": true,
     "preUpgradeBackup": "required",
     "upgradeNotesUrl": "https://github.com/pgautoupgrade/docker-pgautoupgrade"
   },
-  "accepts": ["backup@1"]
+  "accepts": ["backup@1", "restore@1"]
 }

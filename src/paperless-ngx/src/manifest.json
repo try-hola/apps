@@ -80,10 +80,24 @@
       ]
     }
   },
+  "restore": [
+    {
+      "id": "default",
+      "discard": ["pgdata"],
+      "hook": {
+        "service": "db",
+        "command": [
+          "sh",
+          "-c",
+          "psql -v ON_ERROR_STOP=1 -U paperless -d paperless -f /backups/paperless.sql"
+        ]
+      }
+    }
+  ],
   "upgrade": {
     "breaking": true,
     "preUpgradeBackup": "required",
     "upgradeNotesUrl": "https://github.com/pgautoupgrade/docker-pgautoupgrade"
   },
-  "accepts": ["backup@1"]
+  "accepts": ["backup@1", "restore@1"]
 }

@@ -57,7 +57,7 @@
     "upgradeNotesUrl": "https://immich.app/blog/v3-migration",
     "preUpgradeBackup": "recommended"
   },
-  "accepts": ["backup@1"],
+  "accepts": ["backup@1", "restore@1"],
   "backup": {
     "preHook": {
       "service": "immich-postgres",
@@ -75,5 +75,19 @@
         "rm -f /backups/immich.sql"
       ]
     }
-  }
+  },
+  "restore": [
+    {
+      "id": "default",
+      "discard": ["postgres"],
+      "hook": {
+        "service": "immich-postgres",
+        "command": [
+          "sh",
+          "-c",
+          "psql -v ON_ERROR_STOP=1 --dbname=immich --username=immich -f /backups/immich.sql"
+        ]
+      }
+    }
+  ]
 }

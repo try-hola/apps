@@ -254,6 +254,23 @@ const CONTRACTS = {
   // server drops an `accepts` naming it with a warning; here it is an error, so
   // a manifest saying something meaningless fails CI rather than deploying.
   'container-logs@1': { block: null, blockRequired: false, appProvided: true, impliedByBlock: false, acceptable: false },
+  // NOT a brokered contract, and the only entry here that isn't: Hola's CONTRACTS
+  // registry gains no entry for restore@1 and the server never brokers it between
+  // two parties. It is a participation MARKER (Hola spec 007, restore-on-install)
+  // meaning "this app has considered being restored", and it lives in this table
+  // only because `accepts` is where an app declares it.
+  //
+  // `blockRequired` is false for the same reason backup@1's is, and it is the
+  // whole point: `restore@1` with no `restore` block is the positive claim "a
+  // plain file copy back is all I need" — true for every SQLite and flat-file app
+  // — which must stay distinguishable from an app nobody considered. Acceptance
+  // is declared, never derived from the block (ADR 0004 §2).
+  //
+  // `appProvided: false` because nothing provides restore@1 — not the platform,
+  // not an app. A manifest naming it in `provides` is an error, which is right,
+  // though the shared message says "provided by the Hola platform itself" and is
+  // imprecise for this one ref.
+  'restore@1': { block: 'restore', blockRequired: false, appProvided: false, impliedByBlock: false },
 };
 
 /** Manifest fields that take a bare string or an array of them. */
