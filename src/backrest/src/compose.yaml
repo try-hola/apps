@@ -14,6 +14,10 @@ services:
       - ${HOLA_APP_DATA}/config:/config
       - ${HOLA_APP_DATA}/data:/data
       - ${HOLA_APP_DATA}/cache:/cache
+      # Scratch shared with backrest-hola-restore. Reading a capture's
+      # `.hola/instance.json` means restoring that one file somewhere both
+      # containers can see: Backrest does the write, the poller does the read.
+      - ${HOLA_APP_DATA}/restore-scratch:/restore-scratch
     # Read-only access to every app's data (/srv/hola/apps/<id>/...) is INJECTED
     # by Hola because the manifest declares `provides: ["backup@1"]` and the
     # operator consented to that contract's grant at install — it is not (and
@@ -151,8 +155,285 @@ services:
         exit 0
         HOLA_EOF
 
-        chmod +x /config/hola/backup-prepare.sh /config/hola/backup-finalize.sh
-        echo "[hola] backup contract hooks installed in /config/hola"
+        cat > /config/hola/restore-poll.sh <<'HOLA_EOF'
+        #!/bin/sh
+        # Hola capability contract `restore@1` — PROVIDER side, the poller.
+        #
+        # Backrest has no restore-triggered hook condition (its Command hooks fire only
+        # on CONDITION_SNAPSHOT_START / _END), so there is no event here to react to:
+        # the provider has to be the one asking. Hola queues a restore request and
+        # waits; this loop discovers it, claims it, has Backrest deliver the bytes into
+        # the destination HOLA chose, and reports the outcome. The server never calls
+        # in (ADR 0004 has exactly one brokered direction).
+        #
+        # Deliberately a separate process from `backrest-hola-autowire`: that loop's
+        # subject is Backrest's own local config, and a failure to read it must not also
+        # stall every pending restore.
+        #
+        # Fail-closed and LOUD. Every delivery problem is reported to Hola as
+        # `failed`, which fails the waiting install with a named reason, rather than
+        # left to time out as an unexplained `RESTORE_PROVIDER_UNRESPONSIVE`.
+        set -u
+
+        brest=http://backrest:9898
+        cache=/config/hola/restore-captures.json
+        scratch=/restore-scratch
+        interval=$${BACKREST_HOLA_RESTORE_INTERVAL:-30}
+        maxsnaps=$${BACKREST_HOLA_RESTORE_MAX_SNAPSHOTS:-25}
+        warned=
+
+        # A Hola deployment data root is `<slug>-<8 hex>` (deployment.ts mints it). Used
+        # to recognise an app root inside a snapshot without knowing anything about the
+        # app — the same inference Hola itself falls back to, and never treated as an
+        # app identity by either side.
+        appdir_re='^[a-z0-9][a-z0-9-]*-[0-9a-f]\{8\}$'
+
+        log()  { echo "[hola] $$*"; }
+        warn() { echo "[hola] $$*" >&2; }
+
+        # --- transport ---------------------------------------------------------------
+
+        # Backrest's own Connect/gRPC-over-HTTP API. No credential: Backrest's auth is
+        # disabled by default and Hola gates the UI at Traefik with forward-auth.
+        brest() { # brest <Method> <json-body>
+          printf '%s' "$$2" > /tmp/brest-req.json
+          wget -q -O - --header 'Content-Type: application/json' \
+            --post-file /tmp/brest-req.json "$$brest/v1.Backrest/$$1" 2>/dev/null
+        }
+
+        hola_get() { # hola_get <path>
+          wget -q -O - --header "Authorization: Bearer $$HOLA_CONTRACT_TOKEN" \
+            "$$HOLA_API_URL$$1" 2>/dev/null
+        }
+
+        hola_post() { # hola_post <path> <json-body>
+          printf '%s' "$$2" > /tmp/hola-req.json
+          wget -q -O - --header "Authorization: Bearer $$HOLA_CONTRACT_TOKEN" \
+            --header 'Content-Type: application/json' \
+            --post-file /tmp/hola-req.json "$$HOLA_API_URL$$1" 2>/dev/null
+        }
+
+        jq_() { yq -p json -o json -I 0 "$$1" 2>/dev/null; }
+        jq_raw() { yq -p json -o json -I 0 -r "$$1" 2>/dev/null; }
+
+        # --- waiting on a Backrest task ---------------------------------------------
+
+        # `Restore` is ASYNCHRONOUS — it returns an operation id and schedules the work
+        # (ScheduleTaskResponse). Reporting completion to Hola on that return alone
+        # would tell the platform the capture had landed while restic was still writing
+        # it, and the install would proceed against a half-delivered tree.
+        wait_for_op() { # wait_for_op <operationId> <limit-seconds> -> 0 ok, 1 failed
+          _op=$$1; _limit=$$2; _waited=0
+          while [ "$$_waited" -lt "$$_limit" ]; do
+            _resp=$$(brest GetOperations "{\"selector\":{\"ids\":[$$_op]},\"lastN\":1}")
+            _status=$$(printf '%s' "$$_resp" | jq_raw '.operations[0].status // ""')
+            case "$$_status" in
+              STATUS_SUCCESS|STATUS_WARNING) return 0 ;;
+              STATUS_ERROR|STATUS_SYSTEM_CANCELLED|STATUS_USER_CANCELLED)
+                op_error=$$(printf '%s' "$$_resp" | jq_raw '.operations[0].displayMessage // "no detail"')
+                return 1 ;;
+              *) ;;  # STATUS_PENDING / STATUS_INPROGRESS / unknown-yet
+            esac
+            sleep 5
+            _waited=$$((_waited + 5))
+          done
+          op_error="Backrest restore operation $$_op did not finish within $${_limit}s"
+          return 1
+        }
+
+        # --- index -------------------------------------------------------------------
+
+        # Read one capture's `.hola/instance.json` by restoring that single file into a
+        # scratch dir shared with the backrest container. Snapshots are immutable, so
+        # the answer is cached forever against <snapshotId>.<dir> and a republish costs
+        # nothing after the first pass.
+        read_identity() { # read_identity <repoId> <snapshotId> <absolute app root> -> prints JSON or ""
+          _repo=$$1; _snap=$$2; _root=$$3
+          _dest="$$scratch/id-$$_snap-$$(basename "$$_root")"
+          rm -rf "$$_dest"; mkdir -p "$$_dest" 2>/dev/null || return 1
+          _resp=$$(brest Restore "{\"repoId\":\"$$_repo\",\"snapshotId\":\"$$_snap\",\"path\":\"$$_root/.hola/instance.json\",\"target\":\"$$_dest\"}")
+          _op=$$(printf '%s' "$$_resp" | jq_raw '.operationId // ""')
+          [ -z "$$_op" ] && { rm -rf "$$_dest"; return 1; }
+          if ! wait_for_op "$$_op" 120; then rm -rf "$$_dest"; return 1; fi
+          # restic reproduces the source's absolute path under the target, so the file
+          # is nested rather than at the root — find it rather than assuming a depth.
+          _found=$$(find "$$_dest" -name instance.json -type f 2>/dev/null | head -1)
+          [ -z "$$_found" ] && { rm -rf "$$_dest"; return 1; }
+          cat "$$_found"
+          rm -rf "$$_dest"
+          return 0
+        }
+
+        build_index() {
+          log "building the capture index"
+          _cfg=$$(brest GetConfig '{}')
+          if [ -z "$$_cfg" ]; then
+            warn "cannot read Backrest's config — is its own login enabled? skipping this index pass"
+            return 1
+          fi
+          _repos=$$(printf '%s' "$$_cfg" | jq_raw '.repos[].id // ""')
+          [ -z "$$_repos" ] && { log "Backrest has no repositories yet — nothing to index"; printf '{"entries":[],"map":{}}' > "$$cache"; return 0; }
+
+          _entries=''; _map=''
+          for _repo in $$_repos; do
+            _snaps=$$(brest ListSnapshots "{\"repoId\":\"$$_repo\"}")
+            [ -z "$$_snaps" ] && { warn "could not list snapshots in repo '$$_repo' — skipping it"; continue; }
+            # Newest first, capped: the first pass restores one marker per capture, so
+            # an unbounded repository would otherwise make the first index unbounded too.
+            _ids=$$(printf '%s' "$$_snaps" | jq_raw '[.snapshots[]] | sort_by(.unixTimeMs) | reverse | .[].id // ""' | head -n "$$maxsnaps")
+            for _snap in $$_ids; do
+              _meta=$$(printf '%s' "$$_snaps" | jq_ "[.snapshots[] | select(.id == \"$$_snap\")] | .[0]")
+              _takenms=$$(printf '%s' "$$_meta" | jq_raw '.unixTimeMs // 0')
+              _size=$$(printf '%s' "$$_meta" | jq_raw '.summary.totalBytesProcessed // 0')
+              _taken=$$(date -u -d "@$$((_takenms / 1000))" +%Y-%m-%dT%H:%M:%S.000Z 2>/dev/null \
+                        || date -u -r "$$((_takenms / 1000))" +%Y-%m-%dT%H:%M:%S.000Z 2>/dev/null)
+              [ -z "$$_taken" ] && continue
+              for _path in $$(printf '%s' "$$_meta" | jq_raw '.paths[] // ""'); do
+                _ls=$$(brest ListSnapshotFiles "{\"repoId\":\"$$_repo\",\"snapshotId\":\"$$_snap\",\"path\":\"$$_path\"}")
+                [ -z "$$_ls" ] && continue
+                for _dir in $$(printf '%s' "$$_ls" | jq_raw '.entries[] | select(.type == "dir") | .name // ""'); do
+                  echo "$$_dir" | grep -q "$$appdir_re" || continue
+                  _root="$$_path/$$_dir"
+                  _cap="$$_snap.$$_dir"
+                  _ident=$$(printf '%s' "$$(cat "$$cache" 2>/dev/null)" | jq_ ".cached[\"$$_cap\"] // null")
+                  if [ -z "$$_ident" ] || [ "$$_ident" = "null" ]; then
+                    _ident=$$(read_identity "$$_repo" "$$_snap" "$$_root") || _ident=null
+                    [ -z "$$_ident" ] && _ident=null
+                  fi
+                  _entries="$$_entries{\"captureId\":\"$$_cap\",\"takenAt\":\"$$_taken\",\"sizeBytes\":$$_size,\"location\":\"$$_root\",\"identity\":$$_ident},"
+                  _map="$$_map\"$$_cap\":{\"repoId\":\"$$_repo\",\"snapshotId\":\"$$_snap\",\"path\":\"$$_root\",\"identity\":$$_ident},"
+                done
+              done
+            done
+          done
+
+          printf '{"entries":[%s],"map":{%s},"cached":{%s}}' \
+            "$${_entries%,}" "$${_map%,}" "$${_map%,}" > "$$cache"
+          _count=$$(cat "$$cache" | jq_raw '.entries | length')
+          log "indexed $${_count:-0} captures"
+          return 0
+        }
+
+        publish_index() {
+          [ -f "$$cache" ] || return 1
+          _body=$$(cat "$$cache" | jq_ '{"entries": .entries}')
+          [ -z "$$_body" ] && { warn "capture index is not readable as JSON — not publishing"; return 1; }
+          if hola_post /api/contracts/restore/index "$$_body" >/dev/null; then
+            log "published the capture index to Hola"
+          else
+            warn "could not publish the capture index to Hola — will retry"
+            return 1
+          fi
+        }
+
+        # --- serving a request -------------------------------------------------------
+
+        serve() { # serve <requestId> <captureId> <destination>
+          _id=$$1; _cap=$$2; _dest=$$3
+          _entry=$$(cat "$$cache" 2>/dev/null | jq_ ".map[\"$$_cap\"] // null")
+          if [ -z "$$_entry" ] || [ "$$_entry" = "null" ]; then
+            warn "request $$_id names capture '$$_cap', which is not in this provider's index — reporting failure"
+            hola_post "/api/contracts/restore/requests/$$_id/complete" \
+              "{\"outcome\":\"failed\",\"reason\":\"capture $$_cap is no longer held by this provider\"}" >/dev/null
+            return 1
+          fi
+
+          # Claim first. 404/409 are all "someone else has it, or it is already gone" —
+          # move on without retrying, never report an outcome for a request we do not hold.
+          if ! hola_post "/api/contracts/restore/requests/$$_id/claim" '{}' >/dev/null; then
+            log "request $$_id could not be claimed (already claimed, expired or gone) — leaving it"
+            return 0
+          fi
+          log "claimed request $$_id for capture $$_cap"
+
+          _repo=$$(printf '%s' "$$_entry" | jq_raw '.repoId')
+          _snap=$$(printf '%s' "$$_entry" | jq_raw '.snapshotId')
+          _path=$$(printf '%s' "$$_entry" | jq_raw '.path')
+
+          # The destination is ALWAYS the path Hola minted under its own staging root.
+          # Nothing here chooses or rewrites it.
+          _resp=$$(brest Restore "{\"repoId\":\"$$_repo\",\"snapshotId\":\"$$_snap\",\"path\":\"$$_path\",\"target\":\"$$_dest\"}")
+          _op=$$(printf '%s' "$$_resp" | jq_raw '.operationId // ""')
+          if [ -z "$$_op" ]; then
+            warn "Backrest refused the restore of $$_snap:$$_path — reporting failure for request $$_id"
+            hola_post "/api/contracts/restore/requests/$$_id/complete" \
+              "{\"outcome\":\"failed\",\"reason\":\"Backrest refused to schedule the restore\"}" >/dev/null
+            return 1
+          fi
+
+          op_error=
+          if wait_for_op "$$_op" 3600; then
+            if hola_post "/api/contracts/restore/requests/$$_id/complete" '{"outcome":"completed"}' >/dev/null; then
+              log "delivered capture $$_cap for request $$_id"
+            else
+              warn "delivered capture $$_cap but could not tell Hola — the install will time out"
+            fi
+          else
+            warn "Backrest restore failed for request $$_id: $${op_error:-unknown}"
+            hola_post "/api/contracts/restore/requests/$$_id/complete" \
+              "{\"outcome\":\"failed\",\"reason\":\"$${op_error:-Backrest restore failed}\"}" >/dev/null
+          fi
+        }
+
+        # --- main --------------------------------------------------------------------
+
+        if [ -z "$${HOLA_API_URL:-}" ] || [ -z "$${HOLA_CONTRACT_TOKEN:-}" ]; then
+          warn "no contract credentials in this container — is this install a consented restore provider?"
+          warn "Nothing to do. Install-time consent to restore@1 is what injects them."
+          while :; do sleep 3600; done
+        fi
+
+        if [ "$${BACKREST_HOLA_RESTORE:-true}" != "true" ]; then
+          log "BACKREST_HOLA_RESTORE=false — not serving restores. Hola will offer no captures from this provider."
+          while :; do sleep 3600; done
+        fi
+
+        mkdir -p "$$scratch" 2>/dev/null || true
+        log "serving the restore contract (polling Hola every $${interval}s)"
+
+        # Build and publish once at startup: a provider that has just been installed or
+        # upgraded should not wait for a `reindex` round-trip to become useful.
+        build_index && publish_index
+
+        while :; do
+          resp=$$(hola_get /api/contracts/restore/requests)
+          if [ -z "$$resp" ]; then
+            if [ "$$warned" != "unreachable" ]; then
+              warn "cannot reach Hola's restore queue — retrying every $${interval}s"
+              warned=unreachable
+            fi
+            sleep "$$interval"; continue
+          fi
+          warned=
+
+          # `reindex: true` means Hola holds no index for this provider — a fresh host,
+          # or an index discarded when a previous install was removed. Still the
+          # provider asking, never the server calling in.
+          if [ "$$(printf '%s' "$$resp" | jq_raw '.reindex // false')" = "true" ]; then
+            log "Hola holds no index for this provider — rebuilding"
+            build_index && publish_index
+          fi
+
+          count=$$(printf '%s' "$$resp" | jq_raw '.requests | length')
+          if [ "$${count:-0}" -gt 0 ] 2>/dev/null; then
+            i=0
+            while [ "$$i" -lt "$$count" ]; do
+              rid=$$(printf '%s' "$$resp" | jq_raw ".requests[$$i].id // \"\"")
+              rcap=$$(printf '%s' "$$resp" | jq_raw ".requests[$$i].captureId // \"\"")
+              rdest=$$(printf '%s' "$$resp" | jq_raw ".requests[$$i].destination // \"\"")
+              if [ -n "$$rid" ] && [ -n "$$rcap" ] && [ -n "$$rdest" ]; then
+                serve "$$rid" "$$rcap" "$$rdest"
+              fi
+              i=$$((i + 1))
+            done
+          fi
+
+          sleep "$$interval"
+        done
+        HOLA_EOF
+
+        chmod +x /config/hola/backup-prepare.sh /config/hola/backup-finalize.sh /config/hola/restore-poll.sh
+        echo "[hola] backup + restore contract scripts installed in /config/hola"
     volumes:
       - ${HOLA_APP_DATA}/config:/config
 
@@ -273,3 +554,50 @@ services:
           fi
           sleep "$$interval"
         done
+
+  # Hola restore-contract bolt-on (`restore@1`, Hola spec 008). A THIRD
+  # long-running process, deliberately not a clause in the autowire loop above.
+  #
+  # Backrest's hook system is snapshot-lifecycle only — CONDITION_SNAPSHOT_START
+  # and _END are the only conditions there are — so nothing fires when an
+  # install elsewhere on this host wants a capture delivered. There is no event
+  # to react to, which is why the provider has to be the one asking.
+  #
+  # Kept out of `backrest-hola-autowire` on purpose: that loop's subject is
+  # Backrest's own local config, and its existing failure mode (can't read it —
+  # e.g. Backrest's own login got turned on) is handled by warning and retrying
+  # forever. Sharing a process would make that hiccup silently stall every
+  # pending restore, and a Hola-side hiccup look like a hook-wiring problem.
+  # Two unrelated failure domains, two processes.
+  #
+  # Same image as the reconciler for the same reasons: `yq` reads and writes
+  # JSON natively (the Backrest and Hola payloads here are nested, well past
+  # what `sed` can be trusted with), BusyBox `wget` does POST with headers, and
+  # there is a shell — on a pinned digest, no custom build.
+  backrest-hola-restore:
+    image: mikefarah/yq:4.53.3@sha256:11a1f0b604b13dbbdc662260d8db6f644b22d8553122a25c1b5b2e8713ca6977
+    user: "0:0"
+    depends_on:
+      backrest-hooks-init:
+        condition: service_completed_successfully
+    environment:
+      # `false` stops this provider serving restores without uninstalling it or
+      # withdrawing consent: Hola simply offers no captures from here.
+      BACKREST_HOLA_RESTORE: ${BACKREST_HOLA_RESTORE:-true}
+      # How often to ask Hola for pending work, and how many snapshots per
+      # repository to index (newest first). The cap matters because the first
+      # index pass restores one marker file per capture to read its identity;
+      # afterwards those reads are cached forever, since a snapshot is immutable.
+      BACKREST_HOLA_RESTORE_INTERVAL: ${BACKREST_HOLA_RESTORE_INTERVAL:-30}
+      BACKREST_HOLA_RESTORE_MAX_SNAPSHOTS: ${BACKREST_HOLA_RESTORE_MAX_SNAPSHOTS:-25}
+    entrypoint: ["/bin/sh", "-c"]
+    # HOLA_API_URL and HOLA_CONTRACT_TOKEN are injected by Hola because the
+    # manifest declares `provides: ["restore@1"]` and the operator consented at
+    # install; so is the writable mount of Hola's restore staging root, which is
+    # the only place this ever writes app bytes. Without that consent the script
+    # finds no credentials and idles, saying so.
+    command:
+      - exec /bin/sh /config/hola/restore-poll.sh
+    volumes:
+      - ${HOLA_APP_DATA}/config:/config
+      - ${HOLA_APP_DATA}/restore-scratch:/restore-scratch

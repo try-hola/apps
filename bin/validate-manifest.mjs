@@ -254,11 +254,9 @@ const CONTRACTS = {
   // server drops an `accepts` naming it with a warning; here it is an error, so
   // a manifest saying something meaningless fails CI rather than deploying.
   'container-logs@1': { block: null, blockRequired: false, appProvided: true, impliedByBlock: false, acceptable: false },
-  // NOT a brokered contract, and the only entry here that isn't: Hola's CONTRACTS
-  // registry gains no entry for restore@1 and the server never brokers it between
-  // two parties. It is a participation MARKER (Hola spec 007, restore-on-install)
-  // meaning "this app has considered being restored", and it lives in this table
-  // only because `accepts` is where an app declares it.
+  // The acceptor side (`accepts: ["restore@1"]` + the top-level `restore` block)
+  // is exactly Hola spec 007 (restore-on-install) and is untouched by the note
+  // below — an app that only accepts being restored declares nothing new.
   //
   // `blockRequired` is false for the same reason backup@1's is, and it is the
   // whole point: `restore@1` with no `restore` block is the positive claim "a
@@ -266,11 +264,15 @@ const CONTRACTS = {
   // — which must stay distinguishable from an app nobody considered. Acceptance
   // is declared, never derived from the block (ADR 0004 §2).
   //
-  // `appProvided: false` because nothing provides restore@1 — not the platform,
-  // not an app. A manifest naming it in `provides` is an error, which is right,
-  // though the shared message says "provided by the Hola platform itself" and is
-  // imprecise for this one ref.
-  'restore@1': { block: 'restore', blockRequired: false, appProvided: false, impliedByBlock: false },
+  // `appProvided: true` as of Hola spec 008 (restore-provider): restore@1 gained
+  // a real provider side — a catalog app (the `backrest` bundle, upgraded) may
+  // now declare `provides: ["restore@1"]` and is granted a writable staging
+  // mount for it, exactly as `backup@1` already works. Before spec 008 this was
+  // `false` (no provider existed, app or platform, and this table's own comment
+  // said so) — see try-hola/hola specs/008-restore-provider/contracts/manifest.md
+  // §0 for the provider-side shape, and §3 for why this flag and the schema's
+  // `appProvidedContractRef` enum must change together (FR-058).
+  'restore@1': { block: 'restore', blockRequired: false, appProvided: true, impliedByBlock: false },
 };
 
 /** Manifest fields that take a bare string or an array of them. */
