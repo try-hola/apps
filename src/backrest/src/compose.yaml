@@ -247,11 +247,21 @@ services:
         # scratch dir shared with the backrest container. Snapshots are immutable, so
         # the answer is cached forever against <snapshotId>.<dir> and a republish costs
         # nothing after the first pass.
-        read_identity() { # read_identity <repoId> <snapshotId> <absolute app root> -> prints JSON or ""
-          _repo=$$1; _snap=$$2; _root=$$3
+        read_identity() { # read_identity <repoId> <planId> <snapshotId> <absolute app root> -> prints JSON or ""
+          _repo=$$1; _plan=$$2; _snap=$$3; _root=$$4
           _dest="$$scratch/id-$$_snap-$$(basename "$$_root")"
-          rm -rf "$$_dest"; mkdir -p "$$_dest" 2>/dev/null || return 1
-          _resp=$$(brest Restore "{\"repoId\":\"$$_repo\",\"snapshotId\":\"$$_snap\",\"path\":\"$$_root/.hola/instance.json\",\"target\":\"$$_dest\"}")
+          # Clear it but do NOT create it. Backrest refuses a restore whose target
+          # already exists (HTTP 400), so pre-creating the directory fails every
+          # restore — verified on a live v1.14.1. Hola nominates its own request
+          # destinations the same way, minting the path without creating it, so the
+          # two conventions agree: the provider owns creating what it writes into.
+          rm -rf "$$_dest" 2>/dev/null
+          # `planId` is REQUIRED. Backrest's oplog refuses a restore without it
+          # ("add operation to oplog: plan_id is required") even though the proto
+          # makes it look optional. Verified against a live v1.14.1: every restore
+          # failed — identity reads and real deliveries alike — until this was
+          # carried through.
+          _resp=$$(brest Restore "{\"planId\":\"$$_plan\",\"repoId\":\"$$_repo\",\"snapshotId\":\"$$_snap\",\"path\":\"$$_root/.hola/instance.json\",\"target\":\"$$_dest\"}")
           _op=$$(printf '%s' "$$_resp" | jq_raw '.operationId // ""')
           [ -z "$$_op" ] && { rm -rf "$$_dest"; return 1; }
           if ! wait_for_op "$$_op" 120; then rm -rf "$$_dest"; return 1; fi
@@ -281,6 +291,14 @@ services:
             # Newest first, capped: the first pass restores one marker per capture, so
             # an unbounded repository would otherwise make the first index unbounded too.
             _ids=$$(printf '%s' "$$_snaps" | jq_raw '[.snapshots[]] | sort_by(.unixTimeMs) | reverse | .[].id // ""' | head -n "$$maxsnaps")
+            # Which plan backs this repo. Backrest requires a planId on every restore
+            # and it must name a plan that exists; where several back one repo, any of
+            # them serves for a read-only restore.
+            _plan=$$(printf '%s' "$$_cfg" | jq_raw ".plans[] | select(.repo == \"$$_repo\") | .id" | head -1)
+            if [ -z "$$_plan" ]; then
+              warn "repo '$$_repo' has no plan — nothing can be restored from it, skipping"
+              continue
+            fi
             for _snap in $$_ids; do
               _meta=$$(printf '%s' "$$_snaps" | jq_ "[.snapshots[] | select(.id == \"$$_snap\")] | .[0]")
               _takenms=$$(printf '%s' "$$_meta" | jq_raw '.unixTimeMs // 0')
@@ -297,11 +315,16 @@ services:
                   _cap="$$_snap.$$_dir"
                   _ident=$$(printf '%s' "$$(cat "$$cache" 2>/dev/null)" | jq_ ".cached[\"$$_cap\"] // null")
                   if [ -z "$$_ident" ] || [ "$$_ident" = "null" ]; then
-                    _ident=$$(read_identity "$$_repo" "$$_snap" "$$_root") || _ident=null
+                    _ident=$$(read_identity "$$_repo" "$$_plan" "$$_snap" "$$_root") || _ident=null
                     [ -z "$$_ident" ] && _ident=null
+                    # Say so. A silent fall-through publishes every capture as identity-less,
+                    # and Hola then offers each one for EVERY app it is asked about, because it
+                    # can neither rule them in nor out — so a capture of app A appears as a
+                    # restore source for app B. Loud is the only safe failure here.
+                    [ "$$_ident" = "null" ] && warn "could not read $$_root/.hola/instance.json out of $$_snap — publishing it as identity-less"
                   fi
                   _entries="$$_entries{\"captureId\":\"$$_cap\",\"takenAt\":\"$$_taken\",\"sizeBytes\":$$_size,\"location\":\"$$_root\",\"identity\":$$_ident},"
-                  _map="$$_map\"$$_cap\":{\"repoId\":\"$$_repo\",\"snapshotId\":\"$$_snap\",\"path\":\"$$_root\",\"identity\":$$_ident},"
+                  _map="$$_map\"$$_cap\":{\"repoId\":\"$$_repo\",\"planId\":\"$$_plan\",\"snapshotId\":\"$$_snap\",\"path\":\"$$_root\",\"identity\":$$_ident},"
                 done
               done
             done
@@ -347,12 +370,18 @@ services:
           log "claimed request $$_id for capture $$_cap"
 
           _repo=$$(printf '%s' "$$_entry" | jq_raw '.repoId')
+          _plan=$$(printf '%s' "$$_entry" | jq_raw '.planId')
           _snap=$$(printf '%s' "$$_entry" | jq_raw '.snapshotId')
           _path=$$(printf '%s' "$$_entry" | jq_raw '.path')
 
           # The destination is ALWAYS the path Hola minted under its own staging root.
           # Nothing here chooses or rewrites it.
-          _resp=$$(brest Restore "{\"repoId\":\"$$_repo\",\"snapshotId\":\"$$_snap\",\"path\":\"$$_path\",\"target\":\"$$_dest\"}")
+          # `planId` is REQUIRED. Backrest's oplog refuses a restore without it
+          # ("add operation to oplog: plan_id is required") even though the proto
+          # makes it look optional. Verified against a live v1.14.1: every restore
+          # failed — identity reads and real deliveries alike — until this was
+          # carried through.
+          _resp=$$(brest Restore "{\"planId\":\"$$_plan\",\"repoId\":\"$$_repo\",\"snapshotId\":\"$$_snap\",\"path\":\"$$_path\",\"target\":\"$$_dest\"}")
           _op=$$(printf '%s' "$$_resp" | jq_raw '.operationId // ""')
           if [ -z "$$_op" ]; then
             warn "Backrest refused the restore of $$_snap:$$_path — reporting failure for request $$_id"
