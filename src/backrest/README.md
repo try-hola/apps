@@ -85,6 +85,49 @@ backup — and nothing else: no ability to read, install or reconfigure anything
 through the API. It is minted when this app is installed and revoked when it's
 removed.
 
+## Restoring: this app can hand a capture back (2.2.0)
+
+Backing up and restoring are different promises, and until 2.2.0 this package
+only made the first one. It now also declares `restore@1`, which lets Hola offer
+your captures as a source when you install an app — including an app that no
+longer exists on this host, which is the case that matters after you lose one.
+
+**It needs its own consent at install.** `restore@1` is a separate contract from
+`backup@1`, not a wider version of it, because it needs something `backup@1`
+deliberately does not have: somewhere to write. Upgrading an existing install
+does **not** grant it — Hola shows a new consent row and the provider gains
+nothing until you accept it. Decline and this app keeps backing up exactly as
+before, offering no captures.
+
+**What it can write is one scratch directory.** Hola injects a writable mount of
+its own restore staging root (a sibling of the apps root, not inside it) and
+nominates a fresh destination per restore. This app never gets write access to
+any app's data, and gains no read access it did not already have for backups.
+
+**How it works.** A third component, `backrest-hola-restore`, asks Hola for
+pending work every 30 seconds. Backrest's hooks only fire on snapshot start and
+end, so there is no event here to react to — nothing in Backrest happens when an
+install elsewhere wants a capture — which is why the provider polls rather than
+being called. On startup and whenever Hola says it holds no index, it enumerates
+your repositories and publishes a list of what it holds: **metadata only**, never
+any backed-up bytes. Per capture it reads the small `.hola/instance.json` marker
+Hola writes into every app's data root, so a capture can be attributed to the
+right app rather than guessed at from its path; those reads are cached
+permanently, since a snapshot never changes.
+
+**Two knobs**, both advanced and both safe to leave alone:
+
+- `BACKREST_HOLA_RESTORE` — `false` stops serving restores without uninstalling
+  or withdrawing consent.
+- `BACKREST_HOLA_RESTORE_MAX_SNAPSHOTS` — how far back to offer, newest first
+  (default 25). The first index pass costs one small read per capture.
+
+**What it deliberately will not do.** It cannot restore *itself* — the captures
+are only readable with the repository password this app's own `/config` holds, so
+restoring it from its own backup is circular. And on a brand-new host nothing can
+be offered until you install this app and point it at your existing repository,
+which needs that password: an operator-held secret Hola never has a copy of.
+
 ## Upgrading from 1.x
 
 1.x declared `consumes: apps-data` to get its read-only view of app data. 2.0

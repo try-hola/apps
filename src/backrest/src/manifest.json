@@ -1,6 +1,6 @@
 {
   "name": "backrest",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "title": "Backrest",
   "description": "Backup orchestrator (restic) with a web UI",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/backrest.svg",
@@ -9,7 +9,8 @@
     "port": 9898
   },
   "provides": [
-    "backup@1"
+    "backup@1",
+    "restore@1"
   ],
   "accepts": [
     "backup@1"
@@ -31,6 +32,31 @@
       ],
       "advanced": true,
       "description": "Keep every Backrest repository wired to Hola’s backup-contract hooks, so a snapshot quiesces the apps that need it. Set to false to manage the two Command hooks yourself in the Backrest UI — Hola will then no longer add them back, and an unwired repository captures live database files."
+    },
+    {
+      "key": "BACKREST_HOLA_RESTORE",
+      "value": "true",
+      "isSecret": false,
+      "label": "Serve restores to Hola",
+      "type": "enum",
+      "options": [
+        {
+          "value": "true"
+        },
+        {
+          "value": "false"
+        }
+      ],
+      "advanced": true,
+      "description": "Offer this provider’s captures to Hola when an app is installed, and deliver the one an operator picks. Set to false to keep backing up while serving no restores — Hola then shows no captures from here, and nothing about existing backups changes."
+    },
+    {
+      "key": "BACKREST_HOLA_RESTORE_MAX_SNAPSHOTS",
+      "value": "25",
+      "isSecret": false,
+      "label": "Snapshots to index per repository",
+      "advanced": true,
+      "description": "How many snapshots per repository to offer as restore sources, newest first. The first pass reads one small marker file out of each capture to identify which app it belongs to; those reads are then cached permanently, because a snapshot never changes. Raise it if you need to restore from further back."
     }
   ],
   "defaults": {
