@@ -1,6 +1,6 @@
 {
   "name": "backrest",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "title": "Backrest",
   "description": "Backup orchestrator (restic) with a web UI",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/backrest.svg",
