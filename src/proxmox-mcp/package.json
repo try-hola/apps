@@ -1,0 +1,13 @@
+{
+  "name": "proxmox-mcp",
+  "version": "0.1.0-beta.1",
+  "description": "Proxmox MCP — MCP server for Proxmox VE, so AI agents can manage nodes, VMs, containers, snapshots and backups (Hola app package)",
+  "license": "MIT",
+  "oci": {
+    "annotations": {
+      "org.opencontainers.image.title": "proxmox-mcp",
+      "org.opencontainers.image.description": "MCP server for Proxmox VE — manage nodes, VMs, containers, snapshots and backups from AI agents",
+      "org.opencontainers.image.version": "${npm_package_version}"
+    }
+  }
+}
