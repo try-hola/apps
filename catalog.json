@@ -88,17 +88,10 @@
       "tags": [],
       "versions": [
         {
-          "version": "2.0.1",
+          "version": "2.0.2",
           "channel": "stable",
           "refs": {
-            "oci": "ghcr.io/try-hola/gitea:2.0.1"
-          }
-        },
-        {
-          "version": "2.0.2-rc.1",
-          "channel": "rc",
-          "refs": {
-            "oci": "ghcr.io/try-hola/gitea:2.0.2-rc.1"
+            "oci": "ghcr.io/try-hola/gitea:2.0.2"
           }
         }
       ]
