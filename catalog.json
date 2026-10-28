@@ -297,10 +297,10 @@
       "tags": [],
       "versions": [
         {
-          "version": "0.10.1",
+          "version": "0.10.2",
           "channel": "stable",
           "refs": {
-            "oci": "ghcr.io/try-hola/remo:0.10.1"
+            "oci": "ghcr.io/try-hola/remo:0.10.2"
           }
         },
         {
@@ -315,13 +315,6 @@
           "channel": "beta",
           "refs": {
             "oci": "ghcr.io/try-hola/remo:0.11.0-beta.1"
-          }
-        },
-        {
-          "version": "0.10.2-rc.1",
-          "channel": "rc",
-          "refs": {
-            "oci": "ghcr.io/try-hola/remo:0.10.2-rc.1"
           }
         }
       ]
