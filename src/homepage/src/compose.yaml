@@ -32,8 +32,17 @@ services:
           if [ -f /data/registry.json ]; then
             yq -o=yaml -p=json '[{"Apps": [.apps[] | {(.name): {"href": .url, "icon": (.app + ".png")}}]}]' /data/registry.json > /tmp/services.yaml 2>/dev/null
             if [ -s /tmp/services.yaml ] && ! cmp -s /tmp/services.yaml /data/config/services.yaml; then
-              cp /tmp/services.yaml /data/config/services.yaml
-              echo "[hola] services.yaml updated"
+              # Write in place, never `cp`: the config dir is root-owned (Docker
+              # creates the bind-mount source), so this uid-1000 sidecar can't
+              # create or replace entries in it, and BusyBox cp refuses ("File
+              # exists") even though Homepage's own uid-1000 services.yaml is
+              # writable. Until Homepage seeds that file the write fails and the
+              # next pass retries.
+              if cat /tmp/services.yaml > /data/config/services.yaml; then
+                echo "[hola] services.yaml updated"
+              else
+                echo "[hola] services.yaml not writable yet; retrying"
+              fi
             fi
           fi
           sleep 20
