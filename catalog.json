@@ -153,17 +153,10 @@
       "tags": [],
       "versions": [
         {
-          "version": "1.3.3",
+          "version": "1.3.4",
           "channel": "stable",
           "refs": {
-            "oci": "ghcr.io/try-hola/homepage:1.3.3"
-          }
-        },
-        {
-          "version": "1.3.4-rc.1",
-          "channel": "rc",
-          "refs": {
-            "oci": "ghcr.io/try-hola/homepage:1.3.4-rc.1"
+            "oci": "ghcr.io/try-hola/homepage:1.3.4"
           }
         }
       ]
