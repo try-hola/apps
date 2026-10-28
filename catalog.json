@@ -26,17 +26,10 @@
       "tags": [],
       "versions": [
         {
-          "version": "2.2.1",
+          "version": "2.2.2",
           "channel": "stable",
           "refs": {
-            "oci": "ghcr.io/try-hola/backrest:2.2.1"
-          }
-        },
-        {
-          "version": "2.2.2-rc.1",
-          "channel": "rc",
-          "refs": {
-            "oci": "ghcr.io/try-hola/backrest:2.2.2-rc.1"
+            "oci": "ghcr.io/try-hola/backrest:2.2.2"
           }
         }
       ]
