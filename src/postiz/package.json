@@ -1,6 +1,6 @@
 {
   "name": "postiz",
-  "version": "2.1.0",
+  "version": "2.1.1-rc.1",
   "description": "Postiz — open-source social media scheduling (Hola app package)",
   "license": "UNLICENSED",
   "oci": {

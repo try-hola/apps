@@ -1,6 +1,6 @@
 {
   "name": "postiz",
-  "version": "2.1.0",
+  "version": "2.1.1-rc.1",
   "title": "Postiz",
   "description": "Open-source social media scheduling tool with AI features",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/postiz.svg",
