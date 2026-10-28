@@ -1,10 +1,17 @@
 services:
   homepage:
-    image: ghcr.io/gethomepage/homepage:v1.13.2@sha256:a0b71c8e757298d02560186bab9fbe3fc2d375c523a62cc1019177b37e48aa28
+    image: ghcr.io/gethomepage/homepage:v2.7.0@sha256:19c5c09184458a41b7b5915e71463a39f36cd33540f41bdbed008791b8182d5f
     environment:
       # Required since Homepage v1.0 — the dashboard refuses requests whose Host
-      # header isn't allow-listed. Hola fills in the app's public host.
+      # header isn't allow-listed. Hola fills in the app's public host. Since
+      # v2.0 the check covers every page, not just /api (a mismatch now 404s the
+      # dashboard itself); the container healthcheck hits 127.0.0.1:3000, which is
+      # always allowed.
       HOMEPAGE_ALLOWED_HOSTS: ${HOLA_APP_HOST}
+      # Homepage v2.0 added its own opt-in login gate (HOMEPAGE_AUTH_ENABLED) and
+      # an opt-in MCP endpoint (HOMEPAGE_MCP_ENABLED). Both are deliberately left
+      # unset: Hola gates this app with Authentik forward-auth (manifest `auth`),
+      # and a second login behind it would only add a password prompt.
     volumes:
       - ${HOLA_APP_DATA}/config:/app/config
 
