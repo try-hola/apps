@@ -184,17 +184,10 @@
       "tags": [],
       "versions": [
         {
-          "version": "2.1.0",
+          "version": "2.1.1",
           "channel": "stable",
           "refs": {
-            "oci": "ghcr.io/try-hola/immich:2.1.0"
-          }
-        },
-        {
-          "version": "2.1.1-rc.1",
-          "channel": "rc",
-          "refs": {
-            "oci": "ghcr.io/try-hola/immich:2.1.1-rc.1"
+            "oci": "ghcr.io/try-hola/immich:2.1.1"
           }
         }
       ]
