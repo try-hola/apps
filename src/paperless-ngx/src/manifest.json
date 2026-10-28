@@ -1,6 +1,6 @@
 {
   "name": "paperless-ngx",
-  "version": "2.0.6",
+  "version": "3.0.0-rc.1",
   "title": "Paperless-ngx",
   "description": "Self-hosted document management system: scan, index, and archive your documents",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/paperless-ngx.svg",
@@ -96,8 +96,9 @@
   ],
   "upgrade": {
     "breaking": true,
+    "minFromVersion": "1.0.1",
     "preUpgradeBackup": "required",
-    "upgradeNotesUrl": "https://github.com/pgautoupgrade/docker-pgautoupgrade"
+    "upgradeNotesUrl": "https://docs.paperless-ngx.com/migration-v3/"
   },
   "accepts": ["backup@1", "restore@1"]
 }
