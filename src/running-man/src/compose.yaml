@@ -1,6 +1,6 @@
 services:
   running-man:
-    image: ghcr.io/get2knowio/running-man:0.1.5@sha256:fe840226c3bfd8e7dacd50575f5d9dbc02ee93ff63d38a1cf6165ea4e3914db6
+    image: ghcr.io/get2knowio/running-man:0.1.6@sha256:789a62c77e38f82e8ada7e61003d1d32f6e6844b31882ea5adaedb2b214ddd5e
     environment:
       # v0.1.5+: no more static PAT/OAuth-app config. running-man registers its
       # own GitHub App (browser-driven manifest flow under /github-app/new,
@@ -54,7 +54,7 @@ services:
   # register with GitHub and execute real jobs, they just don't share the host's
   # Docker state. dind requires `privileged: true`.
   running-man-dind:
-    image: docker:29.7.1-dind@sha256:e8faad5a8dc5279dff929afc5449f2791736912fff9f99351d742db2fad01b4c
+    image: docker:29.9.2-dind@sha256:9e79b879b177fbd72c34376a3dd3d91747da5db49e1f560f76aea59561471977
     privileged: true
     volumes:
       # Shared with running-man above: dockerd's default socket path is
