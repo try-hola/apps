@@ -15,7 +15,7 @@
 # same pattern as Homepage's registry renderer.
 services:
   immich-server:
-    image: ghcr.io/immich-app/immich-server:v3.1.0@sha256:b434cb9287eea1471c9974845914d4dd328c9c2d652e446ed4930f99944f0ceb
+    image: ghcr.io/immich-app/immich-server:v3.3.5@sha256:485d546a2e31d6a8b4db8423fcba5c109de8c218d93410af115fd1ccfc4352a6
     environment:
       # Internal datastores (not exposed to the host).
       DB_HOSTNAME: immich-postgres
@@ -62,7 +62,7 @@ services:
   # concern, not the server's. Idempotent and safe with no SSO: if oidc.json is
   # absent it does nothing, leaving Immich on its built-in login.
   immich-oidc-init:
-    image: mikefarah/yq:4.53.3@sha256:11a1f0b604b13dbbdc662260d8db6f644b22d8553122a25c1b5b2e8713ca6977
+    image: mikefarah/yq:4.54.1@sha256:4b3d9475d65571d28cbb19544d3820ec2945e4c8b2f18279394282b8dc3a592e
     # One-shot: render the OAuth config and exit. `restart: "no"` is REQUIRED — Hola
     # applies an install-wide default restart policy to services that declare none,
     # which would restart this after it exits 0, so it never reaches
@@ -103,7 +103,7 @@ services:
       - ${HOLA_APP_DATA}:/data
 
   immich-machine-learning:
-    image: ghcr.io/immich-app/immich-machine-learning:v3.1.0@sha256:5a0839dc5303cd7215bcd2180a26aed3af41675aefb3e75e5157e9f10ad16e6e
+    image: ghcr.io/immich-app/immich-machine-learning:v3.3.5@sha256:5b28c9352c8374b8a1ed96fbdd8d6755fea6e43510ec43fdf6538aa02ea40f56
     volumes:
       - ${HOLA_APP_DATA}/model-cache:/cache
     healthcheck:
@@ -117,7 +117,7 @@ services:
     # Alpine variant of the Valkey cache — ~80 MB smaller than the Debian image, no
     # behavioural difference (Redis-compatible; immich uses it only as a cache/queue).
     # Pinned by manifest-list digest (multi-arch amd64+arm64), matching the postgres pin.
-    image: docker.io/valkey/valkey:9-alpine@sha256:ee91f7a174ac4d6a6b0685b3a60e321f0a9dbbb691f9b0e285be2ba1d1be8328
+    image: docker.io/valkey/valkey:9-alpine@sha256:bf09d58e96d6b4524a15396b65b242bbe18beebbcc15a04d8ee75ddac62fae0b
     volumes:
       - ${HOLA_APP_DATA}/redis:/data
     healthcheck:
