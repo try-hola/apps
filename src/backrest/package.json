@@ -1,6 +1,6 @@
 {
   "name": "backrest",
-  "version": "2.2.2-rc.1",
+  "version": "2.2.2",
   "description": "Backrest — backup orchestrator (restic) with a web UI (Hola app package)",
   "license": "MIT",
   "oci": {
