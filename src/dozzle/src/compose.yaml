@@ -24,7 +24,7 @@
 # it. See `Container logs` in README.md.
 services:
   dozzle:
-    image: ghcr.io/amir20/dozzle:v11.1.0@sha256:7c4fb7f8124f5dea15ade881535cc19cc9a03e66639fd28154ff43a93b78944b
+    image: ghcr.io/amir20/dozzle:v11.3.5@sha256:dd09e6aaa9d5ad686b6017427a502c40dc862ba28445609813e5ea1f66f6dbdf
     environment:
       # Identity, from Hola's Authentik gate. Dozzle's `forward-proxy` provider
       # trusts identity headers set by the proxy in front of it, which is exactly
