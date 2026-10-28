@@ -8,7 +8,7 @@
 # an opt-in profile once Hola supports per-app compose profiles.
 services:
   postiz:
-    image: ghcr.io/gitroomhq/postiz-app:v2.21.10@sha256:1d5a5dc6b896747d1483c01dc2562165bd313ad601b32f6cabb7f7dd08a911a9
+    image: ghcr.io/gitroomhq/postiz-app:v2.25.3@sha256:1e376ff2cb781022d528f171719cf174cf693a985a30cb40eefb13eae3ddda13
     environment:
       # Public URLs — Hola injects the app's Traefik host.
       MAIN_URL: "https://${HOLA_APP_HOST}"
@@ -63,7 +63,7 @@ services:
     # pgautoupgrade: on boot, detects an older PGDATA and runs `pg_upgrade` in place
     # before starting — so an existing install's data migrates across the Postgres
     # major automatically. A fresh install just initializes a new PG18 cluster.
-    image: pgautoupgrade/pgautoupgrade:18-alpine@sha256:19f988b90c8d0ad9c7edd70cf23c83e069abd8a57f0fdce0373588ddaf189894
+    image: pgautoupgrade/pgautoupgrade:18-alpine@sha256:e9fe125da1a03f89e3ff1d9d5a0e317ac03943bb43fb1ba4bc63135094d262c1
     environment:
       POSTGRES_USER: postiz-user
       POSTGRES_PASSWORD: postiz-password
@@ -85,7 +85,7 @@ services:
       start_period: 10s
 
   postiz-redis:
-    image: redis:7.4-alpine@sha256:e7723ff73d963f5cc6d9c4643ea3d989527a402a319239054e9472a7fb9219a2
+    image: redis:7.4-alpine@sha256:6ba19c50b56777f5c11c58eff8ddb69d0d5f27ba131cffb63f180ccfd43c66af
     volumes:
       - ${HOLA_APP_DATA}/redis:/data
     healthcheck:
@@ -128,7 +128,7 @@ services:
     # postiz-postgres). Temporal's own databases (`temporal` and, from auto-setup,
     # `temporal_visibility`) — quiesced by its own backup@1 participation, same as
     # the primary Postiz database.
-    image: pgautoupgrade/pgautoupgrade:18-alpine@sha256:19f988b90c8d0ad9c7edd70cf23c83e069abd8a57f0fdce0373588ddaf189894
+    image: pgautoupgrade/pgautoupgrade:18-alpine@sha256:e9fe125da1a03f89e3ff1d9d5a0e317ac03943bb43fb1ba4bc63135094d262c1
     environment:
       POSTGRES_USER: temporal
       POSTGRES_PASSWORD: temporal
