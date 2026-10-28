@@ -336,6 +336,10 @@
         }
       ]
     },
+    "multiInstance": {
+      "type": "boolean",
+      "description": "Opt this app out of Hola's single-instance-by-default guard (hola#246): when true, a second install of the same app on the same channel needs no operator override. Declare it only when two copies share nothing host-wide -- each has its own data root, subdomain and per-deployment auth -- e.g. Calibre-Web, one copy per Calibre library. Leave it off for apps that act on the whole host (a backup provider, Homepage's app registry). The server honours only a literal true."
+    },
     "provides": {
       "description": "Capability contract(s) this app PERFORMS for other apps (ADR 0004) -- e.g. 'backup@1' for a backup engine, or 'restore@1' (Hola spec 008: restore-provider) for a restore source such as `backrest`. A contract's provider grant is elevated access the server injects because of the role, disclosed to the operator for consent at install: 'backup@1' grants a read-only mount of every app's data; 'restore@1' grants a writable staging mount -- see try-hola/hola specs/008-restore-provider/contracts/manifest.md §0. Only contracts with an app-side provider may be declared; 'auth@1' and 'push@1' are provided by the platform itself, and an app claiming them is a manifest error. See Capability contracts in README.md.",
       "anyOf": [

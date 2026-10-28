@@ -60,6 +60,7 @@ Per-app metadata the Hola server reads at deploy time. Key fields:
 | `upgrade` | no | Upgrade-safety metadata — `breaking`, version-skip guard rails, pre-upgrade backup policy. See [Upgrade safety](#upgrade-safety-upgrade). |
 | `backup` | no | Per-app pre/post-backup hooks for transaction-consistent snapshots (e.g. `pg_dump`). See [Backup hooks](#backup-hooks-backup). |
 | `push` | no | Directories the app accepts bulk data into via `hola app data push`. See [Push targets](#push-targets-push). |
+| `multiInstance` | no | `true` lets the app be installed more than once on a host without `--allow-multiple` (each copy still needs its own `--name`/subdomain). Default is single-instance. Only for apps whose copies share nothing host-wide — e.g. Calibre-Web, one copy per library. |
 
 **`ingress.service` matters for multi-service apps.** Hola attaches exactly one
 service to its routing network and injects auth env into it. If you omit
