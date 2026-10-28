@@ -1,6 +1,6 @@
 services:
   actual-budget:
-    image: actualbudget/actual-server:26.8.0@sha256:0b300f370dba85a74998a953736a831bd931cc8cb76c0d8ceac3d3fd288dfd4d
+    image: actualbudget/actual-server:26.10.0@sha256:24645e971da6bb1a1f953d6859e307a0b29be1e8b4130a35b3220c209b5b860c
     environment:
       # Actual derives its OIDC redirect (/openid/callback) from this base URL, so
       # it must be set to the app's public URL. Hola provisions the OpenID client
