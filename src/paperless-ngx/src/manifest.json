@@ -1,6 +1,6 @@
 {
   "name": "paperless-ngx",
-  "version": "3.0.0-rc.1",
+  "version": "3.0.0",
   "title": "Paperless-ngx",
   "description": "Self-hosted document management system: scan, index, and archive your documents",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/paperless-ngx.svg",
