@@ -17,8 +17,14 @@ src/gitea/
   `ports:` host publishing.
 - **SQLite** keeps it a single container. Swap to PostgreSQL by adding a `db`
   service and the matching `GITEA__database__*` env.
-- `GITEA__server__DOMAIN` / `ROOT_URL` default to `gitea.example.com`; set them to
-  `gitea.<your HOLA_BASE_DOMAIN>` at deploy time.
+- `GITEA__server__ROOT_URL` is filled from `${HOLA_APP_HOST}` at deploy time. Since
+  Gitea 28 it is the only source of the instance domain (`[server] DOMAIN` is
+  ignored, [go-gitea/gitea#39400](https://github.com/go-gitea/gitea/pull/39400)).
+- **Versioning.** Gitea dropped its `1.` prefix: **28.0.0 is the release after
+  1.27.x** (it was 1.28 in development), not a jump of 27 majors
+  ([release post](https://blog.gitea.com/release-of-28.0.0)). Its database
+  migrations are one-way, so bundle 3.x **requires** a pre-upgrade snapshot: a
+  rollback to a 1.27 bundle without restoring that data refuses to start.
 
 ## Authentication (SSO-only)
 
@@ -29,7 +35,7 @@ instance down to SSO:
 - `GITEA__service__ENABLE_PASSWORD_SIGNIN_FORM=false` — the local
   username/password login form is hidden, so the only sign-in is the **OIDC
   (Authentik)** button ([go-gitea/gitea#32687](https://github.com/go-gitea/gitea/pull/32687),
-  needs Gitea ≥ 1.23.1 — hence the `1.26` image pin).
+  needs Gitea ≥ 1.23.1).
 - `GITEA__oauth2_client__ENABLE_AUTO_REGISTRATION=true` — the first OIDC login
   creates the user automatically.
 
@@ -107,6 +113,17 @@ services:
 
 The runner waits on Gitea's `/api/healthz` healthcheck so the token is seeded
 before it connects.
+
+**Run history expires.** Since Gitea 28, completed runs (with their jobs, logs
+and artifacts) are deleted after 400 days by the `cleanup_action_runs` cron
+([go-gitea/gitea#38855](https://github.com/go-gitea/gitea/pull/38855)). To keep
+them forever, add `GITEA__actions__RUN_RETENTION_DAYS: "0"` to the `gitea` service.
+
+**Runner version.** The runner image stays `gitea/act_runner:0.6.1` for now: it
+still talks to Gitea 28 (the runner protocol negotiates capabilities), but
+upstream renamed the project to **Gitea Runner** (`gitea/runner`, now 5.x) and
+`act_runner` receives no further releases. Moving to `gitea/runner` is a separate
+upgrade with its own breaking changes.
 
 **Why Docker-in-Docker (and `privileged`).** Hola is Traefik-only with **no host
 ports**, and the compose validator also **rejects any bind mount outside

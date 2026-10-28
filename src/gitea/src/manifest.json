@@ -1,6 +1,6 @@
 {
   "name": "gitea",
-  "version": "2.0.2",
+  "version": "3.0.0-rc.1",
   "title": "Gitea",
   "description": "Self-hosted Git service",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/gitea.svg",
@@ -53,8 +53,8 @@
   },
   "upgrade": {
     "breaking": true,
-    "upgradeNotesUrl": "https://github.com/go-gitea/gitea/releases/tag/v1.27.0",
-    "preUpgradeBackup": "recommended"
+    "upgradeNotesUrl": "https://blog.gitea.com/release-of-28.0.0",
+    "preUpgradeBackup": "required"
   },
   "accepts": ["backup@1"]
 }

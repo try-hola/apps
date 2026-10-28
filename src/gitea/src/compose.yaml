@@ -1,6 +1,8 @@
 services:
   gitea:
-    image: gitea/gitea:1.27@sha256:87a67ee09d3ae0d1df5fda5dcda3e2a1f9236a45b0a59025d6e00e46adc43bef
+    # Gitea dropped the historical "1." prefix: 28.x is the direct successor of
+    # 1.27 (it was 1.28 in development). https://blog.gitea.com/release-of-28.0.0
+    image: gitea/gitea:28.2@sha256:30777c91280d973fa02be48b1ade735bd6859e8f6f7af3b4444d519437852504
     environment:
       USER_UID: "1000"
       USER_GID: "1000"
@@ -11,13 +13,16 @@ services:
       # with MustInstalled() and OIDC provisioning fails.
       GITEA__security__INSTALL_LOCK: "true"
       GITEA__server__HTTP_PORT: "3000"
-      # Public host + external URL. Hola fills in the app's public host.
-      GITEA__server__DOMAIN: ${HOLA_APP_HOST}
+      # External URL. Hola fills in the app's public host. Since Gitea 28 this is
+      # the ONLY source of the instance (and default SSH) domain: [server] DOMAIN
+      # is no longer read (go-gitea/gitea#39400), so it is not set here any more.
       GITEA__server__ROOT_URL: https://${HOLA_APP_HOST}/
       # Lock the instance to SSO: disable self-service registration, and hide the
       # local username/password sign-in form so the only login is the provisioned
       # OIDC (Authentik) button. ENABLE_PASSWORD_SIGNIN_FORM needs Gitea >= 1.23.1
-      # (go-gitea/gitea#32687) — hence the image bump above.
+      # (go-gitea/gitea#32687). Gitea 28 made DISABLE_REGISTRATION default to true
+      # (go-gitea/gitea#39400); it stays explicit so the SSO-only intent survives
+      # any future default change. OAuth2 auto-registration below is unaffected.
       GITEA__service__DISABLE_REGISTRATION: "true"
       GITEA__service__ENABLE_PASSWORD_SIGNIN_FORM: "false"
       # OIDC login behavior (Hola provisions the provider via `auth.oidc.setup`).
@@ -30,6 +35,10 @@ services:
       # Actions is on by default in this image; set it explicitly so the feature
       # is self-documenting and stays on if the upstream default ever changes.
       GITEA__actions__ENABLED: "true"
+      # Gitea 28 deletes completed Actions runs (with their jobs, logs and
+      # artifacts) after RUN_RETENTION_DAYS, default 400 (go-gitea/gitea#38855).
+      # Upstream's default is kept; set GITEA__actions__RUN_RETENTION_DAYS: "0"
+      # to keep run history forever.
       # Seed a *global* (instance-scoped) runner registration token at startup so
       # the gitea-runner service below can self-register unattended — no manual
       # token copy from the web UI. Gitea reads this plain env var directly (it is
