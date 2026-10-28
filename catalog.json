@@ -346,17 +346,10 @@
       "tags": [],
       "versions": [
         {
-          "version": "1.4.3",
+          "version": "1.4.4",
           "channel": "stable",
           "refs": {
-            "oci": "ghcr.io/try-hola/vaultwarden:1.4.3"
-          }
-        },
-        {
-          "version": "1.4.4-rc.1",
-          "channel": "rc",
-          "refs": {
-            "oci": "ghcr.io/try-hola/vaultwarden:1.4.4-rc.1"
+            "oci": "ghcr.io/try-hola/vaultwarden:1.4.4"
           }
         }
       ]
