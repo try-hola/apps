@@ -78,17 +78,10 @@
       ],
       "versions": [
         {
-          "version": "0.1.0",
+          "version": "0.1.1",
           "channel": "stable",
           "refs": {
-            "oci": "ghcr.io/try-hola/dozzle:0.1.0"
-          }
-        },
-        {
-          "version": "0.1.1-rc.1",
-          "channel": "rc",
-          "refs": {
-            "oci": "ghcr.io/try-hola/dozzle:0.1.1-rc.1"
+            "oci": "ghcr.io/try-hola/dozzle:0.1.1"
           }
         }
       ]
