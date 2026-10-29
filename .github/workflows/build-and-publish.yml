@@ -237,7 +237,7 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version: '26'
 
       # No arguments: validate-manifest.mjs discovers every src/*/src/manifest.json.
       - name: Validate every manifest against the schema
@@ -297,7 +297,7 @@ jobs:
         if: ${{ hashFiles(format('src/{0}/src/manifest.json', matrix.package)) != '' }}
         uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version: '26'
 
       # Full manifest.json schema check (typed defaultEnv shape, auth/upgrade/backup/
       # push blocks, etc.) plus semantic checks (enum defaults, min<=max, generate
