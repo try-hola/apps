@@ -6,10 +6,16 @@
 # routed by Traefik (see manifest.ingress.port).
 services:
   webserver:
-    image: ghcr.io/paperless-ngx/paperless-ngx:2.20.15@sha256:6c86cad803970ea782683a8e80e7403444c5bf3cf70de63b4d3c8e87500db92f
+    image: ghcr.io/paperless-ngx/paperless-ngx:3.3.4@sha256:9bc6e8248891bcfa6f52fffe8b81e4ea8cae75790c3ec1b9906961a7ba55c969
     environment:
       # Datastores (internal — never published to the host).
       PAPERLESS_REDIS: "redis://broker:6379"
+      # Paperless v3 requires the engine to be explicit for PostgreSQL. 3.x still
+      # infers it from PAPERLESS_DBHOST, but upstream documents that as removed
+      # (docs/migration-v3.md "Database Engine"); if the inference goes away, an
+      # unset engine silently boots on an EMPTY SQLite db under data/, so the
+      # library would look wiped. Pin it.
+      PAPERLESS_DBENGINE: "postgresql"
       PAPERLESS_DBHOST: "db"
       PAPERLESS_DBPORT: "5432"
       PAPERLESS_DBNAME: "paperless"

@@ -19,9 +19,10 @@ src/paperless-ngx/
 
 Three containers:
 
-- **webserver** — `ghcr.io/paperless-ngx/paperless-ngx:2.20.4`, the web UI and
+- **webserver** — `ghcr.io/paperless-ngx/paperless-ngx:3.3.4`, the web UI and
   background workers. Listens on container port **8000**.
-- **db** — `postgres:16-alpine`, document metadata and the search index state.
+- **db** — `pgautoupgrade/pgautoupgrade:18-alpine` (PostgreSQL 18; upgrades an
+  older cluster in place on boot), document metadata.
 - **broker** — `redis:7.4-alpine`, the task queue used for consumption/OCR jobs.
 
 ### No host ports — Traefik only
@@ -101,6 +102,35 @@ docker exec -it <paperless-webserver-container> \
 
 Then promote your SSO-provisioned user from the Django admin, or
 `python3 manage.py manage_superuser` / the user-edit screen.
+
+## Upgrading to bundle 3.x (Paperless-ngx v3)
+
+Bundle 3.0.0 moves Paperless-ngx from 2.20.15 to the v3 line. Upstream's guide:
+<https://docs.paperless-ngx.com/migration-v3/>. What it means for a Hola install:
+
+- **One-way database migration.** The first v3 boot migrates the schema, rewrites
+  every document checksum to SHA-256 (reads every original and archive file, so it
+  scales with library size), drops the old task history, and rebuilds the search
+  index from scratch (Whoosh → Tantivy). Upstream does not support going back.
+  The manifest therefore requires a pre-upgrade snapshot (`preUpgradeBackup:
+  required`); to return to 2.x, use a **data-aware** rollback, never a plain one —
+  2.20.15 cannot run against a v3-migrated database.
+- **Upgrade origin.** Upstream only supports v3 upgrades from 2.20.15, which every
+  bundle from 1.0.1 shipped; `minFromVersion: 1.0.1` refuses a jump from the
+  original 1.0.0 bundle (2.20.4).
+- **First start is slow.** Expect the web UI to be unavailable (and the container
+  possibly reported unhealthy) until the migrations and reindex finish.
+- **Behaviour changes you may notice:** duplicate uploads are no longer rejected
+  (set `PAPERLESS_CONSUMER_DELETE_DUPLICATES=true` to restore the old behaviour);
+  unqualified searches no longer match notes or custom fields (use
+  `notes.note:` / `custom_fields.value:`; saved views using those prefixes are
+  migrated automatically); API versions below 9 are gone (very old mobile/3rd-party
+  clients).
+- **CPU floor.** v3's NumPy requires an `x86-64-v2` CPU (SSE4.2). On an older or
+  emulated CPU (e.g. a Proxmox VM with CPU type `kvm64`) the worker crashes with
+  `SIGILL` when the classifier loads; check with `grep -o -m1 sse4_2 /proc/cpuinfo`.
+- **Unchanged here:** the forward-auth / trusted-header login, the data/media/
+  consume/export paths, Redis 7.4 and Postgres 18.
 
 ## Deploy
 
