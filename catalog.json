@@ -259,17 +259,10 @@
       "tags": [],
       "versions": [
         {
-          "version": "2.1.1",
+          "version": "2.2.0",
           "channel": "stable",
           "refs": {
-            "oci": "ghcr.io/try-hola/postiz:2.1.1"
-          }
-        },
-        {
-          "version": "2.2.0-rc.1",
-          "channel": "rc",
-          "refs": {
-            "oci": "ghcr.io/try-hola/postiz:2.2.0-rc.1"
+            "oci": "ghcr.io/try-hola/postiz:2.2.0"
           }
         }
       ]
