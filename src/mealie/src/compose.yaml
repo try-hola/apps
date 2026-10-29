@@ -42,6 +42,12 @@ services:
       OIDC_REMEMBER_ME: "${OIDC_REMEMBER_ME:-true}"
       OIDC_ADMIN_GROUP: "${OIDC_ADMIN_GROUP:-}"
       OIDC_GROUPS_CLAIM: "${OIDC_GROUPS_CLAIM:-groups}"
+      # Mealie >= 3.21 refuses an OIDC login unless the ID token asserts
+      # email_verified: true. Authentik (Hola's SSO) sends email_verified: false by
+      # default, so with Mealie's default every SSO login would be rejected. Hola's
+      # users are created by the operator in Authentik, so their addresses are
+      # already trusted.
+      OIDC_REQUIRES_EMAIL_VERIFICATION: "${OIDC_REQUIRES_EMAIL_VERIFICATION:-false}"
     expose:
       - "9000"
     volumes:
