@@ -146,24 +146,10 @@
       "tags": [],
       "versions": [
         {
-          "version": "1.3.4",
+          "version": "1.4.0",
           "channel": "stable",
           "refs": {
-            "oci": "ghcr.io/try-hola/homepage:1.3.4"
-          }
-        },
-        {
-          "version": "1.4.0-rc.2",
-          "channel": "rc",
-          "refs": {
-            "oci": "ghcr.io/try-hola/homepage:1.4.0-rc.2"
-          }
-        },
-        {
-          "version": "1.4.0-rc.1",
-          "channel": "rc",
-          "refs": {
-            "oci": "ghcr.io/try-hola/homepage:1.4.0-rc.1"
+            "oci": "ghcr.io/try-hola/homepage:1.4.0"
           }
         }
       ]
