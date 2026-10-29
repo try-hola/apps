@@ -12,6 +12,14 @@ services:
       # an opt-in MCP endpoint (HOMEPAGE_MCP_ENABLED). Both are deliberately left
       # unset: Hola gates this app with Authentik forward-auth (manifest `auth`),
       # and a second login behind it would only add a password prompt.
+      # Run as uid/gid 1000, the user the homepage-registry sidecar runs as. With
+      # these set, Homepage's entrypoint chowns /app/config at startup (including
+      # an existing root-owned install's) and then drops root. Without them it runs
+      # as root, the config dir stays root-owned, and the sidecar can't create
+      # services.yaml there, so no app tiles appear until someone has loaded the
+      # dashboard and Homepage has seeded the file itself.
+      PUID: "1000"
+      PGID: "1000"
     volumes:
       - ${HOLA_APP_DATA}/config:/app/config
 
@@ -32,12 +40,11 @@ services:
           if [ -f /data/registry.json ]; then
             yq -o=yaml -p=json '[{"Apps": [.apps[] | {(.name): {"href": .url, "icon": (.app + ".png")}}]}]' /data/registry.json > /tmp/services.yaml 2>/dev/null
             if [ -s /tmp/services.yaml ] && ! cmp -s /tmp/services.yaml /data/config/services.yaml; then
-              # Write in place, never `cp`: the config dir is root-owned (Docker
-              # creates the bind-mount source), so this uid-1000 sidecar can't
-              # create or replace entries in it, and BusyBox cp refuses ("File
-              # exists") even though Homepage's own uid-1000 services.yaml is
-              # writable. Until Homepage seeds that file the write fails and the
-              # next pass retries.
+              # Write in place, never `cp`: BusyBox cp unlinks and recreates the
+              # target, which needs write access to the directory, not just the
+              # file, and it reported "updated" when that failed. The write can
+              # fail briefly at startup, before Homepage has chowned /app/config
+              # (PUID above), and the next pass retries.
               if cat /tmp/services.yaml > /data/config/services.yaml; then
                 echo "[hola] services.yaml updated"
               else
