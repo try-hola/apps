@@ -1,6 +1,6 @@
 {
   "name": "mealie",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "title": "Mealie",
   "description": "Self-hosted recipe manager and meal planner",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/mealie.svg",
@@ -42,7 +42,8 @@
         "OIDC_AUTO_REDIRECT": "false",
         "OIDC_REMEMBER_ME": "true",
         "OIDC_ADMIN_GROUP": "hola-admins",
-        "OIDC_GROUPS_CLAIM": "groups"
+        "OIDC_GROUPS_CLAIM": "groups",
+        "OIDC_REQUIRES_EMAIL_VERIFICATION": "false"
       }
     }
   },
