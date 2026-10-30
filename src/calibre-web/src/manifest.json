@@ -1,6 +1,6 @@
 {
   "name": "calibre-web",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "title": "Calibre-Web",
   "description": "Browse, read, and download your Calibre ebook library",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/calibre-web.svg",
@@ -61,6 +61,15 @@
       "advanced": true,
       "label": "OPDS/Kobo access password",
       "description": "/opds and /kobo/ can't go through Hola's SSO login — e-reader apps and Kobo devices can't follow that redirect — so Traefik gates those two paths with this credential instead (see auth.forwardAuth.protectedBypassPaths). Fixed username is `hola`. Configure your OPDS reader or Kobo's api_endpoint with https://hola:<this password>@<app host>/... — most OPDS clients and Kobo's firmware both accept credentials embedded in the URL this way."
+    },
+    {
+      "key": "IDENTITY_SECRET",
+      "value": "",
+      "isSecret": true,
+      "generate": { "kind": "hex", "length": 32 },
+      "advanced": true,
+      "label": "SSO identity secret",
+      "description": "Proves to Calibre-Web that a request really came through Hola's SSO gate. Hola sends it (auth.forwardAuth.identitySecretEnv) alongside the signed-in Authentik username on the gated route only, and Calibre-Web logs that user in only when it matches. Generated per install; there is nothing to configure."
     }
   ],
   "defaults": {
@@ -86,7 +95,8 @@
     "mode": "forward-auth",
     "forwardAuth": {
       "protectedBypassPaths": ["/opds", "/kobo/"],
-      "bypassAuthPasswordEnv": "OPDS_BYPASS_PASSWORD"
+      "bypassAuthPasswordEnv": "OPDS_BYPASS_PASSWORD",
+      "identitySecretEnv": "IDENTITY_SECRET"
     }
   },
   "accepts": ["backup@1"],
