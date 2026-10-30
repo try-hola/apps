@@ -116,6 +116,30 @@ optional, and without the Traefik credential in front of it, an open `/opds` wou
 one unauthenticated request away from serving your whole library to anyone.
 
 
+### Signed in as yourself (SSO identity, 1.4.0)
+
+Browser users arrive through Authentik, so Calibre-Web is told who they are: it logs a
+request in as the Calibre-Web user whose name matches the Authentik username
+(`X-authentik-username`). Header login is only switched on together with Calibre-Web's
+shared-secret check. Hola sends a per-install secret (`IDENTITY_SECRET`, declared as
+`auth.forwardAuth.identitySecretEnv`) in `X-Hola-Identity-Secret` on the SSO-gated route
+only, and strips both headers from every other route. Without the secret, a forged
+username header from another container on the shared network gets nowhere.
+
+Header login never creates accounts: an Authentik user with no Calibre-Web account of
+the same name stays Guest. At install the package creates one account, an **admin** for
+whoever installed the app, named after their Authentik username (Hola's
+`${HOLA_USER_USERNAME}`; CLI installs are attributed to the host's `HOLA_ADMIN_EMAIL`
+admin). Once it exists, the stock `admin` account's default `admin123` password is
+replaced with a random one. To give someone else their own identity, create a
+Calibre-Web user with their Authentik username under **Admin → User Management**.
+
+This needs Hola **0.11.0-rc.11** or later. On an older server the username is empty and
+the secret header never arrives, so no account is created, nobody is header-logged-in,
+and the app behaves exactly as 1.3.x did. Upgrading an install made on an older Hola
+enables header login but creates no admin, because Hola recorded no installer username
+for it. Create the account yourself, or reinstall.
+
 ### Upgrading from 1.1.x
 
 The reader model above (anonymous browsing, Kobo sync, the Guest grant) is applied
@@ -189,8 +213,10 @@ Both steps are guarded: an existing library is never touched, and the settings a
 written while the library path is still unset, so anything you change later in the UI
 survives restarts and redeploys.
 
-The result is that the app boots straight to a login page. Sign in with the
-LinuxServer default — **`admin` / `admin123`** — and change the password immediately.
+The result is that the app boots straight to the library. On Hola 0.11.0-rc.11 or later,
+the installer is signed in as a Calibre-Web admin automatically (see *Signed in as
+yourself* above). On older servers, sign in with the LinuxServer default, **`admin` /
+`admin123`**, and change the password immediately.
 
 Upload books through **Admin → Upload** (the `+` button).
 
@@ -228,6 +254,7 @@ you deleted locally are deleted on the server too.
 | Timezone | `UTC` | Used for timestamps. |
 | Enable ebook format conversion | off | Installs Calibre's CLI tools at container start (`DOCKER_MODS=linuxserver/mods:universal-calibre`) so Calibre-Web can convert formats on download. Adds ~a minute to first boot and several hundred MB, and is **x86-64 only**. Not needed for Kobo. |
 | User ID (PUID) / Group ID (PGID) | `1000` | Advanced. Ownership of the library and config files. |
+| SSO identity secret | generated | Advanced. Proves a username header came through the SSO gate; nothing to configure. |
 
 ## Upgrading
 

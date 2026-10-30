@@ -38,6 +38,11 @@ services:
     environment:
       PUID: ${PUID}
       PGID: ${PGID}
+      # Inputs to the SSO identity script (.hola-apply-identity below). The
+      # same three are on the app container, where the first-run hook needs them.
+      IDENTITY_SECRET: ${IDENTITY_SECRET}
+      HOLA_INSTALLER_USERNAME: ${HOLA_USER_USERNAME:-}
+      HOLA_INSTALLER_EMAIL: ${HOLA_USER_EMAIL:-}
     command:
       - |
         set -e
@@ -132,8 +137,144 @@ services:
         print('[hola] reader model applied to app.db (anonymous browsing + Guest download)')
         APPLY
 
+        # SSO identity: Calibre-Web's own reverse-proxy login, wired to Hola's
+        # Authentik gate, plus an admin account for whoever installed the app.
+        #
+        # Behind the gate, Authentik hands every request `X-authentik-username`.
+        # Calibre-Web logs a request in as the user of that name when header
+        # login is on — but a header is only as trustworthy as its sender, and
+        # this container is reachable from every other app on the shared `hola`
+        # network, none of which pass through the gate. So header login is
+        # enabled ONLY together with Calibre-Web's shared-secret check: Hola puts
+        # IDENTITY_SECRET (manifest auth.forwardAuth.identitySecretEnv) in
+        # `X-Hola-Identity-Secret` on the gated route alone, and strips both
+        # headers from every other route, so only a request that actually passed
+        # Authentik carries a matching pair. The source-IP check Calibre-Web also
+        # insists on is set to the private ranges: Traefik's address on the
+        # `hola` network is not stable, and the secret is the real proof.
+        #
+        # A user with no Calibre-Web account of their name stays Guest — header
+        # login never creates accounts. The one account created here is the
+        # installer's (HOLA_INSTALLER_USERNAME, Hola's HOLA_USER_USERNAME token:
+        # the Authentik username of whoever installed this copy), as an admin.
+        # It is created once (stamped), so deleting it in the UI sticks. Once it
+        # exists, the stock `admin` account's well-known default password is
+        # replaced with a random one — it is no longer the only way in. Without a
+        # username (a Hola older than 0.11.0-rc.11, or an install with no named
+        # admin) none of the account steps happen and the app behaves as before.
+        #
+        # Unlike the reader model, the header-login settings are reconciled on
+        # EVERY run, not stamped: they are Hola's integration rather than an
+        # operator preference, and the secret has to follow the deployment's own
+        # value — a restored or copied app.db carries some other install's.
+        cat > /config/.hola-apply-identity <<'IDENTITY'
+        import os, sqlite3, secrets
+        from cryptography.fernet import Fernet, InvalidToken
+        from werkzeug.security import generate_password_hash, check_password_hash
+
+        db, key_file = '/config/app.db', '/config/.key'
+        admin_stamp = '/config/.hola-identity-admin-v1'
+        if not os.path.exists(db):
+            raise SystemExit(0)
+
+        c = sqlite3.connect(db)
+        try:
+            settings_cols = {r[1] for r in c.execute('pragma table_info(settings)')}
+            user_cols = [r[1] for r in c.execute('pragma table_info(user)')]
+        except sqlite3.OperationalError:
+            raise SystemExit(0)
+        if 'config_reverse_proxy_use_shared_secret' not in settings_cols or not user_cols:
+            raise SystemExit(0)  # tables not created yet; the next run picks it up
+
+        def fernet():
+            # Calibre-Web encrypts *_e settings with /config/.key, generating it
+            # on first start if absent. Do exactly what it does, so whichever of
+            # us runs first, the other reads the same key.
+            key = None
+            if os.path.exists(key_file) and os.path.getsize(key_file) > 32:
+                with open(key_file, 'rb') as f:
+                    key = f.read()
+            if key is None:
+                key = Fernet.generate_key()
+                with open(key_file, 'wb') as f:
+                    f.write(key)
+                os.chmod(key_file, 0o600)
+            return Fernet(key)
+
+        # Calibre-Web listens dual-stack, so an IPv4 peer arrives as an
+        # IPv4-mapped IPv6 address (::ffff:172.18.0.3) that Python's ipaddress
+        # never matches against 172.16.0.0/12. List each private range in both
+        # forms, and never the whole of ::ffff:0:0/96, which is every IPv4 host.
+        PRIVATE_RANGES = ','.join([
+            '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16', 'fc00::/7',
+            '::ffff:10.0.0.0/104', '::ffff:172.16.0.0/108', '::ffff:192.168.0.0/112',
+        ])
+
+        secret = os.environ.get('IDENTITY_SECRET', '')
+        if secret:
+            f = fernet()
+            stored = c.execute('select config_reverse_proxy_login_header_secret_e from settings').fetchone()[0]
+            try:
+                current = f.decrypt(stored.encode() if isinstance(stored, str) else stored).decode() if stored else ''
+            except InvalidToken:
+                current = ''
+            if current != secret:
+                c.execute('update settings set config_reverse_proxy_login_header_secret_e = ?',
+                          (f.encrypt(secret.encode()),))
+            c.execute(
+                'update settings set config_allow_reverse_proxy_header_login = 1,'
+                ' config_reverse_proxy_login_header_name = ?,'
+                ' config_reverse_proxy_use_shared_secret = 1,'
+                ' config_reverse_proxy_login_secret_header_name = ?,'
+                ' config_reverse_proxy_trusted_ips = ?',
+                ('X-authentik-username', 'X-Hola-Identity-Secret',
+                 PRIVATE_RANGES),
+            )
+        else:
+            # No secret means nothing can prove a header came through the gate.
+            c.execute('update settings set config_allow_reverse_proxy_header_login = 0')
+
+        # Calibre-Web role bits: everything the stock admin account has.
+        ROLE_FULL_ADMIN = 1 | 2 | 4 | 8 | 16 | 64 | 128 | 256
+
+        username = os.environ.get('HOLA_INSTALLER_USERNAME', '').strip()
+        email = os.environ.get('HOLA_INSTALLER_EMAIL', '').strip()
+        if username and not os.path.exists(admin_stamp):
+            exists = c.execute('select 1 from user where lower(name) = lower(?)', (username,)).fetchone()
+            if not exists:
+                if not email or c.execute('select 1 from user where lower(email) = lower(?)', (email,)).fetchone():
+                    email = username + '@hola.invalid'
+                # Copy every other column from an existing account so the new row
+                # gets Calibre-Web's own defaults (locale, sidebar, view settings)
+                # without this script hard-coding the schema.
+                own = {'id', 'name', 'email', 'role', 'password', 'kindle_mail'}
+                rest = [col for col in user_cols if col not in own]
+                template = c.execute('select id from user where role & 1 order by id limit 1').fetchone() \
+                    or c.execute('select id from user order by id limit 1').fetchone()
+                cols = ', '.join(['name', 'email', 'role', 'password', 'kindle_mail'] + rest)
+                c.execute(
+                    'insert into user (' + cols + ') select ?, ?, ?, ?, \'\'' +
+                    ''.join(', ' + col for col in rest) + ' from user where id = ?',
+                    (username, email, ROLE_FULL_ADMIN,
+                     generate_password_hash(secrets.token_urlsafe(32)), template[0]),
+                )
+                print('[hola] created Calibre-Web admin account for installer', username)
+            # The stock account still answering to the documented default is a
+            # login anyone can guess; retire the password, keep the account.
+            row = c.execute('select id, password from user where name = ?', ('admin',)).fetchone()
+            if row and row[1] and username.lower() != 'admin' and check_password_hash(row[1], 'admin123'):
+                c.execute('update user set password = ? where id = ?',
+                          (generate_password_hash(secrets.token_urlsafe(32)), row[0]))
+                print('[hola] replaced the default password of the stock admin account')
+            c.commit()
+            open(admin_stamp, 'w').close()
+
+        c.commit()
+        IDENTITY
+
         # Upgrade path: app.db is already there, so apply now.
         python3 /config/.hola-apply-reader-model
+        python3 /config/.hola-apply-identity
 
         # Fresh-install path: app.db appears later, so run the same script from
         # LinuxServer's custom-init hook — s6 runs it after
@@ -141,6 +282,9 @@ services:
         cat > /custom-cont-init.d/10-hola-first-run <<'INIT'
         #!/usr/bin/with-contenv bash
         python3 /config/.hola-apply-reader-model
+        python3 /config/.hola-apply-identity
+        # This hook runs as root; Calibre-Web (abc) must still own what it wrote.
+        lsiown abc:abc /config/.key /config/app.db 2>/dev/null || true
         INIT
         chmod +x /custom-cont-init.d/10-hola-first-run
 
@@ -162,6 +306,10 @@ services:
       # this — kepubify ships in the image and LinuxServer's init points
       # Calibre-Web at it automatically.
       DOCKER_MODS: ${DOCKER_MODS}
+      # Read by the first-run hook's identity script (see calibre-web-init).
+      IDENTITY_SECRET: ${IDENTITY_SECRET}
+      HOLA_INSTALLER_USERNAME: ${HOLA_USER_USERNAME:-}
+      HOLA_INSTALLER_EMAIL: ${HOLA_USER_EMAIL:-}
     volumes:
       # Calibre-Web's own state: app.db (users, settings, Kobo sync tokens).
       - ${HOLA_APP_DATA}/config:/config
@@ -178,7 +326,7 @@ services:
     # and Calibre-Web re-reads its settings. Not in the sh.hola.* namespace: the
     # platform owns that one and overwrites it.
     labels:
-      io.try-hola.calibre-web.reader-model: "v1"
+      io.try-hola.calibre-web.reader-model: "v2"
     # Web UI on 8083. Hola routes ingress through Traefik to this container port
     # (manifest.ingress.port) — no host ports.
     expose:
