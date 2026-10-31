@@ -235,7 +235,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
 
@@ -295,7 +295,7 @@ jobs:
 
       - name: Set up Node.js
         if: ${{ hashFiles(format('src/{0}/src/manifest.json', matrix.package)) != '' }}
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: '24'
 
