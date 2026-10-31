@@ -197,10 +197,10 @@
       "tags": [],
       "versions": [
         {
-          "version": "1.4.2",
+          "version": "1.4.3",
           "channel": "stable",
           "refs": {
-            "oci": "ghcr.io/try-hola/n8n:1.4.2"
+            "oci": "ghcr.io/try-hola/n8n:1.4.3"
           }
         }
       ]
