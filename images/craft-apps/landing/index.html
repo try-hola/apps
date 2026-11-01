@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Craft Apps</title>
+  <meta name="description" content="{{COUNT}} open-source creative apps, compiled from Rust to WebAssembly and served by this Hola host.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="_craft/mark.svg" type="image/svg+xml">
+  <link rel="preload" href="_craft/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="_craft/craft.css">
+  <script src="_craft/craft.js" defer></script>
+</head>
+<body>
+  <header class="bar">
+    <a class="bar-mark" href="./" aria-label="Craft Apps home">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><g fill="currentColor"><rect x="6" y="6" width="5.5" height="5.5" rx="1.2"/><rect x="13.25" y="6" width="5.5" height="5.5" rx="1.2"/><rect x="20.5" y="6" width="5.5" height="5.5" rx="1.2"/><rect x="6" y="13.25" width="5.5" height="5.5" rx="1.2"/><rect x="20.5" y="13.25" width="5.5" height="5.5" rx="1.2"/><rect x="6" y="20.5" width="5.5" height="5.5" rx="1.2"/><rect x="13.25" y="20.5" width="5.5" height="5.5" rx="1.2"/><rect x="20.5" y="20.5" width="5.5" height="5.5" rx="1.2"/></g><rect class="mark-accent" x="13.25" y="13.25" width="5.5" height="5.5" rx="1.2"/></svg>
+    </a>
+    <nav class="bar-nav" aria-label="Sections">
+      <a href="#launch">Launch</a>
+      <a href="#lineup">Lineup</a>
+      <a href="#notes">Notes</a>
+    </nav>
+    <span class="bar-host" id="host" aria-live="polite"></span>
+    <button class="bar-theme" id="theme" type="button" aria-label="Switch colour theme" title="Switch colour theme">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.5M12 19v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M2.5 12H5M19 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+    </button>
+  </header>
+
+  <div class="ruler" aria-hidden="true"></div>
+
+  <main class="frame">
+    <section id="launch" class="section">
+      <div class="strip"><span>01 / Craft apps</span><span class="strip-aside">{{COUNT}} apps · Open source · In your browser</span></div>
+      <div class="hero">
+        <div class="hero-copy">
+          <h1 class="display">{{COUNT}} apps.<br>One <em>tab</em>.</h1>
+          <p class="lede">Image editing, vector illustration, video, photography, PDFs, motion graphics, page layout,
+            interface design, 3D texture painting, word processing, audio, presentations, CAD and spreadsheets.
+            Written in Rust, compiled to WebAssembly, served by this Hola host, and run entirely in your browser.</p>
+          <div class="actions">
+            <a class="btn btn-solid" href="#lineup"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v14M6 12l6 6 6-6"/></svg>Browse the lineup</a>
+            <a class="btn btn-line" href="https://github.com/storytold" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 19c-4 1.3-4-2-6-2.5m12 4.5v-3.4a3 3 0 0 0-.8-2.3c2.7-.3 5.6-1.4 5.6-6a4.7 4.7 0 0 0-1.3-3.2 4.3 4.3 0 0 0-.1-3.2s-1-.3-3.4 1.3a11.6 11.6 0 0 0-6 0C6.6 1.6 5.6 1.9 5.6 1.9a4.3 4.3 0 0 0-.1 3.2A4.7 4.7 0 0 0 4.2 8.3c0 4.6 2.8 5.7 5.6 6a3 3 0 0 0-.8 2.3V21"/></svg>Source on GitHub</a>
+          </div>
+          <p class="meta"><span>MIT or Apache-2.0</span><span>Built {{BUILT}}</span><span id="gpu"></span></p>
+          <p class="note"><strong>Your files stay on this device.</strong> The apps open files from your computer and save by
+            downloading them. Nothing is uploaded to this server, so save your work before you close the tab.</p>
+        </div>
+        <ul class="shelf" aria-label="Open an app">{{SHELF}}
+        </ul>
+      </div>
+    </section>
+
+    <section id="lineup" class="section">
+      <div class="strip"><span>02 / The lineup</span><span class="strip-aside">Pick a craft</span></div>
+      <ul class="cards">{{CARDS}}
+      </ul>
+    </section>
+
+    <section id="notes" class="section">
+      <div class="strip"><span>03 / Notes</span></div>
+      <div class="notes">
+        <div>
+          <h2>Where your work lives</h2>
+          <p>Each app runs on your device. Open reads a file you pick, Save and Export download one. Preferences stay in this
+            browser. LightCraft keeps its photo library in this browser's own storage, so clearing this site's data removes it.</p>
+        </div>
+        <div>
+          <h2>What your browser needs</h2>
+          <p>A current browser with WebGPU or WebGL2. The apps fall back from WebGPU to WebGL2 on their own; add
+            <code>?webgl</code> to an app's address to force it. The first open of each app downloads it, from 2 to 70 MB.</p>
+        </div>
+        <div>
+          <h2>Who makes them</h2>
+          <p>These are open-source projects by the ArtCraft team and community
+            (<a href="https://getartcraft.com/apps" rel="noopener">getartcraft.com</a>), licensed MIT or Apache-2.0. This page serves
+            their official web builds unmodified; each app's licence and notices sit in its folder. Hola is not affiliated with them.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot frame">
+    <span>Craft Apps on Hola</span><span>{{COUNT}} apps · Built {{BUILT}}</span>
+  </footer>
+</body>
+</html>
