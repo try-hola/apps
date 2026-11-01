@@ -1,0 +1,13 @@
+{
+  "name": "craft-apps",
+  "version": "0.1.0-rc.1",
+  "description": "Craft Apps — 15 open-source creative apps compiled from Rust to WebAssembly, served from your Hola host (Hola app package)",
+  "license": "MIT",
+  "oci": {
+    "annotations": {
+      "org.opencontainers.image.title": "craft-apps",
+      "org.opencontainers.image.description": "15 open-source creative apps (PhotoCraft, GridCraft, …) that run in your browser",
+      "org.opencontainers.image.version": "${npm_package_version}"
+    }
+  }
+}

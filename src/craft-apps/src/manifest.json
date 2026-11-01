@@ -1,0 +1,25 @@
+{
+  "name": "craft-apps",
+  "version": "0.1.0-rc.1",
+  "title": "Craft Apps",
+  "description": "15 open-source creative apps — image, vector, video, photo, PDF, motion, layout, UI design, 3D texture, word processing, audio, slides, CAD and spreadsheets — that run entirely in your browser. Early alpha: files open from and save to your device, nothing is stored on the server.",
+  "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/craft-apps.svg",
+  "category": "apps",
+  "tags": ["creative", "office", "image", "video", "pdf", "spreadsheet", "wasm"],
+  "ingress": {
+    "service": "craft-apps",
+    "port": 8080
+  },
+  "defaultEnv": [],
+  "defaults": {
+    "ports": [
+      {
+        "container": 8080,
+        "protocol": "tcp"
+      }
+    ]
+  },
+  "auth": {
+    "mode": "forward-auth"
+  }
+}
