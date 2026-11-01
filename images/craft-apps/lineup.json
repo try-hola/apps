@@ -1,0 +1,21 @@
+{
+  "$comment": "Hand-maintained: what the landing page says about each app. Release pins live in apps.lock.json (scripts/update.mjs writes it). Colours are the per-app accents of the upstream lineup (light: app/ink, dark: ink).",
+  "org": "storytold",
+  "apps": [
+    { "id": "photocraft",     "name": "PhotoCraft",     "category": "Image editor",              "status": "Early alpha",    "blurb": "Layers, masks, type and real PSD files.",                    "app": "#2f7bf5", "ink": "#1a5bc4", "inkDark": "#7fb0ff" },
+    { "id": "vectorcraft",    "name": "VectorCraft",    "category": "Vector illustration",       "status": "In development", "blurb": "Paths, shapes, artboards and SVG.",                          "app": "#e8573f", "ink": "#b83a24", "inkDark": "#ff8a70" },
+    { "id": "filmcraft",      "name": "FilmCraft",      "category": "Video editor",              "status": "In development", "blurb": "A non-linear timeline for cutting video.",                   "app": "#8b5cf6", "ink": "#6a3fd6", "inkDark": "#b69cff" },
+    { "id": "lightcraft",     "name": "LightCraft",     "category": "Photo library & raw",       "status": "In development", "blurb": "Catalogue photos and develop raw files, non-destructively.", "app": "#f2a516", "ink": "#8a5800", "inkDark": "#ffc14d" },
+    { "id": "pdfcraft",       "name": "PdfCraft",       "category": "PDF workbench",             "status": "Early alpha",    "blurb": "Read, organise, combine, split and protect PDFs.",           "app": "#e8204f", "ink": "#b70228", "inkDark": "#f23a62" },
+    { "id": "effectcraft",    "name": "EffectCraft",    "category": "Motion graphics & VFX",     "status": "In development", "blurb": "Compositions, keyframes and visual effects.",                "app": "#e0368f", "ink": "#b0206c", "inkDark": "#ff7ab8" },
+    { "id": "designcraft",    "name": "DesignCraft",    "category": "Page layout",               "status": "In development", "blurb": "Lay out pages for print and publishing.",                    "app": "#7bb51c", "ink": "#457008", "inkDark": "#a6e04a" },
+    { "id": "figcraft",       "name": "FigCraft",       "category": "Interface design",          "status": "Early alpha",    "blurb": "Design and prototype user interfaces.",                      "app": "#02da96", "ink": "#017a54", "inkDark": "#3fe6ae" },
+    { "id": "texturecraft",   "name": "TextureCraft",   "category": "3D texture painting",       "status": "In development", "blurb": "Paint materials straight onto 3D models.",                   "app": "#c2672b", "ink": "#9c4a15", "inkDark": "#e58a4e" },
+    { "id": "wordcraft",      "name": "WordCraft",      "category": "Word processing",           "status": "In development", "blurb": "Write and format documents, including .docx.",              "app": "#4c6ef5", "ink": "#253e99", "inkDark": "#8da2fb" },
+    { "id": "soundcraft",     "name": "SoundCraft",     "category": "Audio workstation",         "status": "In development", "blurb": "Record, edit and mix multitrack audio.",                     "app": "#14a9c4", "ink": "#0b6f82", "inkDark": "#52d1ea" },
+    { "id": "deckcraft",      "name": "DeckCraft",      "category": "Presentations",             "status": "In development", "blurb": "Build slide decks and present them.",                        "app": "#f26b1d", "ink": "#ad4306", "inkDark": "#ff9657" },
+    { "id": "cadcraft",       "name": "CADCraft",       "category": "CAD & drafting",            "status": "In development", "blurb": "2D drafting and computer-aided design.",                     "app": "#14a3c7", "ink": "#09596d", "inkDark": "#4cc7e6" },
+    { "id": "gridcraft",      "name": "GridCraft",      "category": "Spreadsheets",              "status": "In development", "blurb": "Formulas, tables and data analysis.",                        "app": "#1f9d55", "ink": "#136938", "inkDark": "#5ee089" },
+    { "id": "craft-anything", "name": "Craft Anything", "category": "Software exploration",      "status": "Early alpha",    "blurb": "Take a piece of software apart to see how it works.",        "app": "#4e7bfb", "ink": "#1659c4", "inkDark": "#74aaff" }
+  ]
+}

@@ -1,0 +1,27 @@
+# Craft Apps — the official web builds of 15 open-source Rust/WASM apps by the
+# storytold/ArtCraft team (PhotoCraft, VectorCraft, FilmCraft, LightCraft,
+# PdfCraft, EffectCraft, DesignCraft, FigCraft, TextureCraft, WordCraft,
+# SoundCraft, DeckCraft, CADCraft, GridCraft, Craft Anything), each at
+# /<app>/ behind a landing page.
+#
+# The image is built in this repo (images/craft-apps/, workflow
+# craft-apps-image.yml): it pins each app's release zip by sha256, smoke-tests
+# every app in a headless browser, and serves them with nginx-unprivileged. The
+# apps are static files that run entirely in the visitor's browser — there is
+# no server-side state, so no volume and no backup participation. The weekly
+# job proposes the image bump; Renovate leaves this pin alone.
+services:
+  craft-apps:
+    image: ghcr.io/try-hola/craft-apps-web:aa38202bca08@sha256:b25e20df1cc283367e217274a4a58bec38eecc6b4c228024b496c3201b521c45
+    expose:
+      - "8080"
+    # Nothing is written at run time except nginx's pid and temp files.
+    read_only: true
+    tmpfs:
+      - /tmp
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s

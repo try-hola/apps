@@ -1,0 +1,7 @@
+.cache/
+node_modules/
+smoke/
+scripts/
+landing/
+*.md
+*.json

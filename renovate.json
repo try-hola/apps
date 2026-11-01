@@ -19,6 +19,11 @@
       "description": "Immich's Postgres image is coupled to the immich-server version: its tag encodes the PG major AND the exact VectorChord/pgvecto.rs extension versions, and Immich pins one specific image per server release in their own docker-compose.yml. It must change ONLY in lockstep with an immich-server bump (matching Immich's official compose), never independently — a decoupled PG-major bump diverges from Immich's tested config and needs a manual data migration Immich doesn't support. Newer tags (e.g. 16-*) exist on GHCR but Immich ships 14-* across v2.7.5 (stable) and v3.0.0-rc, so Renovate should not propose them. When bumping immich-server, update this image to whatever that release's compose pins.",
       "matchPackageNames": ["ghcr.io/immich-app/postgres"],
       "enabled": false
+    },
+    {
+      "description": "The Craft Apps image is built in this repo (images/craft-apps/) under content-hash tags, which have no order to compare. Its own weekly workflow (craft-apps-image.yml) proposes the bump, already smoke-tested.",
+      "matchPackageNames": ["ghcr.io/try-hola/craft-apps-web"],
+      "enabled": false
     }
   ]
 }
