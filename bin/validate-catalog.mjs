@@ -56,7 +56,6 @@ function checkApp(app, index, issues) {
   const label = app?.id ?? `apps[${index}]`;
   const versions = Array.isArray(app?.versions) ? app.versions : [];
   const seen = new Set();
-  let hasStable = false;
 
   for (const entry of versions) {
     const version = entry?.version ?? '(missing version)';
@@ -75,7 +74,6 @@ function checkApp(app, index, issues) {
     // the version string says otherwise, or a pre-release listed as stable.
     const channel = entry?.channel ?? STABLE_CHANNEL;
     if (channel === null || channel === undefined || channel === STABLE_CHANNEL) {
-      hasStable = true;
       if (typeof version === 'string' && version.includes('-')) {
         issues.push(
           `${path('channel')}: pre-release version listed on '${STABLE_CHANNEL}' — stable is the floor every channel is offered, so this would make a pre-release the default for every install`
@@ -96,12 +94,10 @@ function checkApp(app, index, issues) {
     }
   }
 
-  // Without a stable entry an app has no version the browse card or a default
-  // install can resolve to: `stable` is the floor, so a channel-only app is
-  // installable by nobody who didn't ask for that channel by name.
-  if (versions.length > 0 && !hasStable) {
-    issues.push(`${label}/versions: no entry on '${STABLE_CHANNEL}' — the app has no default version to install`);
-  }
+  // An app with no stable entry at all is allowed: one launching on a
+  // pre-release channel. Hola lists it with no version, routes its Install to
+  // that channel, and shows it only to operators enrolled in pre-releases
+  // (spec 005 FR-015; try-hola/hola#568).
 }
 
 function main() {
