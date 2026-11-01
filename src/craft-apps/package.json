@@ -1,6 +1,6 @@
 {
   "name": "craft-apps",
-  "version": "0.1.0-rc.1",
+  "version": "0.1.0",
   "description": "Craft Apps — 15 open-source creative apps compiled from Rust to WebAssembly, served from your Hola host (Hola app package)",
   "license": "MIT",
   "oci": {

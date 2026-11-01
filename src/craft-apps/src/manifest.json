@@ -1,6 +1,6 @@
 {
   "name": "craft-apps",
-  "version": "0.1.0-rc.1",
+  "version": "0.1.0",
   "title": "Craft Apps",
   "description": "15 open-source creative apps — image, vector, video, photo, PDF, motion, layout, UI design, 3D texture, word processing, audio, slides, CAD and spreadsheets — that run entirely in your browser. Early alpha: files open from and save to your device, nothing is stored on the server.",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/craft-apps.svg",
