@@ -1,6 +1,6 @@
 {
   "name": "hindsight",
-  "version": "0.1.0-rc.1",
+  "version": "0.1.0",
   "description": "Hindsight — long-term memory for AI agents, over REST and MCP (Hola app package)",
   "license": "MIT",
   "oci": {
