@@ -1,0 +1,127 @@
+{
+  "name": "hindsight",
+  "version": "0.1.0-rc.1",
+  "title": "Hindsight",
+  "description": "Long-term memory for AI agents. Agents retain, recall and reflect on what they learn through a REST API or MCP (Claude Code, Cursor and others), with a web UI to browse memory banks. Uses an LLM of your choice, such as an Anthropic API key; embeddings run locally.",
+  "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/hindsight.svg",
+  "category": "developer-tools",
+  "tags": ["ai", "memory", "agents", "mcp", "llm"],
+  "ingress": {
+    "service": "hindsight",
+    "port": 8080
+  },
+  "defaults": {
+    "ports": [
+      {
+        "container": 8080,
+        "protocol": "tcp"
+      }
+    ]
+  },
+  "defaultEnv": [
+    {
+      "key": "LLM_PROVIDER",
+      "value": "anthropic",
+      "isSecret": false,
+      "label": "LLM Provider",
+      "description": "Who runs the model Hindsight uses to extract, consolidate and reflect on memories. Embeddings and reranking run locally either way.",
+      "type": "enum",
+      "options": [
+        { "value": "anthropic", "label": "Anthropic" },
+        { "value": "openai", "label": "OpenAI" },
+        { "value": "gemini", "label": "Google Gemini" },
+        { "value": "groq", "label": "Groq" },
+        { "value": "ollama", "label": "Ollama (set the Base URL)" },
+        { "value": "lmstudio", "label": "LM Studio (set the Base URL)" },
+        { "value": "none", "label": "None: store and search raw text, no fact extraction" }
+      ]
+    },
+    {
+      "key": "LLM_API_KEY",
+      "value": "",
+      "isSecret": true,
+      "required": false,
+      "label": "LLM API Key",
+      "description": "API key for the provider above, e.g. an Anthropic key (sk-ant-…). Leave empty for a local runtime such as Ollama."
+    },
+    {
+      "key": "LLM_MODEL",
+      "value": "",
+      "isSecret": false,
+      "advanced": true,
+      "label": "LLM Model",
+      "description": "Model name. Empty uses the provider's default (claude-haiku-4-5 for Anthropic)."
+    },
+    {
+      "key": "LLM_BASE_URL",
+      "value": "",
+      "isSecret": false,
+      "advanced": true,
+      "type": "url",
+      "label": "LLM Base URL",
+      "description": "Only for Ollama, LM Studio or an OpenAI-compatible server, e.g. http://ollama.example.lan:11434/v1. Empty for hosted providers."
+    },
+    {
+      "key": "HINDSIGHT_API_KEY",
+      "value": "",
+      "isSecret": true,
+      "required": true,
+      "label": "Agent API Key",
+      "description": "Bearer key agents send to the REST API (/v1/) and MCP endpoint (/mcp/<bank>/). Generated for you; find it later under this app's configuration.",
+      "generate": { "kind": "hex", "length": 32 }
+    },
+    {
+      "key": "DB_PASSWORD",
+      "value": "",
+      "isSecret": true,
+      "required": true,
+      "advanced": true,
+      "label": "Database Password",
+      "description": "Password for the internal Postgres database. Generated for you.",
+      "generate": { "kind": "hex", "length": 24 }
+    }
+  ],
+  "auth": {
+    "mode": "forward-auth",
+    "forwardAuth": {
+      "bypassPaths": ["/v1/", "/mcp"]
+    }
+  },
+  "backup": {
+    "preHook": {
+      "service": "hindsight-db",
+      "command": [
+        "sh",
+        "-c",
+        "pg_dump -U hindsight -d hindsight -f /backups/hindsight.sql"
+      ]
+    },
+    "postHook": {
+      "service": "hindsight-db",
+      "command": [
+        "sh",
+        "-c",
+        "rm -f /backups/hindsight.sql"
+      ]
+    }
+  },
+  "restore": [
+    {
+      "id": "default",
+      "discard": ["postgres"],
+      "hook": {
+        "service": "hindsight-db",
+        "command": [
+          "sh",
+          "-c",
+          "psql -v ON_ERROR_STOP=1 -U hindsight -d hindsight -f /backups/hindsight.sql"
+        ]
+      }
+    }
+  ],
+  "upgrade": {
+    "preUpgradeBackup": "recommended",
+    "upgradeNotesUrl": "https://github.com/vectorize-io/hindsight/releases"
+  },
+  "accepts": ["backup@1", "restore@1"]
+}
