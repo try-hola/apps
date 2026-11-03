@@ -1,0 +1,39 @@
+# Tuxee — a tiny Debian Linux container with a browser UI for files and
+# persistent terminals, by Agent Zero (github.com/agent0ai/tuxee, MIT).
+# Packaged for Hola: Traefik-only ingress (no host ports), all persistence
+# bind-mounted under ${HOLA_APP_DATA}.
+#
+# Upstream's own guidance for running behind a TLS-terminating proxy is
+# "forward to container port 80, no Tuxee configuration needed": Traefik
+# preserves the Host header and sends X-Forwarded-Proto: https, which is what
+# Tuxee keys its secure cookies on. Its own HTTPS/ACME listener on 443 is left
+# at its default and simply never receives traffic (no route, no host port).
+#
+# The container runs as root and you log in to the UI as `root` through PAM.
+# That needs no privileged mode, no added capabilities and no sudo, so the
+# platform's default no-new-privileges hardening is left in place.
+services:
+  tuxee:
+    image: agent0ai/tuxee:1.0.2@sha256:706d9d2cf9d09c422c94ca9b20d254d57143ab228fe6b6edc6daee7cad44ffff
+    environment:
+      # Tuxee's login password for `root`. The entrypoint applies it with
+      # chpasswd on the FIRST start of each new container, then removes it from
+      # the environment Tuxee and init scripts inherit. Generated per install
+      # by Hola (manifest defaultEnv). Recreating the container (upgrade,
+      # config change) re-applies it, which undoes a `passwd` run inside.
+      ROOT_PASSWORD: ${ROOT_PASSWORD}
+    expose:
+      - "80"
+    volumes:
+      # Server state and Tuxee's own TLS certificates.
+      - ${HOLA_APP_DATA}/state:/var/lib/tuxee
+      # root's home: your files, shell settings and saved window layouts.
+      - ${HOLA_APP_DATA}/home:/root
+      # Startup scripts: every top-level *.sh here runs at container start.
+      - ${HOLA_APP_DATA}/init:/init
+    # Upstream's compose value: the entrypoint signals Tuxee and every init
+    # script's process group and waits for them before exiting.
+    stop_grace_period: 30s
+    # No healthcheck here: the image ships its own HEALTHCHECK
+    # (`tuxee healthcheck --config /etc/tuxee/config.json`), and Docker applies
+    # it unchanged.

@@ -1,0 +1,49 @@
+{
+  "name": "tuxee",
+  "version": "0.1.0-rc.1",
+  "title": "Tuxee",
+  "description": "A tiny Debian Linux with a browser UI for files and persistent terminals that survive logout. Sign in as root; install whatever you need with apt.",
+  "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/tuxee.svg",
+  "category": "developer-tools",
+  "tags": ["linux", "terminal", "files", "shell", "agents"],
+  "ingress": {
+    "service": "tuxee",
+    "port": 80
+  },
+  "defaultEnv": [
+    {
+      "key": "ROOT_PASSWORD",
+      "value": "",
+      "isSecret": true,
+      "generate": {
+        "kind": "hex",
+        "length": 16
+      },
+      "label": "Root password",
+      "description": "Password for the `root` account you sign in to Tuxee with, behind Hola's SSO gate. Generated per install. It is applied when the container is created, so a container recreate (upgrade or config change) resets root to this value even if you ran `passwd` inside; change it here instead."
+    }
+  ],
+  "defaults": {
+    "ports": [
+      {
+        "container": 80,
+        "protocol": "tcp"
+      }
+    ],
+    "volumes": [
+      {
+        "containerPath": "/var/lib/tuxee"
+      },
+      {
+        "containerPath": "/root"
+      },
+      {
+        "containerPath": "/init"
+      }
+    ]
+  },
+  "auth": {
+    "mode": "forward-auth"
+  },
+  "accepts": ["backup@1"]
+}
