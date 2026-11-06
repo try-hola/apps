@@ -81,7 +81,7 @@ services:
     # pgautoupgrade: on boot, detects an older PGDATA and runs `pg_upgrade` in place
     # before starting — so an existing install's data migrates across the Postgres
     # major automatically. A fresh install just initializes a new PG18 cluster.
-    image: pgautoupgrade/pgautoupgrade:18-alpine@sha256:e9fe125da1a03f89e3ff1d9d5a0e317ac03943bb43fb1ba4bc63135094d262c1
+    image: pgautoupgrade/pgautoupgrade:18-alpine@sha256:39420a693479c55b4d51c0ca930fe7c5685ec82c719c05db863afb4a3d52d5e9
     environment:
       POSTGRES_DB: paperless
       POSTGRES_USER: paperless
