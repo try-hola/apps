@@ -1,0 +1,150 @@
+# Hindsight — long-term memory for AI agents (https://github.com/vectorize-io/hindsight, MIT).
+# Packaged for Hola: Traefik-only ingress (no host ports), all persistence under
+# ${HOLA_APP_DATA}.
+#
+# Four services:
+#   hindsight      nginx, the one ingress Hola routes to. Upstream serves the API and the
+#                  UI on two ports; Hola gives an app one, so this splits by path:
+#                    /v1/…  and  /mcp…   → hindsight-api  (agents: REST + MCP)
+#                    everything else     → hindsight-ui   (the web control plane)
+#   hindsight-api  the memory server. Stateless apart from Postgres: the embedding and
+#                  reranking models are baked into the image (full tag, not -slim), so the
+#                  only thing that needs a key is the LLM.
+#   hindsight-ui   upstream's control plane (Next.js). It calls the API server-side with
+#                  the API key, so the browser never holds it.
+#   hindsight-db   Postgres 18 with pgvector.
+#
+# Auth is split by path (manifest auth.forwardAuth.bypassPaths):
+#   - The UI is behind Authentik forward-auth, like any other Hola app.
+#   - /v1/ and /mcp bypass the gate, because agents can't do a browser SSO login. They are
+#     NOT open: Hindsight's ApiKeyTenantExtension requires `Authorization: Bearer <key>`
+#     on every REST call and, unless HINDSIGHT_API_TENANT_MCP_AUTH_DISABLED is set (it is
+#     not, here), on MCP too. The key is HINDSIGHT_API_KEY, generated per install.
+services:
+  hindsight:
+    image: docker.io/nginxinc/nginx-unprivileged:1.29-alpine@sha256:0c79d56aee561a1d81c63f00eee5fb5fe29279560cdc55e91425133104c7fbe6
+    configs:
+      - source: hindsight-nginx
+        target: /etc/nginx/conf.d/default.conf
+    expose:
+      - "8080"
+    # Not read_only: Compose writes an inline (`content:`) config into the container's
+    # filesystem, which it refuses to do for a read-only service.
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      hindsight-api:
+        condition: service_healthy
+      hindsight-ui:
+        condition: service_healthy
+
+  hindsight-api:
+    image: ghcr.io/vectorize-io/hindsight-api:1.1.0@sha256:cdfeb26e92ad33d54a8a7e4cfe6e67b55d619f25ea5f5bba0a3281d701a82b36
+    environment:
+      HINDSIGHT_API_DATABASE_URL: "postgresql://hindsight:${DB_PASSWORD}@hindsight-db:5432/hindsight"
+      # The LLM that extracts facts, consolidates and reflects. `anthropic` takes an
+      # Anthropic API key directly. An empty model means the provider's default
+      # (claude-haiku-4-5 for anthropic). LLM_BASE_URL is only for OpenAI-compatible
+      # servers and local runtimes (ollama, lmstudio, llamacpp).
+      HINDSIGHT_API_LLM_PROVIDER: "${LLM_PROVIDER:-anthropic}"
+      HINDSIGHT_API_LLM_API_KEY: "${LLM_API_KEY:-}"
+      HINDSIGHT_API_LLM_MODEL: "${LLM_MODEL:-}"
+      HINDSIGHT_API_LLM_BASE_URL: "${LLM_BASE_URL:-}"
+      # Bearer-key auth on the REST API and MCP (see the header).
+      HINDSIGHT_API_TENANT_EXTENSION: "hindsight_api.extensions.builtin.tenant:ApiKeyTenantExtension"
+      HINDSIGHT_API_TENANT_API_KEY: "${HINDSIGHT_API_KEY}"
+    expose:
+      - "8888"
+    healthcheck:
+      # /health/live is upstream's liveness probe; /health also checks the database.
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8888/health', timeout=4).status == 200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      # First boot runs the schema migrations and loads the local models.
+      start_period: 120s
+    depends_on:
+      hindsight-db:
+        condition: service_healthy
+
+  hindsight-ui:
+    image: ghcr.io/vectorize-io/hindsight-control-plane:1.1.0@sha256:373f86848649a8dadc9b2d9ecf1d18b4c446162ca7b556fc4152e92ef433e983
+    environment:
+      HINDSIGHT_CP_DATAPLANE_API_URL: "http://hindsight-api:8888"
+      HINDSIGHT_CP_DATAPLANE_API_KEY: "${HINDSIGHT_API_KEY}"
+      # HINDSIGHT_CP_ACCESS_KEY is deliberately unset: Authentik already gates the UI, and
+      # setting it would add a second login screen behind the SSO one.
+    expose:
+      - "9999"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:9999/api/health').then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      hindsight-api:
+        condition: service_healthy
+
+  hindsight-db:
+    image: docker.io/pgvector/pgvector:0.8.2-pg18@sha256:42e7f6b4e1eceb02ff14e3e6bc6108bbe259abbe83879dc1845d0da1ddeb555d
+    environment:
+      POSTGRES_USER: "hindsight"
+      POSTGRES_PASSWORD: "${DB_PASSWORD}"
+      POSTGRES_DB: "hindsight"
+    volumes:
+      # Postgres 18 images keep PGDATA at /var/lib/postgresql/18/docker, under this mount.
+      - ${HOLA_APP_DATA}/postgres:/var/lib/postgresql
+      # backup@1 pre-hook writes the dump here; the restore hook reads it.
+      - ${HOLA_APP_DATA}/backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hindsight -d hindsight"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+configs:
+  hindsight-nginx:
+    # `$$` is Compose's escape for a literal `$` (nginx variables).
+    content: |
+      server {
+        listen 8080;
+        absolute_redirect off;
+        server_tokens off;
+
+        # Document uploads go through both the API and the UI.
+        client_max_body_size 100m;
+
+        proxy_http_version 1.1;
+        proxy_set_header Host $$host;
+        proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Host $$host;
+        # MCP's streamable HTTP and recall/reflect can stream or run long: no
+        # buffering, generous read timeout.
+        proxy_buffering off;
+        proxy_read_timeout 1h;
+
+        location = /healthz {
+          access_log off;
+          default_type text/plain;
+          return 200 "ok\n";
+        }
+
+        location /v1/ {
+          proxy_pass http://hindsight-api:8888;
+        }
+
+        location /mcp {
+          proxy_pass http://hindsight-api:8888;
+        }
+
+        location / {
+          proxy_pass http://hindsight-ui:9999;
+        }
+      }
