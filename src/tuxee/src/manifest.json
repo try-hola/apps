@@ -1,6 +1,6 @@
 {
   "name": "tuxee",
-  "version": "0.1.0-rc.1",
+  "version": "0.1.0",
   "title": "Tuxee",
   "description": "A tiny Debian Linux with a browser UI for files and persistent terminals that survive logout. Sign in as root; install whatever you need with apt.",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/tuxee.svg",
