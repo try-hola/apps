@@ -163,6 +163,29 @@
       ]
     },
     {
+      "id": "hindsight",
+      "name": "Hindsight",
+      "description": "Long-term memory for AI agents. Agents retain, recall and reflect on what they learn through a REST API or MCP (Claude Code, Cursor and others), with a web UI to browse memory banks. Uses an LLM of your choice, such as an Anthropic API key; embeddings run locally.",
+      "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/hindsight.svg",
+      "category": "developer-tools",
+      "tags": [
+        "ai",
+        "memory",
+        "agents",
+        "mcp",
+        "llm"
+      ],
+      "versions": [
+        {
+          "version": "0.1.0",
+          "channel": "stable",
+          "refs": {
+            "oci": "ghcr.io/try-hola/hindsight:0.1.0"
+          }
+        }
+      ]
+    },
+    {
       "id": "homepage",
       "name": "Homepage",
       "description": "A highly customizable application dashboard / start page",
