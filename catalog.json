@@ -74,10 +74,10 @@
       ],
       "versions": [
         {
-          "version": "0.1.0",
+          "version": "0.1.1",
           "channel": "stable",
           "refs": {
-            "oci": "ghcr.io/try-hola/craft-apps:0.1.0"
+            "oci": "ghcr.io/try-hola/craft-apps:0.1.1"
           }
         }
       ]
@@ -336,6 +336,29 @@
           "channel": "stable",
           "refs": {
             "oci": "ghcr.io/try-hola/running-man:0.1.3"
+          }
+        }
+      ]
+    },
+    {
+      "id": "tuxee",
+      "name": "Tuxee",
+      "description": "A tiny Debian Linux with a browser UI for files and persistent terminals that survive logout. Sign in as root; install whatever you need with apt.",
+      "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/tuxee.svg",
+      "category": "developer-tools",
+      "tags": [
+        "linux",
+        "terminal",
+        "files",
+        "shell",
+        "agents"
+      ],
+      "versions": [
+        {
+          "version": "0.1.0",
+          "channel": "stable",
+          "refs": {
+            "oci": "ghcr.io/try-hola/tuxee:0.1.0"
           }
         }
       ]
