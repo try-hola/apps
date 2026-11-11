@@ -1,0 +1,13 @@
+{
+  "name": "tuxee",
+  "version": "0.1.0",
+  "description": "Tuxee — a tiny Debian Linux container with a web UI for files and persistent terminals, by Agent Zero (Hola app package)",
+  "license": "MIT",
+  "oci": {
+    "annotations": {
+      "org.opencontainers.image.title": "tuxee",
+      "org.opencontainers.image.description": "Debian Linux with a browser UI for files and persistent terminals",
+      "org.opencontainers.image.version": "${npm_package_version}"
+    }
+  }
+}
