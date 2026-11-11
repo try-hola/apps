@@ -88,7 +88,7 @@ services:
     # Redis 8.10 writes RDB format v15; Redis 7.4 reads only <= v12, so a
     # rollback to a 7.4 bundle needs the pre-upgrade snapshot (data-aware rollback)
     # or a deleted dump.rdb. 7.4 -> 8.x data loads forward automatically.
-    image: redis:8.10-alpine@sha256:47b08295737773de3b711fb86f13ae802f5074e96a9a2d29f5f80164ac08c046
+    image: redis:8.10-alpine@sha256:7958cfbb9d152f87dadfbc89f1b0b15938f0b81ff8982feb327476f4911935c3
     volumes:
       - ${HOLA_APP_DATA}/redis:/data
     healthcheck:
