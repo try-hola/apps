@@ -1,6 +1,6 @@
 services:
   gitea:
-    image: gitea/gitea:1.27@sha256:87a67ee09d3ae0d1df5fda5dcda3e2a1f9236a45b0a59025d6e00e46adc43bef
+    image: gitea/gitea:28.4@sha256:aa90e8f00b755b0d665214ab9c14447ea44d3190dbe6b6d0cb46cd9c4f55d309
     environment:
       USER_UID: "1000"
       USER_GID: "1000"
