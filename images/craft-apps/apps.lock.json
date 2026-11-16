@@ -10,102 +10,102 @@
       "hold": "web builds 0.17.0 and 0.18.0 never finish loading: app/photocraft-web.js imports ./snippets/… but the zip packages snippets/ at the site root (storytold/photocraft#10590). Remove this hold once a release fixes it."
     },
     "vectorcraft": {
-      "version": "0.23.0",
-      "tag": "v0.23.0",
-      "released": "2026-11-09",
-      "url": "https://github.com/storytold/vectorcraft/releases/download/v0.23.0/vectorcraft-web-0.23.0.zip",
-      "sha256": "0271705cb871700122e78e971ca3f1328edeba9ac25927d761e9fa5e7543d8c0"
+      "version": "0.24.1",
+      "tag": "v0.24.1",
+      "released": "2026-11-12",
+      "url": "https://github.com/storytold/vectorcraft/releases/download/v0.24.1/vectorcraft-web-0.24.1.zip",
+      "sha256": "de31befd175476f252e3563b4b1fdc6c887d5842b33fb7d1f5fdf007dc7633aa"
     },
     "filmcraft": {
-      "version": "0.19.0",
-      "tag": "v0.19.0",
-      "released": "2026-11-09",
-      "url": "https://github.com/storytold/filmcraft/releases/download/v0.19.0/filmcraft-web-0.19.0.zip",
-      "sha256": "3215de38749b38126e5c12ace0cbb6ab8412cd59a6773f4d302bf9ff09edb22a"
+      "version": "0.20.1",
+      "tag": "v0.20.1",
+      "released": "2026-11-12",
+      "url": "https://github.com/storytold/filmcraft/releases/download/v0.20.1/filmcraft-web-0.20.1.zip",
+      "sha256": "1cf3072e3f3b6535fcd024d6f6ab2a16cf7776345d868037dc630de0ad0dbbb8"
     },
     "lightcraft": {
-      "version": "0.20.0",
-      "tag": "v0.20.0",
-      "released": "2026-11-09",
-      "url": "https://github.com/storytold/lightcraft/releases/download/v0.20.0/lightcraft-web-0.20.0.zip",
-      "sha256": "720087af36cd56800974012a35badae0d235fc132dc414d1366a52e7f40b783f"
+      "version": "0.21.1",
+      "tag": "v0.21.1",
+      "released": "2026-11-12",
+      "url": "https://github.com/storytold/lightcraft/releases/download/v0.21.1/lightcraft-web-0.21.1.zip",
+      "sha256": "57147383a46eaab3b0cc036acf9443b221450c6a19f5dc303ae165bb9678b8cb"
     },
     "pdfcraft": {
-      "version": "0.20.0",
-      "tag": "v0.20.0",
-      "released": "2026-11-09",
-      "url": "https://github.com/storytold/pdfcraft/releases/download/v0.20.0/pdfcraft-web-0.20.0.zip",
-      "sha256": "5cd9da8025e5e4c587069f9ee5fbfeeb859f8fbc35bfdb0c63fc1f139d7240e6"
+      "version": "0.21.1",
+      "tag": "v0.21.1",
+      "released": "2026-11-12",
+      "url": "https://github.com/storytold/pdfcraft/releases/download/v0.21.1/pdfcraft-web-0.21.1.zip",
+      "sha256": "fe9708d46af191aebb56f70eb32cf8b112b0b9452d17ae6ba3a8c4a8665fe748"
     },
     "effectcraft": {
-      "version": "0.23.0",
-      "tag": "v0.23.0",
-      "released": "2026-11-09",
-      "url": "https://github.com/storytold/effectcraft/releases/download/v0.23.0/effectcraft-web-0.23.0.zip",
-      "sha256": "fbde13209ebc2fa3011e54850b8d17b14536eb8a0c0bdf6bd07d38c967714c21"
+      "version": "0.24.1",
+      "tag": "v0.24.1",
+      "released": "2026-11-12",
+      "url": "https://github.com/storytold/effectcraft/releases/download/v0.24.1/effectcraft-web-0.24.1.zip",
+      "sha256": "8adc985f345d73207abc69a27938905aba1729b63c6c9b332d0244a7567424f1"
     },
     "designcraft": {
-      "version": "0.19.0",
-      "tag": "v0.19.0",
-      "released": "2026-11-09",
-      "url": "https://github.com/storytold/designcraft/releases/download/v0.19.0/designcraft-web-0.19.0.zip",
-      "sha256": "8be4be372788990fb83f77704c78b90c72230a04f49b11c3061e7358f74d2fe2"
+      "version": "0.20.1",
+      "tag": "v0.20.1",
+      "released": "2026-11-12",
+      "url": "https://github.com/storytold/designcraft/releases/download/v0.20.1/designcraft-web-0.20.1.zip",
+      "sha256": "50fb2bebce1f48065318953393626b84b25cd1736c556e523275dadc46ae6906"
     },
     "figcraft": {
-      "version": "0.17.0",
-      "tag": "v0.17.0",
-      "released": "2026-11-09",
-      "url": "https://github.com/storytold/figcraft/releases/download/v0.17.0/figcraft-web-0.17.0.zip",
-      "sha256": "3d6410b7b12ae000b2f062855dc0e80fcc7c09f41d5d03a938636cf9dcce0145"
+      "version": "0.18.1",
+      "tag": "v0.18.1",
+      "released": "2026-11-12",
+      "url": "https://github.com/storytold/figcraft/releases/download/v0.18.1/figcraft-web-0.18.1.zip",
+      "sha256": "2fbeb93f5022b0a7cc9d8528f1ed7e2b54c94d213ef79e65128aa898c399f02b"
     },
     "texturecraft": {
-      "version": "0.5.0",
-      "tag": "v0.5.0",
-      "released": "2026-11-09",
-      "url": "https://github.com/storytold/texturecraft/releases/download/v0.5.0/texturecraft-web-0.5.0.zip",
-      "sha256": "881c9964cd772d9999924876bd7e381865d720226fefe2c9a64cad47c9e78fd6"
+      "version": "0.6.1",
+      "tag": "v0.6.1",
+      "released": "2026-11-12",
+      "url": "https://github.com/storytold/texturecraft/releases/download/v0.6.1/texturecraft-web-0.6.1.zip",
+      "sha256": "6dea6a9f77a161cba3258ab4c6db591bdb4dd32b7385d16a7db997ab671a5f3b"
     },
     "wordcraft": {
-      "version": "0.17.0",
-      "tag": "v0.17.0",
-      "released": "2026-11-09",
-      "url": "https://github.com/storytold/wordcraft/releases/download/v0.17.0/wordcraft-web-0.17.0.zip",
-      "sha256": "713f5e4b01427eb262c70e280e55d1354fa530e5a351b9751ebbe37398ea2ed0"
+      "version": "0.18.1",
+      "tag": "v0.18.1",
+      "released": "2026-11-12",
+      "url": "https://github.com/storytold/wordcraft/releases/download/v0.18.1/wordcraft-web-0.18.1.zip",
+      "sha256": "3daa7c2d1f209a7eeb2527fcefa3fe31e875848fb1970d68f54edae55fe0bc9f"
     },
     "soundcraft": {
-      "version": "0.19.0",
-      "tag": "v0.19.0",
-      "released": "2026-11-09",
-      "url": "https://github.com/storytold/soundcraft/releases/download/v0.19.0/soundcraft-web-0.19.0.zip",
-      "sha256": "0a6d898eb5bf284bc34b69e9add3b5542c5420b01652f73ff8aff61d2370e48b"
+      "version": "0.20.1",
+      "tag": "v0.20.1",
+      "released": "2026-11-12",
+      "url": "https://github.com/storytold/soundcraft/releases/download/v0.20.1/soundcraft-web-0.20.1.zip",
+      "sha256": "ca7c03c53cf4b7ec9ae26ef2cbde5d86566d006127040fe694fb95f9773a34e4"
     },
     "deckcraft": {
-      "version": "0.17.0",
-      "tag": "v0.17.0",
-      "released": "2026-11-09",
-      "url": "https://github.com/storytold/deckcraft/releases/download/v0.17.0/deckcraft-web-0.17.0.zip",
-      "sha256": "bd7bef54b3ef1be3e408e8bdcf291aaf9ad0ee298ea6bb22e1b5b3fc4a72eaba"
+      "version": "0.18.1",
+      "tag": "v0.18.1",
+      "released": "2026-11-12",
+      "url": "https://github.com/storytold/deckcraft/releases/download/v0.18.1/deckcraft-web-0.18.1.zip",
+      "sha256": "3196e537fcfab538aaa2e88584bc74e29bb584459b916ab584ac22fbafe32db5"
     },
     "cadcraft": {
-      "version": "0.19.0",
-      "tag": "v0.19.0",
-      "released": "2026-11-09",
-      "url": "https://github.com/storytold/cadcraft/releases/download/v0.19.0/cadcraft-web-0.19.0.zip",
-      "sha256": "ea89ca64c717c3a2d79599ee0c52dd6fc0cbbdaf0224118f534706ccf73baf86"
+      "version": "0.20.1",
+      "tag": "v0.20.1",
+      "released": "2026-11-12",
+      "url": "https://github.com/storytold/cadcraft/releases/download/v0.20.1/cadcraft-web-0.20.1.zip",
+      "sha256": "300e870c50b66d371055915ba95e3ddbfd4c45431466d5214743b5dcab95a0e1"
     },
     "gridcraft": {
-      "version": "0.18.0",
-      "tag": "v0.18.0",
-      "released": "2026-11-09",
-      "url": "https://github.com/storytold/gridcraft/releases/download/v0.18.0/gridcraft-web-0.18.0.zip",
-      "sha256": "39c3236a3ac6c3607a4126c5ae40491069f5e1c28ccaac1bb884ddc9d294e4c0"
+      "version": "0.19.1",
+      "tag": "v0.19.1",
+      "released": "2026-11-12",
+      "url": "https://github.com/storytold/gridcraft/releases/download/v0.19.1/gridcraft-web-0.19.1.zip",
+      "sha256": "48c5d1b101befebb3c5ba3b7a14914f01c3207934813ed07dc4251b7ae116a78"
     },
     "craft-anything": {
-      "version": "0.6.0",
-      "tag": "v0.6.0",
-      "released": "2026-11-09",
-      "url": "https://github.com/storytold/craft-anything/releases/download/v0.6.0/craft-anything-web-0.6.0.zip",
-      "sha256": "0484708d0097a91bc676e3758cc4862912439a243db14b06db539f8788bee50b"
+      "version": "0.6.1",
+      "tag": "v0.6.1",
+      "released": "2026-11-12",
+      "url": "https://github.com/storytold/craft-anything/releases/download/v0.6.1/craft-anything-web-0.6.1.zip",
+      "sha256": "e87273b5c0181785ce9059f5348353be44e18b4ba6485203babc26ef17f71d84"
     }
   }
 }
