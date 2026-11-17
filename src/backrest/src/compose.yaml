@@ -506,7 +506,7 @@ services:
   # headers) and a shell — the three things this needs, on a pinned digest, with
   # no custom build.
   backrest-hola-autowire:
-    image: mikefarah/yq:4.54.1@sha256:4b3d9475d65571d28cbb19544d3820ec2945e4c8b2f18279394282b8dc3a592e
+    image: mikefarah/yq:4.54.3@sha256:7834187596ad56fd5a81436114e0b0b9dd54c91bb43946d1f7145b2be5f9c3d2
     user: "0:0"
     depends_on:
       - backrest
@@ -604,7 +604,7 @@ services:
   # what `sed` can be trusted with), BusyBox `wget` does POST with headers, and
   # there is a shell — on a pinned digest, no custom build.
   backrest-hola-restore:
-    image: mikefarah/yq:4.54.1@sha256:4b3d9475d65571d28cbb19544d3820ec2945e4c8b2f18279394282b8dc3a592e
+    image: mikefarah/yq:4.54.3@sha256:7834187596ad56fd5a81436114e0b0b9dd54c91bb43946d1f7145b2be5f9c3d2
     user: "0:0"
     depends_on:
       backrest-hooks-init:
