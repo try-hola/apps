@@ -355,10 +355,10 @@
       ],
       "versions": [
         {
-          "version": "0.1.0",
+          "version": "0.1.1",
           "channel": "stable",
           "refs": {
-            "oci": "ghcr.io/try-hola/tuxee:0.1.0"
+            "oci": "ghcr.io/try-hola/tuxee:0.1.1"
           }
         }
       ]
