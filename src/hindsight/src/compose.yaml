@@ -22,7 +22,7 @@
 #     not, here), on MCP too. The key is HINDSIGHT_API_KEY, generated per install.
 services:
   hindsight:
-    image: docker.io/nginxinc/nginx-unprivileged:1.29-alpine@sha256:0c79d56aee561a1d81c63f00eee5fb5fe29279560cdc55e91425133104c7fbe6
+    image: docker.io/nginxinc/nginx-unprivileged:1.31-alpine@sha256:b5047b9b76845eac124358373c6852377c52e4b05834a47647e955dd91cb8f1e
     configs:
       - source: hindsight-nginx
         target: /etc/nginx/conf.d/default.conf
@@ -43,7 +43,7 @@ services:
         condition: service_healthy
 
   hindsight-api:
-    image: ghcr.io/vectorize-io/hindsight-api:1.1.0@sha256:cdfeb26e92ad33d54a8a7e4cfe6e67b55d619f25ea5f5bba0a3281d701a82b36
+    image: ghcr.io/vectorize-io/hindsight-api:1.2.1@sha256:662109ece429871a81e036427fb93fbb09ba9dc4b01d320d356f114c0e1aedd8
     environment:
       HINDSIGHT_API_DATABASE_URL: "postgresql://hindsight:${DB_PASSWORD}@hindsight-db:5432/hindsight"
       # The LLM that extracts facts, consolidates and reflects. `anthropic` takes an
@@ -72,7 +72,7 @@ services:
         condition: service_healthy
 
   hindsight-ui:
-    image: ghcr.io/vectorize-io/hindsight-control-plane:1.1.0@sha256:373f86848649a8dadc9b2d9ecf1d18b4c446162ca7b556fc4152e92ef433e983
+    image: ghcr.io/vectorize-io/hindsight-control-plane:1.2.1@sha256:74a113e1f02ace9e8feed954e6b42282e9e3d33b7e0b6d528158d05902552a9a
     environment:
       HINDSIGHT_CP_DATAPLANE_API_URL: "http://hindsight-api:8888"
       HINDSIGHT_CP_DATAPLANE_API_KEY: "${HINDSIGHT_API_KEY}"
@@ -91,7 +91,7 @@ services:
         condition: service_healthy
 
   hindsight-db:
-    image: docker.io/pgvector/pgvector:0.8.2-pg18@sha256:42e7f6b4e1eceb02ff14e3e6bc6108bbe259abbe83879dc1845d0da1ddeb555d
+    image: docker.io/pgvector/pgvector:0.8.7-pg18@sha256:38681dc6eaf55308e2a4c6de392d131652dcfac70e1263e35cd9b5ea3fe39782
     environment:
       POSTGRES_USER: "hindsight"
       POSTGRES_PASSWORD: "${DB_PASSWORD}"
