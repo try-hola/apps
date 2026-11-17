@@ -19,7 +19,7 @@ src/paperless-ngx/
 
 Three containers:
 
-- **webserver** — `ghcr.io/paperless-ngx/paperless-ngx:3.3.4`, the web UI and
+- **webserver** — `ghcr.io/paperless-ngx/paperless-ngx:3.5.0`, the web UI and
   background workers. Listens on container port **8000**.
 - **db** — `pgautoupgrade/pgautoupgrade:18-alpine` (PostgreSQL 18; upgrades an
   older cluster in place on boot), document metadata.
