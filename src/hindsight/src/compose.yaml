@@ -91,7 +91,7 @@ services:
         condition: service_healthy
 
   hindsight-db:
-    image: docker.io/pgvector/pgvector:0.8.2-pg18@sha256:42e7f6b4e1eceb02ff14e3e6bc6108bbe259abbe83879dc1845d0da1ddeb555d
+    image: docker.io/pgvector/pgvector:0.8.7-pg18@sha256:38681dc6eaf55308e2a4c6de392d131652dcfac70e1263e35cd9b5ea3fe39782
     environment:
       POSTGRES_USER: "hindsight"
       POSTGRES_PASSWORD: "${DB_PASSWORD}"
