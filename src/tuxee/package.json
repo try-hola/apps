@@ -1,6 +1,6 @@
 {
   "name": "tuxee",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Tuxee — a tiny Debian Linux container with a web UI for files and persistent terminals, by Agent Zero (Hola app package)",
   "license": "MIT",
   "oci": {
