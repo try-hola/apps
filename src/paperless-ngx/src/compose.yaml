@@ -67,7 +67,7 @@ services:
         condition: service_healthy
 
   broker:
-    image: redis:7.4-alpine@sha256:6ba19c50b56777f5c11c58eff8ddb69d0d5f27ba131cffb63f180ccfd43c66af
+    image: redis:7.4-alpine@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe
     volumes:
       - ${HOLA_APP_DATA}/redis:/data
     healthcheck:
@@ -81,7 +81,7 @@ services:
     # pgautoupgrade: on boot, detects an older PGDATA and runs `pg_upgrade` in place
     # before starting — so an existing install's data migrates across the Postgres
     # major automatically. A fresh install just initializes a new PG18 cluster.
-    image: pgautoupgrade/pgautoupgrade:18-alpine@sha256:e9fe125da1a03f89e3ff1d9d5a0e317ac03943bb43fb1ba4bc63135094d262c1
+    image: pgautoupgrade/pgautoupgrade:18-alpine@sha256:722599f0fe6483f2a97e765066e23122a780b4ea221287edfaaf67268af6757a
     environment:
       POSTGRES_DB: paperless
       POSTGRES_USER: paperless
