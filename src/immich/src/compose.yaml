@@ -107,7 +107,10 @@ services:
     volumes:
       - ${HOLA_APP_DATA}/model-cache:/cache
     healthcheck:
-      test: ["CMD", "immich-healthcheck"]
+      # The ML image's own check. `immich-healthcheck` exists only in the SERVER
+      # image; here it failed with "executable file not found", so this container
+      # always reported unhealthy even while serving on :3003.
+      test: ["CMD-SHELL", "python3 healthcheck.py"]
       interval: 30s
       timeout: 10s
       retries: 5
