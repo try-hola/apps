@@ -245,10 +245,10 @@
       "tags": [],
       "versions": [
         {
-          "version": "1.4.4",
+          "version": "1.4.5",
           "channel": "stable",
           "refs": {
-            "oci": "ghcr.io/try-hola/n8n:1.4.4"
+            "oci": "ghcr.io/try-hola/n8n:1.4.5"
           }
         }
       ]
@@ -355,10 +355,10 @@
       ],
       "versions": [
         {
-          "version": "0.1.1",
+          "version": "0.1.2",
           "channel": "stable",
           "refs": {
-            "oci": "ghcr.io/try-hola/tuxee:0.1.1"
+            "oci": "ghcr.io/try-hola/tuxee:0.1.2"
           }
         }
       ]
