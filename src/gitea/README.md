@@ -38,6 +38,12 @@ instance down to SSO:
   needs Gitea ≥ 1.23.1).
 - `GITEA__oauth2_client__ENABLE_AUTO_REGISTRATION=true` — the first OIDC login
   creates the user automatically.
+- `GITEA__oauth2_client__ACCOUNT_LINKING=auto` — an SSO login links to an
+  existing local account only when that account matches the identity (same
+  email as the provider's, or the same username derived from
+  `preferred_username`). Since Gitea 28.3 that match is enforced; linking any
+  other existing account asks for its password
+  ([go-gitea/gitea#40121](https://github.com/go-gitea/gitea/pull/40121)).
 
 ### Git over HTTPS (use a token, not a password)
 
