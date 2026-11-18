@@ -23,7 +23,7 @@ Each `catalog.json` `versions[]` entry may carry a `channel`:
 | `channel` is optional; absent or `null` ⇒ `stable`. | We emit it **explicitly on every entry**, `stable` included, so the file states its own meaning rather than relying on a default. |
 | Grammar `^[a-z][a-z0-9-]{0,31}$`. A value outside it **drops the entry** — it is never promoted to `stable`. | A typo doesn't publish an rc as everyone's default; it makes the version invisible. So the marker is asserted twice here: `bin/build-catalog.sh` fails as it emits, `bin/validate-catalog.mjs` fails on the finished file. |
 | A version string listed twice keeps the first entry. | The generator emits each version exactly once. |
-| `stable` is the floor every channel is offered; the browse card and the default install always resolve to the newest stable. | Every app must have a stable entry — `validate-catalog.mjs` fails an app that has none. |
+| `stable` is the floor every channel is offered; the browse card and the default install always resolve to the newest stable. An app with **no** stable entry is listed with no version, its Install goes to its only channel, and the dashboard shows it only to operators enrolled in pre-releases. | A new app may launch on a pre-release channel with no stable entry — see [Launching on a pre-release channel](#launching-on-a-pre-release-channel). |
 | Ordering is semver precedence (`1.3.0 > 1.3.0-rc.10 > 1.3.0-rc.9`), never list position. | The generator sorts by the same precedence rather than by string. |
 
 The channel is a fact about the **listing**, not about the bundle: `manifest.json` is unchanged,
@@ -91,6 +91,25 @@ catalog.json           0.10.1 stable  ──► 0.10.1 stable + 0.11.0-rc.1 rc �
    drops out by the retention rule. To abandon an rc, close the PR and delete that version of the
    GHCR package — the tag is the only thing keeping it in the index.
 
+## Launching on a pre-release channel
+
+A new app can start on `beta` (or any channel) with no stable release. Merge it with a pre-release
+version in `package.json`, such as `0.1.0-beta.1`, published from its PR as above. With no released
+version to list, the generator makes that version the floor: the catalog lists it plus every
+registry pre-release newer than it, each on its own channel, and no stable entry.
+
+Hola lists such an app with no version and sends its Install to that channel (spec 005 FR-015).
+The dashboard shows it only to operators enrolled in pre-releases
+(`settings.channels.showPrerelease`, try-hola/hola#568); other operators don't see it. The CLI
+lists it regardless and installs it with `--channel beta`.
+
+**Don't publish one until the hosts you care about run a Hola release that includes #568.** An
+older dashboard shows a pre-release-only app to everyone as an ordinary card whose Install lands
+on the pre-release.
+
+To graduate, bump `package.json` to the release version and merge: the release becomes the stable
+entry and the pre-releases retire by the retention rule.
+
 ## Why `:latest` is never moved for a pre-release
 
 `:latest` is what an unpinned `oras pull` resolves to. `bin/push-oci-package.sh` therefore refuses
@@ -102,5 +121,5 @@ silent and global: an rc would become the default bundle for every install.
 
 | Job | Checks |
 | --- | --- |
-| `validate-catalog` (PRs) | Every manifest, plus `catalog.json` against `schemas/catalog.schema.json`: the channel grammar, one `stable` entry per app, no repeated version, no pre-release listed as stable, and `refs.oci` tagged with the version it claims. |
+| `validate-catalog` (PRs) | Every manifest, plus `catalog.json` against `schemas/catalog.schema.json`: the channel grammar, no repeated version, no pre-release listed as stable, and `refs.oci` tagged with the version it claims. |
 | `build-catalog` (main) | Regenerates the index with `CATALOG_PRERELEASES=require` and validates it again before committing, so a malformed marker can't reach the hosted index through a bot commit no pull request reviewed. |

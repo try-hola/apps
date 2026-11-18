@@ -21,6 +21,7 @@ at `<app>.<HOLA_BASE_DOMAIN>` — **no host ports**, ingress is Traefik-only).
 | 🔗 n8n | Workflow automation tool |
 | 📄 Paperless-ngx | Document management — scan, index, and archive your documents |
 | 📅 Postiz | Open-source social media scheduling tool with AI features |
+| 📟 Tuxee | A tiny Debian Linux with a browser UI for files and persistent terminals |
 | 🐧 Ubuntu Webtop | A full Ubuntu desktop environment in your browser |
 | 📈 Uptime Kuma | Self-hosted uptime monitoring and status pages |
 | 🔐 Vaultwarden | Self-hosted, Bitwarden-compatible password manager |

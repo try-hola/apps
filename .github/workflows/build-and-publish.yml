@@ -167,6 +167,14 @@ jobs:
   # must fail the workflow, not quietly publish a catalog with every pre-release
   # retired. `workflow_dispatch` on main is the button for pulling a freshly
   # PR-published rc into the index without waiting for the next merge.
+  #
+  # One regeneration at a time. Two merges landing seconds apart used to start two
+  # of these at once, and the second `git push` was rejected ("fetch first")
+  # because the first had just moved main. The group makes them queue instead of
+  # race. Nothing is cancelled mid-run (cancel-in-progress: false); GitHub keeps at
+  # most ONE run waiting and drops an older waiting run when a newer one arrives,
+  # which loses nothing, because the newer run's commit contains every earlier
+  # merge and it regenerates the whole index from scratch.
   build-catalog:
     needs: build-and-publish
     # Run on any push to main, even when no package qualified for publish.
@@ -174,12 +182,22 @@ jobs:
       ${{ always()
           && (github.event_name == 'push'
               || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')) }}
+    concurrency:
+      group: build-catalog-${{ github.ref }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     permissions:
       contents: write
       packages: read
     steps:
+      # Generate from the branch as it is NOW, not from this run's commit. Runs can
+      # reach this job out of order (an earlier merge whose publish was slower
+      # queues behind a later one), and an index built from the older commit would
+      # overwrite the newer one and stay stale until the next merge. Building from
+      # the branch head means whichever run goes last writes the newest state.
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref }}
 
       # `oras repo tags` reads the credentials docker/login-action writes to
       # ~/.docker/config.json (public packages list anonymously, but a package
@@ -206,17 +224,38 @@ jobs:
       - name: Validate catalog.json
         run: node bin/validate-catalog.mjs
 
+      # A merge can still land while this job runs. The generated file is
+      # committed on top of the branch as it is at push time, and the push
+      # retries if the branch moves in between. Catalog commits themselves are
+      # serialized by the concurrency group, so what can land meanwhile is a
+      # package merge, and that merge's own run is queued behind this one and
+      # regenerates after it.
       - name: Commit catalog.json if changed
         run: |
-          if git diff --quiet -- catalog.json; then
-            echo "catalog.json unchanged"
-            exit 0
-          fi
+          generated="$(mktemp)"
+          cp catalog.json "$generated"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add catalog.json
-          git commit -m "chore(catalog): regenerate catalog.json [skip ci]"
-          git push
+          branch="${GITHUB_REF#refs/heads/}"
+          for attempt in 1 2 3 4 5; do
+            git fetch --quiet origin "$branch"
+            git reset --quiet --hard "origin/$branch"
+            cp "$generated" catalog.json
+            if git diff --quiet -- catalog.json; then
+              echo "catalog.json unchanged"
+              exit 0
+            fi
+            git add catalog.json
+            git commit --quiet -m "chore(catalog): regenerate catalog.json [skip ci]"
+            if git push --quiet origin "HEAD:$branch"; then
+              echo "catalog.json committed (attempt $attempt)"
+              exit 0
+            fi
+            echo "push rejected (main moved); retrying on the new main"
+            sleep $((attempt * 3))
+          done
+          echo "::error::could not push catalog.json after 5 attempts"
+          exit 1
 
   # Validate EVERY manifest, not just the changed packages.
   #
@@ -235,9 +274,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version: '26'
 
       # No arguments: validate-manifest.mjs discovers every src/*/src/manifest.json.
       - name: Validate every manifest against the schema
@@ -295,9 +334,9 @@ jobs:
 
       - name: Set up Node.js
         if: ${{ hashFiles(format('src/{0}/src/manifest.json', matrix.package)) != '' }}
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version: '26'
 
       # Full manifest.json schema check (typed defaultEnv shape, auth/upgrade/backup/
       # push blocks, etc.) plus semantic checks (enum defaults, min<=max, generate

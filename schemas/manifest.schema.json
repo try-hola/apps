@@ -317,6 +317,10 @@
               "items": {
                 "type": "string"
               }
+            },
+            "identitySecretEnv": {
+              "type": "string",
+              "description": "Name of a defaultEnv key (normally a generated secret) whose value Hola sends as the X-Hola-Identity-Secret request header on the SSO-gated route only, never on bypass or protected-bypass routes, where it and every X-authentik-* header are stripped. An app that trusts X-authentik-username for login checks this secret too, so a request from another container on the shared network, which never passed the gate, cannot impersonate a user. Needs Hola 0.11.0-rc.11 or later; older servers ignore it, so the header never arrives and header login simply never succeeds."
             }
           }
         }

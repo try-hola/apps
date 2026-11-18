@@ -41,6 +41,11 @@ set -euo pipefail
 # version is emitted exactly once (the server keeps the first occurrence of a
 # repeated version string and warns about the rest).
 #
+# An app with no released version at all (launching on a pre-release channel)
+# has no stable entry: the pre-release in package.json is the floor instead, and
+# the catalog lists it plus every registry pre-release newer than it. See
+# "Launching on a pre-release channel" in docs/release-channels.md.
+#
 # Channel names: a pre-release's channel is the alphabetic prefix of its first
 # prerelease identifier, lower-cased — `0.11.0-rc.1` → `rc`, `2.0.0-beta.3` →
 # `beta`. Every emitted name is asserted against the server's grammar
@@ -192,7 +197,18 @@ for pkg_dir in src/*/; do
     | (if ($repo_version | is_pre | not) then $repo_version
        else ($all | map(select(is_pre | not)) | sort_by(key) | last)
        end) as $stable
-    | if $stable == null then { error: "no released version to list as stable" }
+    # No release at all (an app launching on a pre-release channel): there is no
+    # stable entry to list, and the pre-release in package.json is the floor —
+    # it, plus every registry pre-release newer than it. Hola lists such an app
+    # with no version and routes its Install to that channel, and only to
+    # operators enrolled in pre-releases (try-hola/hola#568).
+    | if $stable == null then
+        ($all
+          | map(select(is_pre))
+          | map(select(key >= ($repo_version | key)))
+          | sort_by(key) | reverse) as $prereleases
+        | { versions: ($prereleases
+            | map({ version: ., channel: channel_of, refs: { oci: ($oci_repo + ":" + .) } })) }
       else
         ($all
           | map(select(is_pre))
@@ -203,10 +219,6 @@ for pkg_dir in src/*/; do
                     channel: (if is_pre then channel_of else "stable" end),
                     refs: { oci: ($oci_repo + ":" + .) } })) }
       end')"
-
-  err="$(jq -r '.error // empty' <<<"$versions_result")"
-  [ -z "$err" ] \
-    || die "$name: $err — package.json pins the pre-release '$version' and $oci_repo publishes no release tag. Publish a release, or restore a released version in package.json."
 
   # The server drops a malformed channel (it never defaults it to stable), so a
   # bad marker would silently make the version invisible on every host. Assert

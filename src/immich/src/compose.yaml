@@ -15,7 +15,7 @@
 # same pattern as Homepage's registry renderer.
 services:
   immich-server:
-    image: ghcr.io/immich-app/immich-server:v3.3.5@sha256:485d546a2e31d6a8b4db8423fcba5c109de8c218d93410af115fd1ccfc4352a6
+    image: ghcr.io/immich-app/immich-server:v3.4.1@sha256:7c489add298fc2f92cda4c777de6462aa206877e04087b815f62c7664af0b53b
     environment:
       # Internal datastores (not exposed to the host).
       DB_HOSTNAME: immich-postgres
@@ -62,7 +62,7 @@ services:
   # concern, not the server's. Idempotent and safe with no SSO: if oidc.json is
   # absent it does nothing, leaving Immich on its built-in login.
   immich-oidc-init:
-    image: mikefarah/yq:4.54.1@sha256:4b3d9475d65571d28cbb19544d3820ec2945e4c8b2f18279394282b8dc3a592e
+    image: mikefarah/yq:4.54.3@sha256:7834187596ad56fd5a81436114e0b0b9dd54c91bb43946d1f7145b2be5f9c3d2
     # One-shot: render the OAuth config and exit. `restart: "no"` is REQUIRED — Hola
     # applies an install-wide default restart policy to services that declare none,
     # which would restart this after it exits 0, so it never reaches
@@ -103,11 +103,14 @@ services:
       - ${HOLA_APP_DATA}:/data
 
   immich-machine-learning:
-    image: ghcr.io/immich-app/immich-machine-learning:v3.3.5@sha256:5b28c9352c8374b8a1ed96fbdd8d6755fea6e43510ec43fdf6538aa02ea40f56
+    image: ghcr.io/immich-app/immich-machine-learning:v3.4.1@sha256:8adebf414256f6e4f837bfbb66fa94f14f4da7260e3a1d65cbba49e4e35d8764
     volumes:
       - ${HOLA_APP_DATA}/model-cache:/cache
     healthcheck:
-      test: ["CMD", "immich-healthcheck"]
+      # The ML image's own check. `immich-healthcheck` exists only in the SERVER
+      # image; here it failed with "executable file not found", so this container
+      # always reported unhealthy even while serving on :3003.
+      test: ["CMD-SHELL", "python3 healthcheck.py"]
       interval: 30s
       timeout: 10s
       retries: 5

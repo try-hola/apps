@@ -1,6 +1,6 @@
 {
   "name": "vaultwarden",
-  "version": "1.4.4",
+  "version": "1.4.5",
   "title": "Vaultwarden",
   "description": "Self-hosted, Bitwarden-compatible password manager",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/vaultwarden.svg",

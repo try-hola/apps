@@ -2,7 +2,7 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
   "dependencyDashboard": true,
-  "enabledManagers": ["docker-compose", "github-actions"],
+  "enabledManagers": ["docker-compose", "dockerfile", "github-actions"],
   "packageRules": [
     {
       "description": "Catalog app upstream container images (src/<app>/src/compose.yaml). One PR per app, never auto-merged — a human must also bump the Hola bundle version and review the upgrade/backup manifest metadata.",
@@ -16,9 +16,31 @@
       ]
     },
     {
+      "description": "Base images of the images built in this repo (images/<name>/Dockerfile, e.g. craft-apps-web on nginx-unprivileged). These were not covered before, so the craft-apps nginx base drifted to 1.29 while CVE-2026-123633 was fixed in 1.31.9. A Renovate branch that touches images/craft-apps/ triggers craft-apps-image.yml, which builds and smoke-tests the image, so the PR checks show whether the new base works.",
+      "matchManagers": ["dockerfile"],
+      "matchFileNames": ["images/**"],
+      "labels": ["dependencies", "image-base"],
+      "automerge": false,
+      "pinDigests": true,
+      "prBodyNotes": [
+        "⚠️ This bumps the **base image** of an image built in this repo. Merging rebuilds that image under a new content-hash tag (the `Craft Apps image` job summary prints the new `image@digest`), but it does **not** re-pin the bundle. After merging, open a follow-up PR that pins that digest in `src/<bundle>/src/compose.yaml` and bumps the bundle patch version (`package.json` + `manifest.json`)."
+      ]
+    },
+    {
       "description": "Immich's Postgres image is coupled to the immich-server version: its tag encodes the PG major AND the exact VectorChord/pgvecto.rs extension versions, and Immich pins one specific image per server release in their own docker-compose.yml. It must change ONLY in lockstep with an immich-server bump (matching Immich's official compose), never independently — a decoupled PG-major bump diverges from Immich's tested config and needs a manual data migration Immich doesn't support. Newer tags (e.g. 16-*) exist on GHCR but Immich ships 14-* across v2.7.5 (stable) and v3.0.0-rc, so Renovate should not propose them. When bumping immich-server, update this image to whatever that release's compose pins.",
       "matchPackageNames": ["ghcr.io/immich-app/postgres"],
       "enabled": false
+    },
+    {
+      "description": "The Craft Apps image is built in this repo (images/craft-apps/) under content-hash tags, which have no order to compare. Its own weekly workflow (craft-apps-image.yml) proposes the bump, already smoke-tested.",
+      "matchPackageNames": ["ghcr.io/try-hola/craft-apps-web"],
+      "enabled": false
+    },
+    {
+      "description": "Tuxee's upstream rebuilds its release tags every day (refreshed Debian base), so a digest-only update for the SAME tag appears almost daily. Batch those into one PR a week. New Tuxee versions (tag changes) are not affected and still arrive as soon as they're released.",
+      "matchPackageNames": ["agent0ai/tuxee"],
+      "matchUpdateTypes": ["digest"],
+      "schedule": ["before 6am on monday"]
     }
   ]
 }

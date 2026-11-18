@@ -1,6 +1,6 @@
 {
   "name": "n8n",
-  "version": "1.4.2",
+  "version": "1.4.5",
   "title": "n8n",
   "description": "Workflow automation tool",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/n8n.svg",
@@ -24,6 +24,11 @@
   },
   "auth": {
     "mode": "none"
+  },
+  "upgrade": {
+    "breaking": false,
+    "preUpgradeBackup": "recommended",
+    "upgradeNotesUrl": "https://github.com/n8n-io/n8n/releases"
   },
   "accepts": ["backup@1"]
 }

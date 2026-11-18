@@ -1,10 +1,25 @@
 services:
   homepage:
-    image: ghcr.io/gethomepage/homepage:v1.13.2@sha256:a0b71c8e757298d02560186bab9fbe3fc2d375c523a62cc1019177b37e48aa28
+    image: ghcr.io/gethomepage/homepage:v2.8.0@sha256:019d8f063a7299e7c1c51ee4a70b692291809af3244894fbec2c2ac7d1f71b18
     environment:
       # Required since Homepage v1.0 — the dashboard refuses requests whose Host
-      # header isn't allow-listed. Hola fills in the app's public host.
+      # header isn't allow-listed. Hola fills in the app's public host. Since
+      # v2.0 the check covers every page, not just /api (a mismatch now 404s the
+      # dashboard itself); the container healthcheck hits 127.0.0.1:3000, which is
+      # always allowed.
       HOMEPAGE_ALLOWED_HOSTS: ${HOLA_APP_HOST}
+      # Homepage v2.0 added its own opt-in login gate (HOMEPAGE_AUTH_ENABLED) and
+      # an opt-in MCP endpoint (HOMEPAGE_MCP_ENABLED). Both are deliberately left
+      # unset: Hola gates this app with Authentik forward-auth (manifest `auth`),
+      # and a second login behind it would only add a password prompt.
+      # Run as uid/gid 1000, the user the homepage-registry sidecar runs as. With
+      # these set, Homepage's entrypoint chowns /app/config at startup (including
+      # an existing root-owned install's) and then drops root. Without them it runs
+      # as root, the config dir stays root-owned, and the sidecar can't create
+      # services.yaml there, so no app tiles appear until someone has loaded the
+      # dashboard and Homepage has seeded the file itself.
+      PUID: "1000"
+      PGID: "1000"
     volumes:
       - ${HOLA_APP_DATA}/config:/app/config
 
@@ -15,7 +30,7 @@ services:
   # come and go. Stock image + inline command — no custom build; rendering is a
   # bundle concern, not the server's.
   homepage-registry:
-    image: mikefarah/yq:4.54.1@sha256:4b3d9475d65571d28cbb19544d3820ec2945e4c8b2f18279394282b8dc3a592e
+    image: mikefarah/yq:4.54.3@sha256:7834187596ad56fd5a81436114e0b0b9dd54c91bb43946d1f7145b2be5f9c3d2
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
@@ -25,8 +40,16 @@ services:
           if [ -f /data/registry.json ]; then
             yq -o=yaml -p=json '[{"Apps": [.apps[] | {(.name): {"href": .url, "icon": (.app + ".png")}}]}]' /data/registry.json > /tmp/services.yaml 2>/dev/null
             if [ -s /tmp/services.yaml ] && ! cmp -s /tmp/services.yaml /data/config/services.yaml; then
-              cp /tmp/services.yaml /data/config/services.yaml
-              echo "[hola] services.yaml updated"
+              # Write in place, never `cp`: BusyBox cp unlinks and recreates the
+              # target, which needs write access to the directory, not just the
+              # file, and it reported "updated" when that failed. The write can
+              # fail briefly at startup, before Homepage has chowned /app/config
+              # (PUID above), and the next pass retries.
+              if cat /tmp/services.yaml > /data/config/services.yaml; then
+                echo "[hola] services.yaml updated"
+              else
+                echo "[hola] services.yaml not writable yet; retrying"
+              fi
             fi
           fi
           sleep 20

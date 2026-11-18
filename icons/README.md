@@ -35,6 +35,11 @@ the apps they represent. SVGs were sourced from community icon sets:
   [get2knowio/running-man](https://github.com/get2knowio/running-man/blob/main/frontend/public/favicon.svg)
   (`frontend/public/favicon.svg`), used as-is.
 
+- `tuxee.svg`: drawn for this repo (a folder with a shell prompt), not
+  upstream's logo. Tuxee's code is MIT, but its logo artwork is a brand mark
+  of Agent Zero, s.r.o. and the licence says nothing about it, so the package
+  carries its own.
+
 ## Adding / updating an icon
 
 1. Drop `icons/<name>.svg` here (prefer SVG; match the package's `id`).

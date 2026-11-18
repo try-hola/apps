@@ -1,6 +1,6 @@
 services:
   webtop:
-    image: lscr.io/linuxserver/webtop:ubuntu-kde-f0194e9c-ls167@sha256:ed6255021979189defbe994d87280bda9fff8a9dba33bbdb2a7bb0962ac0a7e0
+    image: lscr.io/linuxserver/webtop:ubuntu-kde-aca12e9a-ls187@sha256:0284659147534126fa9d727042fdfa14e5b2bf55162118548be03a5e46ccef9e
     environment:
       PUID: ${PUID}
       PGID: ${PGID}
