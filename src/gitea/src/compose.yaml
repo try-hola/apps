@@ -2,7 +2,7 @@ services:
   gitea:
     # Gitea dropped the historical "1." prefix: 28.x is the direct successor of
     # 1.27 (it was 1.28 in development). https://blog.gitea.com/release-of-28.0.0
-    image: gitea/gitea:28.2@sha256:30777c91280d973fa02be48b1ade735bd6859e8f6f7af3b4444d519437852504
+    image: gitea/gitea:28.4@sha256:aa90e8f00b755b0d665214ab9c14447ea44d3190dbe6b6d0cb46cd9c4f55d309
     environment:
       USER_UID: "1000"
       USER_GID: "1000"
