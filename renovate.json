@@ -24,6 +24,12 @@
       "description": "The Craft Apps image is built in this repo (images/craft-apps/) under content-hash tags, which have no order to compare. Its own weekly workflow (craft-apps-image.yml) proposes the bump, already smoke-tested.",
       "matchPackageNames": ["ghcr.io/try-hola/craft-apps-web"],
       "enabled": false
+    },
+    {
+      "description": "Tuxee's upstream rebuilds its release tags every day (refreshed Debian base), so a digest-only update for the SAME tag appears almost daily. Batch those into one PR a week. New Tuxee versions (tag changes) are not affected and still arrive as soon as they're released.",
+      "matchPackageNames": ["agent0ai/tuxee"],
+      "matchUpdateTypes": ["digest"],
+      "schedule": ["before 6am on monday"]
     }
   ]
 }
