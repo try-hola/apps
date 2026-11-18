@@ -2,7 +2,7 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
   "dependencyDashboard": true,
-  "enabledManagers": ["docker-compose", "github-actions"],
+  "enabledManagers": ["docker-compose", "dockerfile", "github-actions"],
   "packageRules": [
     {
       "description": "Catalog app upstream container images (src/<app>/src/compose.yaml). One PR per app, never auto-merged — a human must also bump the Hola bundle version and review the upgrade/backup manifest metadata.",
@@ -13,6 +13,17 @@
       "separateMinorPatch": true,
       "prBodyNotes": [
         "⚠️ This bumps the **upstream image** (tag + digest) only. Before merging, also bump the **Hola bundle version** (`src/<app>/package.json` + `src/<app>/src/manifest.json` — Hola's semver describes impact on the *Hola user*, not upstream's number) and review whether the manifest's `upgrade`/`backup` blocks need changes. CI regenerates `catalog.json` on merge."
+      ]
+    },
+    {
+      "description": "Base images of the images built in this repo (images/<name>/Dockerfile, e.g. craft-apps-web on nginx-unprivileged). These were not covered before, so the craft-apps nginx base drifted to 1.29 while CVE-2026-123633 was fixed in 1.31.9. A Renovate branch that touches images/craft-apps/ triggers craft-apps-image.yml, which builds and smoke-tests the image, so the PR checks show whether the new base works.",
+      "matchManagers": ["dockerfile"],
+      "matchFileNames": ["images/**"],
+      "labels": ["dependencies", "image-base"],
+      "automerge": false,
+      "pinDigests": true,
+      "prBodyNotes": [
+        "⚠️ This bumps the **base image** of an image built in this repo. Merging rebuilds that image under a new content-hash tag (the `Craft Apps image` job summary prints the new `image@digest`), but it does **not** re-pin the bundle. After merging, open a follow-up PR that pins that digest in `src/<bundle>/src/compose.yaml` and bumps the bundle patch version (`package.json` + `manifest.json`)."
       ]
     },
     {
