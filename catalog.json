@@ -262,10 +262,10 @@
       "tags": [],
       "versions": [
         {
-          "version": "3.0.2",
+          "version": "3.0.3",
           "channel": "stable",
           "refs": {
-            "oci": "ghcr.io/try-hola/paperless-ngx:3.0.2"
+            "oci": "ghcr.io/try-hola/paperless-ngx:3.0.3"
           }
         }
       ]
