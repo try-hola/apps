@@ -1,7 +1,7 @@
 # Craft Apps: the upstream web builds of the storytold "Craft" apps plus a landing
 # page, served as static files by unprivileged nginx (uid 101, port 8080).
 # Build context is this directory after `node scripts/build.mjs` has filled dist/.
-FROM nginxinc/nginx-unprivileged:1.29-alpine@sha256:0c79d56aee561a1d81c63f00eee5fb5fe29279560cdc55e91425133104c7fbe6
+FROM nginxinc/nginx-unprivileged:1.31-alpine@sha256:b5047b9b76845eac124358373c6852377c52e4b05834a47647e955dd91cb8f1e
 
 LABEL org.opencontainers.image.title="craft-apps-web" \
       org.opencontainers.image.description="Official web builds of the open-source Craft apps (MIT OR Apache-2.0), served by nginx" \
