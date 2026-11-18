@@ -13,7 +13,7 @@ containers:
 
 | Service | Image | Role |
 | --- | --- | --- |
-| `postiz` | `ghcr.io/gitroomhq/postiz-app:v2.21.9` | The app (frontend + API, port 5000) |
+| `postiz` | `ghcr.io/gitroomhq/postiz-app:v2.26.0` | The app (frontend + API, port 5000) |
 | `postiz-postgres` | `postgres:17-alpine` | Postiz's database |
 | `postiz-redis` | `redis:7.2-alpine` | Cache / queues |
 | `temporal` | `temporalio/auto-setup:1.28.1` | Scheduling workflows |
