@@ -107,6 +107,41 @@ same-version re-promotes and rollbacks pass through. Only set `minFromVersion` /
 `waypoints` when upstream genuinely requires it — they **block** otherwise-valid
 upgrades.
 
+#### One-way data migrations are a bundle major bump
+
+Hola (0.11.0-rc.13+) uses the `upgrade` block to decide whether a **rollback** is safe.
+If the rollback crosses a one-way migration, a plain `hola rollback` is refused with
+`ROLLBACK_REQUIRES_DATA_RESTORE`. The operator then has to restore the pre-upgrade
+snapshot (`--restore-data`, or the dashboard's pre-ticked checkbox) or explicitly
+choose `--image-only`. Without the refusal, the old image would start on the
+migrated database and crash-loop. That is exactly what happened with Gitea
+1.27 ← 28 ("database … is for a newer Gitea").
+
+A release counts as one-way only if it declares `breaking: true` or
+`preUpgradeBackup: "required"` **and** its `upgrade` block differs from the block of
+the release being rolled back *to*. A **different major counts as a new migration**
+even when the blocks are identical. The comparison uses `breaking`,
+`preUpgradeBackup`, `minFromVersion` and `waypoints`, and ignores `upgradeNotesUrl`.
+This lets a major's patch bumps keep copying its block (uptime-kuma 2.0.2 and 2.0.3
+are both `breaking: true, required`) without making a patch rollback within the
+major look one-way.
+
+The catch is that no manifest field says *which* origin versions a migration
+applies to, so the guard depends on this packaging rule:
+
+- **Ship every new one-way data migration as a bundle MAJOR bump**, with its own
+  `upgrade` block (`preUpgradeBackup: "required"`, plus `breaking: true` when it
+  is). This covers upstream images whose old version cannot read the new schema,
+  even when upstream calls the release a minor or patch. Hola's semver describes
+  the impact on the Hola user.
+- **Patch bumps that don't migrate data** may keep copying the major's block.
+- **Never ship a new one-way migration as a same-major patch with a copied block.**
+  For example, at 2.0.2 `{breaking: true, preUpgradeBackup: "required"}`, a 2.0.3
+  whose upstream migrates the database again but keeps the identical block would
+  be allowed a plain rollback to 2.0.2, and the app would crash-loop. If such a
+  migration truly has to ship inside a major, its block must differ from every
+  earlier release of that major. Changing only `upgradeNotesUrl` doesn't count.
+
 ### Capability contracts (`provides` / `accepts`)
 
 A **capability contract** is a named, versioned relationship where one app performs
