@@ -14,7 +14,7 @@
 # platform's default no-new-privileges hardening is left in place.
 services:
   tuxee:
-    image: agent0ai/tuxee:1.4.0@sha256:3175024d09f8f998f0c1c600512b5341f96c9a9d2f7d849adeccc6ab30e57352
+    image: agent0ai/tuxee:1.4.1@sha256:762152e1c5413a0cfb88419e2b5dfb34cf79e8aa6d94b2439306cc6b1ed4bea3
     environment:
       # Tuxee's login password for `root`. The entrypoint applies it with
       # chpasswd on the FIRST start of each new container, then removes it from
