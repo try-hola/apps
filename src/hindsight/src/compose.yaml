@@ -72,7 +72,7 @@ services:
         condition: service_healthy
 
   hindsight-ui:
-    image: ghcr.io/vectorize-io/hindsight-control-plane:1.2.1@sha256:74a113e1f02ace9e8feed954e6b42282e9e3d33b7e0b6d528158d05902552a9a
+    image: ghcr.io/vectorize-io/hindsight-control-plane:1.2.3@sha256:29c8fd38a6408b76f08219badc1e506b1b3bb77264d8e1cdfc327e4f955d99f8
     environment:
       HINDSIGHT_CP_DATAPLANE_API_URL: "http://hindsight-api:8888"
       HINDSIGHT_CP_DATAPLANE_API_KEY: "${HINDSIGHT_API_KEY}"
