@@ -1,0 +1,103 @@
+# Omnigraph server — a typed, branchable graph database for agents
+# (https://github.com/ModernRelay/omnigraph, MIT). Packaged for Hola: Traefik-only
+# ingress (no host ports), all persistence under ${HOLA_APP_DATA}.
+#
+# There is no web UI. omnigraph-server is an HTTP API (/graphs/…, /cluster/…) plus a
+# built-in MCP endpoint (/mcp) on one port. People reach it with the `omnigraph` CLI,
+# the TypeScript SDK or Omnigraph Studio (a desktop app); agents reach it over MCP.
+#
+# Two services:
+#   omnigraph       the server, booted from a local cluster root at
+#                   ${HOLA_APP_DATA}/cluster.
+#   omnigraph-init  one-shot. The server refuses to boot from an unapplied root, so on
+#                   first start this applies an EMPTY cluster (no graphs) whose cluster
+#                   policy lets the generated admin token manage configuration. Graphs,
+#                   schemas, stored queries and graph policies are then added remotely
+#                   with `omnigraph cluster apply --target <this server>`. It also hands
+#                   the root to the image's non-root user (uid 999), because Hola
+#                   creates bind sources root-owned. Later starts only re-chown.
+#
+# Auth (manifest auth.mode "none"): the server enforces its own bearer auth on every
+# route except /healthz, /readyz and /openapi.json, and refuses to start without a
+# credential source. A forward-auth gate would add nothing: there is no page for a
+# browser to sign in to, and the CLI, SDK and MCP clients can't complete an SSO login.
+services:
+  omnigraph:
+    image: docker.io/modernrelay/omnigraph-server:v0.16.0@sha256:8668bbed2c267cd826143867cbfc5a01fd56e5e546ca4a8080eb840e39df2eb3
+    environment:
+      # The image's entrypoint turns these into `--cluster … --bind …`.
+      OMNIGRAPH_CLUSTER: "/var/lib/omnigraph/cluster"
+      OMNIGRAPH_BIND: "0.0.0.0:8080"
+      # One static token, for actor `hola-admin`. The actor is what the cluster and graph
+      # policies name; the token only selects it. Hex, so it is safe inside the JSON.
+      OMNIGRAPH_SERVER_BEARER_TOKENS_JSON: '{"hola-admin":"${OMNIGRAPH_TOKEN}"}'
+      # The MCP SDK refuses any Host it does not know (403). Traefik forwards the public
+      # host, so name it.
+      OMNIGRAPH_MCP_ALLOWED_HOSTS: "${HOLA_APP_HOST}"
+      # Compose's default 10 s stop timeout is shorter than the server's 25 s drain;
+      # stop_grace_period below gives it room.
+      OMNIGRAPH_SHUTDOWN_GRACE_SECONDS: "25"
+    volumes:
+      - ${HOLA_APP_DATA}/cluster:/var/lib/omnigraph/cluster
+    expose:
+      - "8080"
+    stop_grace_period: 40s
+    healthcheck:
+      # Upstream's own probe. /readyz is the readiness signal, but it reports 503 while
+      # any graph is loading or when every graph is blocked, which says nothing about
+      # whether the process is up.
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      omnigraph-init:
+        condition: service_completed_successfully
+
+  omnigraph-init:
+    # Same image, so nothing extra to pull. `restart: "no"` is REQUIRED: Hola applies a
+    # default restart policy to services that declare none, which would restart this
+    # after it exits 0, so it would never reach service_completed_successfully.
+    image: docker.io/modernrelay/omnigraph-server:v0.16.0@sha256:8668bbed2c267cd826143867cbfc5a01fd56e5e546ca4a8080eb840e39df2eb3
+    restart: "no"
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -eu
+        root=/var/lib/omnigraph/cluster
+        if [ ! -e "$$root/__cluster/state.json" ]; then
+          echo "[hola] no applied cluster at $$root; applying the initial empty cluster"
+          bundle=$$(mktemp -d)
+          cat > "$$bundle/cluster.yaml" <<'EOF'
+        version: 1
+        metadata:
+          name: hola
+        graphs: {}
+        policies:
+          cluster-access:
+            file: cluster.policy.yaml
+            applies_to: [cluster]
+        EOF
+          cat > "$$bundle/cluster.policy.yaml" <<'EOF'
+        version: 1
+        groups:
+          admins: [hola-admin]
+        rules:
+          - id: admins-manage-config
+            allow:
+              actors: { group: admins }
+              actions: [config_manage]
+          - id: admins-list-graphs
+            allow:
+              actors: { group: admins }
+              actions: [graph_list]
+        EOF
+          omnigraph cluster apply --target "$$root" --config "$$bundle" --as hola-admin
+          rm -rf "$$bundle"
+        fi
+        chown -R 999:999 "$$root"
+        echo "[hola] cluster root ready"
+    volumes:
+      - ${HOLA_APP_DATA}/cluster:/var/lib/omnigraph/cluster

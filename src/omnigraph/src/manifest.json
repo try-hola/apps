@@ -1,0 +1,40 @@
+{
+  "name": "omnigraph",
+  "version": "0.1.0-rc.1",
+  "title": "Omnigraph",
+  "description": "A typed graph database for AI agents, with git-style branches and merges, graph, vector and full-text search in one query, and Cedar access policies. Agents connect over MCP; people use the omnigraph CLI, the TypeScript SDK or the Omnigraph Studio desktop app. Starts empty: you add graphs with `omnigraph cluster apply`.",
+  "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/omnigraph.svg",
+  "category": "developer-tools",
+  "tags": ["graph", "database", "agents", "mcp", "ai"],
+  "ingress": {
+    "service": "omnigraph",
+    "port": 8080
+  },
+  "defaults": {
+    "ports": [
+      {
+        "container": 8080,
+        "protocol": "tcp"
+      }
+    ]
+  },
+  "defaultEnv": [
+    {
+      "key": "OMNIGRAPH_TOKEN",
+      "value": "",
+      "isSecret": true,
+      "required": true,
+      "label": "Admin Token",
+      "description": "Bearer token for the server's `hola-admin` actor, used by the omnigraph CLI, SDKs and MCP clients (`Authorization: Bearer <token>`). It can change the cluster's configuration and, under the graph policies you apply, read and write graphs. Generated for you; find it later under this app's configuration.",
+      "generate": { "kind": "hex", "length": 32 }
+    }
+  ],
+  "auth": {
+    "mode": "none"
+  },
+  "upgrade": {
+    "preUpgradeBackup": "recommended",
+    "upgradeNotesUrl": "https://github.com/ModernRelay/omnigraph/releases"
+  },
+  "accepts": ["backup@1", "restore@1"]
+}

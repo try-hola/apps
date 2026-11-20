@@ -39,6 +39,9 @@ the apps they represent. SVGs were sourced from community icon sets:
   upstream's logo. Tuxee's code is MIT, but its logo artwork is a brand mark
   of Agent Zero, s.r.o. and the licence says nothing about it, so the package
   carries its own.
+- `omnigraph.svg`: drawn for this repo (three linked nodes with a branch),
+  not upstream's wordmark. Omnigraph's code is MIT, but the licence says
+  nothing about its logo artwork, so the package carries its own.
 
 ## Adding / updating an icon
 
