@@ -19,6 +19,7 @@ at `<app>.<HOLA_BASE_DOMAIN>` — **no host ports**, ingress is Traefik-only).
 | 📷 Immich | Self-hosted photo & video management |
 | 🍲 Mealie | Self-hosted recipe manager & meal planner |
 | 🔗 n8n | Workflow automation tool |
+| 🕸️ Omnigraph | Typed, branchable graph database for AI agents (HTTP API + MCP) |
 | 📄 Paperless-ngx | Document management — scan, index, and archive your documents |
 | 📅 Postiz | Open-source social media scheduling tool with AI features |
 | 📟 Tuxee | A tiny Debian Linux with a browser UI for files and persistent terminals |
