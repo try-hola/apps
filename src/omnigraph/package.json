@@ -1,6 +1,6 @@
 {
   "name": "omnigraph",
-  "version": "0.1.0-rc.1",
+  "version": "0.1.0",
   "description": "Omnigraph server — a typed, branchable graph database for AI agents, over HTTP and MCP (Hola app package)",
   "license": "MIT",
   "oci": {
