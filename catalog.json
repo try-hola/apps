@@ -247,6 +247,29 @@
       ]
     },
     {
+      "id": "omnigraph",
+      "name": "Omnigraph",
+      "description": "A typed graph database for AI agents, with git-style branches and merges, graph, vector and full-text search in one query, and Cedar access policies. Agents connect over MCP; people use the omnigraph CLI, the TypeScript SDK or the Omnigraph Studio desktop app. Starts empty: you add graphs with `omnigraph cluster apply`.",
+      "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/omnigraph.svg",
+      "category": "developer-tools",
+      "tags": [
+        "graph",
+        "database",
+        "agents",
+        "mcp",
+        "ai"
+      ],
+      "versions": [
+        {
+          "version": "0.1.0",
+          "channel": "stable",
+          "refs": {
+            "oci": "ghcr.io/try-hola/omnigraph:0.1.0"
+          }
+        }
+      ]
+    },
+    {
       "id": "paperless-ngx",
       "name": "Paperless-ngx",
       "description": "Self-hosted document management system: scan, index, and archive your documents",
