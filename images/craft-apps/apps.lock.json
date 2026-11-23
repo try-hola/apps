@@ -31,11 +31,11 @@
       "sha256": "57147383a46eaab3b0cc036acf9443b221450c6a19f5dc303ae165bb9678b8cb"
     },
     "pdfcraft": {
-      "version": "0.21.1",
-      "tag": "v0.21.1",
-      "released": "2026-11-12",
-      "url": "https://github.com/storytold/pdfcraft/releases/download/v0.21.1/pdfcraft-web-0.21.1.zip",
-      "sha256": "fe9708d46af191aebb56f70eb32cf8b112b0b9452d17ae6ba3a8c4a8665fe748"
+      "version": "0.22.0",
+      "tag": "v0.22.0",
+      "released": "2026-11-23",
+      "url": "https://github.com/storytold/pdfcraft/releases/download/v0.22.0/pdfcraft-web-0.22.0.zip",
+      "sha256": "5da6db0d6d0d5ae517e9bb62c39eb57285f8befd81ef6555e9a807ccf5da5954"
     },
     "effectcraft": {
       "version": "0.24.1",
