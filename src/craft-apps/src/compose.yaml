@@ -12,7 +12,7 @@
 # job proposes the image bump; Renovate leaves this pin alone.
 services:
   craft-apps:
-    image: ghcr.io/try-hola/craft-apps-web:5ade1e317145@sha256:6088eb218613140ede72ba72bbd8d06ff468edd7b24a41aaa5a1256ff46cf577
+    image: ghcr.io/try-hola/craft-apps-web:32e5b902d3c8@sha256:492add5d4f2e1cf63bcbf6f9b6b0672ee092c758a14a0d774e6fc98fe3817124
     expose:
       - "8080"
     # Nothing is written at run time except nginx's pid and temp files.
