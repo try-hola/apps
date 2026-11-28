@@ -15,6 +15,7 @@ at `<app>.<HOLA_BASE_DOMAIN>` — **no host ports**, ingress is Traefik-only).
 | 📜 Dozzle | Live log viewer for every app on the host |
 | 🍵 Gitea | Self-hosted Git service |
 | 🛩️ Hangar | Self-hosted fleet control plane — git repo hygiene & remediation across providers |
+| 🧠 Hindsight | Long-term memory for AI agents, over REST and MCP |
 | 🏠 Homepage | A highly customizable application dashboard / start page |
 | 📷 Immich | Self-hosted photo & video management |
 | 🍲 Mealie | Self-hosted recipe manager & meal planner |
