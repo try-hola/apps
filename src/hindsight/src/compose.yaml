@@ -2,7 +2,7 @@
 # Packaged for Hola: Traefik-only ingress (no host ports), all persistence under
 # ${HOLA_APP_DATA}.
 #
-# Four services:
+# Five services:
 #   hindsight      nginx, the one ingress Hola routes to. Upstream serves the API and the
 #                  UI on two ports; Hola gives an app one, so this splits by path:
 #                    /v1/…  and  /mcp…   → hindsight-api  (agents: REST + MCP)
@@ -13,6 +13,8 @@
 #   hindsight-ui   upstream's control plane (Next.js). It calls the API server-side with
 #                  the API key, so the browser never holds it.
 #   hindsight-db   Postgres 18 with pgvector.
+#   hindsight-api-init  one-shot: hands the SuperGrok credential directory
+#                  (${HOLA_APP_DATA}/llm-auth) to the API's unprivileged user.
 #
 # Auth is split by path (manifest auth.forwardAuth.bypassPaths):
 #   - The UI is behind Authentik forward-auth, like any other Hola app.
@@ -54,9 +56,17 @@ services:
       HINDSIGHT_API_LLM_API_KEY: "${LLM_API_KEY:-}"
       HINDSIGHT_API_LLM_MODEL: "${LLM_MODEL:-}"
       HINDSIGHT_API_LLM_BASE_URL: "${LLM_BASE_URL:-}"
+      # The SuperGrok subscription (provider xai-oauth) keeps a device-code OAuth
+      # credential that Hindsight REWRITES on every refresh (xAI rotates the refresh
+      # token), so it lives on a writable app-data mount rather than in the container,
+      # where a recreate (config change, upgrade, restore) would lose it. Unused by
+      # every other provider. Sign-in: see the README.
+      HINDSIGHT_API_XAI_OAUTH_TOKEN_PATH: "/var/lib/hindsight/llm-auth/xai_oauth.json"
       # Bearer-key auth on the REST API and MCP (see the header).
       HINDSIGHT_API_TENANT_EXTENSION: "hindsight_api.extensions.builtin.tenant:ApiKeyTenantExtension"
       HINDSIGHT_API_TENANT_API_KEY: "${HINDSIGHT_API_KEY}"
+    volumes:
+      - ${HOLA_APP_DATA}/llm-auth:/var/lib/hindsight/llm-auth
     expose:
       - "8888"
     healthcheck:
@@ -70,6 +80,28 @@ services:
     depends_on:
       hindsight-db:
         condition: service_healthy
+      hindsight-api-init:
+        condition: service_completed_successfully
+
+  hindsight-api-init:
+    # The API image runs as the unprivileged `hindsight` user and never chowns a
+    # directory itself, while Docker creates a missing bind source root-owned. Hand
+    # the credential directory to that user before the API starts. Same image, so
+    # nothing extra to pull. `restart: "no"` is REQUIRED: Hola applies a default
+    # restart policy to services that declare none, which would restart this after
+    # it exits 0, so it would never reach service_completed_successfully.
+    image: ghcr.io/vectorize-io/hindsight-api:1.2.1@sha256:662109ece429871a81e036427fb93fbb09ba9dc4b01d320d356f114c0e1aedd8
+    restart: "no"
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -eu
+        chown hindsight:hindsight /var/lib/hindsight/llm-auth
+        chmod 700 /var/lib/hindsight/llm-auth
+        echo "[hola] /var/lib/hindsight/llm-auth is owned by the hindsight user"
+    volumes:
+      - ${HOLA_APP_DATA}/llm-auth:/var/lib/hindsight/llm-auth
 
   hindsight-ui:
     image: ghcr.io/vectorize-io/hindsight-control-plane:1.2.1@sha256:74a113e1f02ace9e8feed954e6b42282e9e3d33b7e0b6d528158d05902552a9a
