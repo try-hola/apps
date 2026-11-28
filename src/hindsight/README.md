@@ -14,6 +14,7 @@ reflecting. Pick it at install:
 | --- | --- |
 | **Anthropic** (default) | An Anthropic API key. The default model is `claude-haiku-4-5`; set *LLM Model* to change it. |
 | OpenAI, Gemini, Groq | That provider's API key. |
+| **xAI Grok, SuperGrok subscription** | Nothing at install. Pick *xAI Grok, SuperGrok subscription*, then sign in once (below). Usage counts against the subscription; the default model is `grok-4.5`. For a metered xAI API key instead, pick *OpenAI*, set *LLM Base URL* to `https://api.x.ai/v1` and enter the key. |
 | Ollama, LM Studio | *LLM Base URL* pointing at your server (e.g. `http://ollama.lan:11434/v1`); no key. |
 | None | Nothing. Retain stores the raw text and recall searches it; no fact extraction or reflect. |
 
@@ -22,6 +23,24 @@ locally inside the container, so the LLM key is the only external dependency. Wi
 the text agents retain is sent to that provider for extraction.
 
 Plan on 3–4 GB of RAM. The API image is about 2.8 GB because it carries the local models.
+
+### Signing in to a SuperGrok subscription
+
+The `xai-oauth` provider uses xAI's device-code sign-in, which the running service never starts on
+its own. Run it once on the Hola host after install, in the API container:
+
+```sh
+# <deployment-id> is the ID `hola deployments` lists, e.g. hindsight-1a2b3c4d
+docker exec -it hola-<deployment-id>-hindsight-api-1 \
+  python -m hindsight_api.engine.providers.xai_oauth_auth login
+```
+
+It prints a verification URL and a code; approve them in a browser signed in to the subscribed xAI
+account. The credential is written to `${HOLA_APP_DATA}/llm-auth/xai_oauth.json` (owner-only), and
+Hindsight rewrites it on each token refresh, because xAI rotates the refresh token. It is on app
+data, so it survives redeploys and upgrades. It is **not** in the backup: after a restore onto a new
+host, sign in again. xAI may refuse API access on some SuperGrok tiers (`403`); Hindsight reports
+that as an entitlement error, and an API-key provider is the fallback.
 
 ## Connecting an agent
 
@@ -49,6 +68,7 @@ The REST API is under `https://<app-host>/v1/` with the same key (e.g.
 | `hindsight-api` | `vectorize-io/hindsight-api` (full tag) | Memory server, REST and MCP. |
 | `hindsight-ui` | `vectorize-io/hindsight-control-plane` | Web UI. Calls the API server-side with the key, so the browser never holds it. |
 | `hindsight-db` | `pgvector/pgvector` (Postgres 18) | All state: `${HOLA_APP_DATA}/postgres`. |
+| `hindsight-api-init` | `vectorize-io/hindsight-api` | One-shot, before the API starts: hands `${HOLA_APP_DATA}/llm-auth` (the SuperGrok credential) to the API's unprivileged user. |
 
 ## Auth
 

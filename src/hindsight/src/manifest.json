@@ -1,6 +1,6 @@
 {
   "name": "hindsight",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "title": "Hindsight",
   "description": "Long-term memory for AI agents. Agents retain, recall and reflect on what they learn through a REST API or MCP (Claude Code, Cursor and others), with a web UI to browse memory banks. Uses an LLM of your choice, such as an Anthropic API key; embeddings run locally.",
   "icon": "https://raw.githubusercontent.com/try-hola/apps/main/icons/hindsight.svg",
@@ -24,13 +24,14 @@
       "value": "anthropic",
       "isSecret": false,
       "label": "LLM Provider",
-      "description": "Who runs the model Hindsight uses to extract, consolidate and reflect on memories. Embeddings and reranking run locally either way.",
+      "description": "Who runs the model Hindsight uses to extract, consolidate and reflect on memories. Embeddings and reranking run locally either way. xAI Grok on a SuperGrok subscription needs no key: after install, run the one-time sign-in in the README.",
       "type": "enum",
       "options": [
         { "value": "anthropic", "label": "Anthropic" },
         { "value": "openai", "label": "OpenAI" },
         { "value": "gemini", "label": "Google Gemini" },
         { "value": "groq", "label": "Groq" },
+        { "value": "xai-oauth", "label": "xAI Grok, SuperGrok subscription (sign in after install)" },
         { "value": "ollama", "label": "Ollama (set the Base URL)" },
         { "value": "lmstudio", "label": "LM Studio (set the Base URL)" },
         { "value": "none", "label": "None: store and search raw text, no fact extraction" }
@@ -42,7 +43,7 @@
       "isSecret": true,
       "required": false,
       "label": "LLM API Key",
-      "description": "API key for the provider above, e.g. an Anthropic key (sk-ant-…). Leave empty for a local runtime such as Ollama."
+      "description": "API key for the provider above, e.g. an Anthropic key (sk-ant-…). Leave empty for a local runtime such as Ollama, or for the SuperGrok subscription."
     },
     {
       "key": "LLM_MODEL",
