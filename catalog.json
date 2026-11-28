@@ -170,10 +170,10 @@
       ],
       "versions": [
         {
-          "version": "0.1.1",
+          "version": "0.2.0",
           "channel": "stable",
           "refs": {
-            "oci": "ghcr.io/try-hola/hindsight:0.1.1"
+            "oci": "ghcr.io/try-hola/hindsight:0.2.0"
           }
         }
       ]
